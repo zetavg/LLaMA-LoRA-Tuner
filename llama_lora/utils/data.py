@@ -1,5 +1,6 @@
 import os
 import shutil
+import fnmatch
 
 from ..globals import Global
 
@@ -19,3 +20,9 @@ def copy_sample_data_if_not_exists(source, destination):
 
     print(f"Copying sample data to \"{destination}\"")
     shutil.copytree(source, destination)
+
+
+def get_available_template_names():
+    templates_directory_path = os.path.join(Global.data_dir, "templates")
+    all_files = os.listdir(templates_directory_path)
+    return [os.path.splitext(filename)[0] for filename in all_files if fnmatch.fnmatch(filename, "*.json")]
