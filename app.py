@@ -6,6 +6,7 @@ import gradio as gr
 
 from llama_lora.globals import Global
 from llama_lora.ui.main_page import main_page
+from llama_lora.utils.data import init_data_dir
 
 
 def main(
@@ -28,13 +29,12 @@ def main(
 
     Global.base_model = base_model
     Global.data_dir = data_dir
-    Global.data_dir = data_dir
     Global.load_8bit = load_8bit
 
     Global.ui_show_sys_info = ui_show_sys_info
 
     os.makedirs(data_dir, exist_ok=True)
-    os.makedirs(f"{data_dir}/lora", exist_ok=True)
+    init_data_dir()
 
     with gr.Blocks(title=Global.ui_title) as demo:
         main_page()
