@@ -140,6 +140,16 @@ def handle_prompt_template_change(prompt_template):
     return gr_updates
 
 
+def update_prompt_preview(prompt_template,
+                          variable_0, variable_1, variable_2, variable_3,
+                          variable_4, variable_5, variable_6, variable_7):
+    variables = [variable_0, variable_1, variable_2, variable_3,
+                 variable_4, variable_5, variable_6, variable_7]
+    prompter = Prompter(prompt_template)
+    prompt = prompter.generate_prompt(variables)
+    return gr.Textbox.update(value=prompt)
+
+
 def inference_ui():
     with gr.Blocks() as inference_ui_blocks:
         with gr.Row():
@@ -154,7 +164,7 @@ def inference_ui():
                 elem_id="inference_prompt_template",
             )
             reload_selections_button = gr.Button(
-                "Reload",
+                "↻",
                 elem_id="inference_reload_selections_button"
             )
             reload_selections_button.style(
@@ -162,8 +172,8 @@ def inference_ui():
                 size="sm")
         with gr.Row():
             with gr.Column():
-                with gr.Column():
-                    variable_0 = gr.Textbox(lines=2, label="Prompt")
+                with gr.Column(elem_id="inference_prompt_box"):
+                    variable_0 = gr.Textbox(lines=2, label="Prompt", placeholder="Tell me about alpecas and llamas.")
                     variable_1 = gr.Textbox(lines=2, label="", visible=False)
                     variable_2 = gr.Textbox(lines=2, label="", visible=False)
                     variable_3 = gr.Textbox(lines=2, label="", visible=False)
@@ -171,6 +181,10 @@ def inference_ui():
                     variable_5 = gr.Textbox(lines=2, label="", visible=False)
                     variable_6 = gr.Textbox(lines=2, label="", visible=False)
                     variable_7 = gr.Textbox(lines=2, label="", visible=False)
+
+                    with gr.Accordion("Preview", open=False, elem_id="inference_preview_prompt_container"):
+                        preview_prompt = gr.Textbox(
+                            show_label=False, interactive=False, elem_id="inference_preview_prompt")
 
                 with gr.Column():
                     with gr.Row():
@@ -224,7 +238,7 @@ def inference_ui():
                     )
             with gr.Column():
                 inference_output = gr.Textbox(
-                    lines=12, label="Output Text", elem_id="inference_output")
+                    lines=12, label="Output", elem_id="inference_output")
 
         reload_selections_button.click(
             reload_selections,
@@ -255,6 +269,34 @@ def inference_ui():
         stop_btn.click(fn=None, inputs=None, outputs=None,
                        cancels=[generate_event])
 
+        prompt_template.change(fn=update_prompt_preview, inputs=[prompt_template,
+                                                                 variable_0, variable_1, variable_2, variable_3,
+                                                                 variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        variable_0.change(fn=update_prompt_preview, inputs=[prompt_template,
+                                                            variable_0, variable_1, variable_2, variable_3,
+                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        variable_1.change(fn=update_prompt_preview, inputs=[prompt_template,
+                                                            variable_0, variable_1, variable_2, variable_3,
+                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        variable_2.change(fn=update_prompt_preview, inputs=[prompt_template,
+                                                            variable_0, variable_1, variable_2, variable_3,
+                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        variable_3.change(fn=update_prompt_preview, inputs=[prompt_template,
+                                                            variable_0, variable_1, variable_2, variable_3,
+                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        variable_4.change(fn=update_prompt_preview, inputs=[prompt_template,
+                                                            variable_0, variable_1, variable_2, variable_3,
+                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        variable_5.change(fn=update_prompt_preview, inputs=[prompt_template,
+                                                            variable_0, variable_1, variable_2, variable_3,
+                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        variable_6.change(fn=update_prompt_preview, inputs=[prompt_template,
+                                                            variable_0, variable_1, variable_2, variable_3,
+                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        variable_7.change(fn=update_prompt_preview, inputs=[prompt_template,
+                                                            variable_0, variable_1, variable_2, variable_3,
+                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+
     inference_ui_blocks.load(_js="""
     function inference_ui_blocks_js() {
       // Auto load options
@@ -269,51 +311,75 @@ def inference_ui():
       setTimeout(function () {
 
         tippy("#inference_prompt_template", {
-         placement: 'bottom-start',
-         delay: [500, 0],
-         content: 'Templates are loaded from the "templates" folder of your data directory. Be sure to select the template that matches your selected LoRA model to get the best results.',
+          placement: 'bottom-start',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content: 'Templates are loaded from the "templates" folder of your data directory. Be sure to select the template that matches your selected LoRA model to get the best results.',
+        });
+
+        tippy("#inference_reload_selections_button", {
+          placement: 'bottom-end',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content: 'Press to reload LoRA Model and Prompt Template selections.',
+        });
+
+        document.querySelector('#inference_preview_prompt_container .label-wrap').addEventListener('click', function () {
+          tippy("#inference_preview_prompt", {
+            placement: 'right',
+            delay: [500, 0],
+            animation: 'scale-subtle',
+            content: 'This is the input that will actually be sent to the language model.',
+          });
         });
 
         tippy("#inference_temperature", {
-         placement: 'right',
-         delay: [500, 0],
-         content: 'Controls randomness: Lowering results in less random completions. Higher values (e.g., 1.0) make the model generate more diverse and random outputs. As the temperature approaches zero, the model will become deterministic and repetitive.',
+          placement: 'right',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content: 'Controls randomness: Lowering results in less random completions. Higher values (e.g., 1.0) make the model generate more diverse and random outputs. As the temperature approaches zero, the model will become deterministic and repetitive.',
         });
 
         tippy("#inference_top_p", {
-         placement: 'right',
-         delay: [500, 0],
-         content: 'Controls diversity via nucleus sampling: only the tokens whose cumulative probability exceeds "top_p" are considered. 0.5 means half of all likelihood-weighted options are considered.',
+          placement: 'right',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content: 'Controls diversity via nucleus sampling: only the tokens whose cumulative probability exceeds "top_p" are considered. 0.5 means half of all likelihood-weighted options are considered.',
         });
 
         tippy("#inference_top_k", {
-         placement: 'right',
-         delay: [500, 0],
-         content: 'Controls diversity of the generated text by only considering the "top_k" tokens with the highest probabilities. This method can lead to more focused and coherent outputs by reducing the impact of low probability tokens.',
+          placement: 'right',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content: 'Controls diversity of the generated text by only considering the "top_k" tokens with the highest probabilities. This method can lead to more focused and coherent outputs by reducing the impact of low probability tokens.',
         });
 
         tippy("#inference_beams", {
-         placement: 'right',
-         delay: [500, 0],
-         content: 'Number of candidate sequences explored in parallel during text generation using beam search. A higher value increases the chances of finding high-quality, coherent output, but may slow down the generation process.',
+          placement: 'right',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content: 'Number of candidate sequences explored in parallel during text generation using beam search. A higher value increases the chances of finding high-quality, coherent output, but may slow down the generation process.',
         });
 
         tippy("#inference_repetition_penalty", {
-         placement: 'right',
-         delay: [500, 0],
-         content: 'Applies a penalty to the probability of tokens that have already been generated, discouraging the model from repeating the same words or phrases. The penalty is applied by dividing the token probability by a factor based on the number of times the token has appeared in the generated text.',
+          placement: 'right',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content: 'Applies a penalty to the probability of tokens that have already been generated, discouraging the model from repeating the same words or phrases. The penalty is applied by dividing the token probability by a factor based on the number of times the token has appeared in the generated text.',
         });
 
         tippy("#inference_max_new_tokens", {
-         placement: 'right',
-         delay: [500, 0],
-         content: 'Limits the maximum number of tokens generated in a single iteration.',
+          placement: 'right',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content: 'Limits the maximum number of tokens generated in a single iteration.',
         });
 
         tippy("#inference_stream_output", {
-         placement: 'right',
-         delay: [500, 0],
-         content: 'When enabled, generated text will be displayed in real-time as it is being produced by the model, allowing you to observe the text generation process as it unfolds.',
+          placement: 'right',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content: 'When enabled, generated text will be displayed in real-time as it is being produced by the model, allowing you to observe the text generation process as it unfolds.',
         });
 
       }, 100);
