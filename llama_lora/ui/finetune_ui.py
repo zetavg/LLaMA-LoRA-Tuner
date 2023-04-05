@@ -3,6 +3,7 @@ import json
 import time
 from datetime import datetime
 import gradio as gr
+import math
 from random_word import RandomWords
 
 from transformers import TrainerCallback
@@ -334,25 +335,21 @@ Train data (first 10):
             return message
 
         class UiTrainerCallback(TrainerCallback):
-            def on_epoch_begin(self, args, state, control, **kwargs):
+            def _on_progress(self, args, state, control):
                 if Global.should_stop_training:
                     control.should_training_stop = True
                 total_steps = (
                     state.max_steps if state.max_steps is not None else state.num_train_epochs * state.steps_per_epoch)
                 progress(
                     (state.global_step, total_steps),
-                    desc=f"Training... (Epoch {state.epoch}/{epochs}, Step {state.global_step}/{total_steps})"
+                    desc=f"Training... (Epoch {math.ceil(state.epoch)}/{epochs}, Step {state.global_step}/{total_steps})"
                 )
 
+            def on_epoch_begin(self, args, state, control, **kwargs):
+                self._on_progress(args, state, control)
+
             def on_step_end(self, args, state, control, **kwargs):
-                if Global.should_stop_training:
-                    control.should_training_stop = True
-                total_steps = (
-                    state.max_steps if state.max_steps is not None else state.num_train_epochs * state.steps_per_epoch)
-                progress(
-                    (state.global_step, total_steps),
-                    desc=f"Training... (Epoch {state.epoch}/{epochs}, Step {state.global_step}/{total_steps})"
-                )
+                self._on_progress(args, state, control)
 
         training_callbacks = [UiTrainerCallback]
 
