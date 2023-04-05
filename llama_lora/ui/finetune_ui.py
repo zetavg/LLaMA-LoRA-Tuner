@@ -360,7 +360,7 @@ Train data (first 10):
 
         Global.should_stop_training = False
 
-        return "Done. " + Global.train_fn(
+        return Global.train_fn(
             get_base_model(),  # base_model
             get_tokenizer(),  # tokenizer
             os.path.join(Global.data_dir, "lora_models",
@@ -535,13 +535,13 @@ def finetune_ui():
                 )
 
                 gradient_accumulation_steps = gr.Slider(
-                    minimum=1, maximum=10, step=1, value=32,
+                    minimum=1, maximum=10, step=1, value=1,
                     label="Gradient Accumulation Steps",
                     info="The number of steps to accumulate gradients before updating model parameters. This can be used to simulate a larger effective batch size without increasing memory usage."
                 )
 
                 epochs = gr.Slider(
-                    minimum=1, maximum=100, step=1, value=1,
+                    minimum=1, maximum=100, step=1, value=3,
                     label="Epochs",
                     info="The number of times to iterate over the entire training dataset. A larger number of epochs may improve model performance but also increase the risk of overfitting.")
 

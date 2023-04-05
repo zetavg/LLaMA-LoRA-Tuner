@@ -326,122 +326,144 @@ def inference_ui():
     function inference_ui_blocks_js() {
       // Auto load options
       setTimeout(function () {
-        document.getElementById("inference_reload_selections_button").click();
+        document.getElementById('inference_reload_selections_button').click();
 
         // Workaround default value not shown.
-        document.querySelector('#inference_lora_model input').value = "tloen/alpaca-lora-7b";
+        document.querySelector('#inference_lora_model input').value =
+          'tloen/alpaca-lora-7b';
       }, 100);
 
       // Add tooltips
       setTimeout(function () {
-
-        tippy("#inference_lora_model", {
+        tippy('#inference_lora_model', {
           placement: 'bottom-start',
           delay: [500, 0],
           animation: 'scale-subtle',
-          content: 'Select a LoRA model form your data directory, or type in a model name on HF (e.g.: <code>tloen/alpaca-lora-7b</code>).',
+          content:
+            'Select a LoRA model form your data directory, or type in a model name on HF (e.g.: <code>tloen/alpaca-lora-7b</code>).',
           allowHTML: true,
         });
 
-        tippy("#inference_prompt_template", {
+        tippy('#inference_prompt_template', {
           placement: 'bottom-start',
           delay: [500, 0],
           animation: 'scale-subtle',
-          content: 'Templates are loaded from the "templates" folder of your data directory. Be sure to select the template that matches your selected LoRA model to get the best results.',
+          content:
+            'Templates are loaded from the "templates" folder of your data directory. Be sure to select the template that matches your selected LoRA model to get the best results.',
         });
 
-        tippy("#inference_reload_selections_button", {
+        tippy('#inference_reload_selections_button', {
           placement: 'bottom-end',
           delay: [500, 0],
           animation: 'scale-subtle',
           content: 'Press to reload LoRA Model and Prompt Template selections.',
         });
 
-        document.querySelector('#inference_preview_prompt_container .label-wrap').addEventListener('click', function () {
-          tippy("#inference_preview_prompt", {
+        document
+          .querySelector('#inference_preview_prompt_container .label-wrap')
+          .addEventListener('click', function () {
+            tippy('#inference_preview_prompt', {
+              placement: 'right',
+              delay: [500, 0],
+              animation: 'scale-subtle',
+              content: 'This is the prompt that will be sent to the language model.',
+            });
+          });
+
+        function setTooltipForOptions() {
+          tippy('#inference_temperature', {
             placement: 'right',
             delay: [500, 0],
             animation: 'scale-subtle',
-            content: 'This is the prompt that will be sent to the language model.',
+            content:
+              'Controls randomness: Lowering results in less random completions. Higher values (e.g., 1.0) make the model generate more diverse and random outputs. As the temperature approaches zero, the model will become deterministic and repetitive.',
           });
-        });
 
-        tippy("#inference_temperature", {
-          placement: 'right',
-          delay: [500, 0],
-          animation: 'scale-subtle',
-          content: 'Controls randomness: Lowering results in less random completions. Higher values (e.g., 1.0) make the model generate more diverse and random outputs. As the temperature approaches zero, the model will become deterministic and repetitive.',
-        });
+          tippy('#inference_top_p', {
+            placement: 'right',
+            delay: [500, 0],
+            animation: 'scale-subtle',
+            content:
+              'Controls diversity via nucleus sampling: only the tokens whose cumulative probability exceeds "top_p" are considered. 0.5 means half of all likelihood-weighted options are considered.',
+          });
 
-        tippy("#inference_top_p", {
-          placement: 'right',
-          delay: [500, 0],
-          animation: 'scale-subtle',
-          content: 'Controls diversity via nucleus sampling: only the tokens whose cumulative probability exceeds "top_p" are considered. 0.5 means half of all likelihood-weighted options are considered.',
-        });
+          tippy('#inference_top_k', {
+            placement: 'right',
+            delay: [500, 0],
+            animation: 'scale-subtle',
+            content:
+              'Controls diversity of the generated text by only considering the "top_k" tokens with the highest probabilities. This method can lead to more focused and coherent outputs by reducing the impact of low probability tokens.',
+          });
 
-        tippy("#inference_top_k", {
-          placement: 'right',
-          delay: [500, 0],
-          animation: 'scale-subtle',
-          content: 'Controls diversity of the generated text by only considering the "top_k" tokens with the highest probabilities. This method can lead to more focused and coherent outputs by reducing the impact of low probability tokens.',
-        });
+          tippy('#inference_beams', {
+            placement: 'right',
+            delay: [500, 0],
+            animation: 'scale-subtle',
+            content:
+              'Number of candidate sequences explored in parallel during text generation using beam search. A higher value increases the chances of finding high-quality, coherent output, but may slow down the generation process.',
+          });
 
-        tippy("#inference_beams", {
-          placement: 'right',
-          delay: [500, 0],
-          animation: 'scale-subtle',
-          content: 'Number of candidate sequences explored in parallel during text generation using beam search. A higher value increases the chances of finding high-quality, coherent output, but may slow down the generation process.',
-        });
+          tippy('#inference_repetition_penalty', {
+            placement: 'right',
+            delay: [500, 0],
+            animation: 'scale-subtle',
+            content:
+              'Applies a penalty to the probability of tokens that have already been generated, discouraging the model from repeating the same words or phrases. The penalty is applied by dividing the token probability by a factor based on the number of times the token has appeared in the generated text.',
+          });
 
-        tippy("#inference_repetition_penalty", {
-          placement: 'right',
-          delay: [500, 0],
-          animation: 'scale-subtle',
-          content: 'Applies a penalty to the probability of tokens that have already been generated, discouraging the model from repeating the same words or phrases. The penalty is applied by dividing the token probability by a factor based on the number of times the token has appeared in the generated text.',
-        });
+          tippy('#inference_max_new_tokens', {
+            placement: 'right',
+            delay: [500, 0],
+            animation: 'scale-subtle',
+            content:
+              'Limits the maximum number of tokens generated in a single iteration.',
+          });
 
-        tippy("#inference_max_new_tokens", {
-          placement: 'right',
-          delay: [500, 0],
-          animation: 'scale-subtle',
-          content: 'Limits the maximum number of tokens generated in a single iteration.',
-        });
+          tippy('#inference_stream_output', {
+            placement: 'right',
+            delay: [500, 0],
+            animation: 'scale-subtle',
+            content:
+              'When enabled, generated text will be displayed in real-time as it is being produced by the model, allowing you to observe the text generation process as it unfolds.',
+          });
+        }
+        setTooltipForOptions();
 
-        tippy("#inference_stream_output", {
-          placement: 'right',
-          delay: [500, 0],
-          animation: 'scale-subtle',
-          content: 'When enabled, generated text will be displayed in real-time as it is being produced by the model, allowing you to observe the text generation process as it unfolds.',
-        });
-
+        const inference_options_accordion_toggle = document.querySelector(
+          '#inference_options_accordion .label-wrap'
+        );
+        if (inference_options_accordion_toggle) {
+          inference_options_accordion_toggle.addEventListener('click', function () {
+            setTooltipForOptions();
+          });
+        }
       }, 100);
 
       // Show/hide generate and stop button base on the state.
       setTimeout(function () {
         // Make the '#inference_output > .wrap' element appear
-        document.getElementById("inference_stop_btn").click();
+        document.getElementById('inference_stop_btn').click();
 
         setTimeout(function () {
           const output_wrap_element = document.querySelector(
-            "#inference_output > .wrap"
+            '#inference_output > .wrap'
           );
           function handle_output_wrap_element_class_change() {
-            if (Array.from(output_wrap_element.classList).includes("hide")) {
-              document.getElementById("inference_generate_btn").style.display =
-                "block";
-              document.getElementById("inference_stop_btn").style.display = "none";
+            if (Array.from(output_wrap_element.classList).includes('hide')) {
+              document.getElementById('inference_generate_btn').style.display =
+                'block';
+              document.getElementById('inference_stop_btn').style.display = 'none';
             } else {
-              document.getElementById("inference_generate_btn").style.display =
-                "none";
-              document.getElementById("inference_stop_btn").style.display = "block";
+              document.getElementById('inference_generate_btn').style.display =
+                'none';
+              document.getElementById('inference_stop_btn').style.display = 'block';
             }
           }
           new MutationObserver(function (mutationsList, observer) {
             handle_output_wrap_element_class_change();
           }).observe(output_wrap_element, {
             attributes: true,
-            attributeFilter: ["class"],
+            attributeFilter: ['class'],
           });
           handle_output_wrap_element_class_change();
         }, 500);

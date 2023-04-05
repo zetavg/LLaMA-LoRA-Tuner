@@ -182,6 +182,7 @@ def main_page_custom_css():
 
     #finetune_dataset_from_data_dir {
         border: 0;
+        box-shadow: none;
     }
 
     @media screen and (min-width: 640px) {
