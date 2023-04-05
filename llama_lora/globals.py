@@ -28,7 +28,7 @@ class Global:
     # UI related
     ui_title: str = "LLaMA-LoRA"
     ui_emoji: str = "🦙🎛️"
-    ui_subtitle: str = "Toolkit for examining and fine-tuning LLaMA models using low-rank adaptation (LoRA)."
+    ui_subtitle: str = "Toolkit for evaluating and fine-tuning LLaMA models with low-rank adaptation (LoRA)."
     ui_show_sys_info: bool = True
     ui_dev_mode: bool = False
 

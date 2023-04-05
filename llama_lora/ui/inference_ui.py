@@ -7,14 +7,17 @@ from transformers import GenerationConfig
 
 from ..globals import Global
 from ..models import get_model_with_lora, get_tokenizer, get_device
-from ..utils.data import get_available_template_names
+from ..utils.data import (
+    get_available_template_names,
+    get_available_lora_model_names,
+    get_path_of_available_lora_model)
 from ..utils.prompter import Prompter
 from ..utils.callbacks import Iteratorize, Stream
 
 device = get_device()
 
 
-def inference(
+def do_inference(
     lora_model_name,
     prompt_template,
     variable_0, variable_1, variable_2, variable_3,
@@ -27,85 +30,93 @@ def inference(
     max_new_tokens=128,
     stream_output=False,
     progress=gr.Progress(track_tqdm=True),
-    **kwargs,
 ):
-    variables = [variable_0, variable_1, variable_2, variable_3,
-                 variable_4, variable_5, variable_6, variable_7]
-    prompter = Prompter(prompt_template)
-    prompt = prompter.generate_prompt(variables)
+    try:
+        variables = [variable_0, variable_1, variable_2, variable_3,
+                     variable_4, variable_5, variable_6, variable_7]
+        prompter = Prompter(prompt_template)
+        prompt = prompter.generate_prompt(variables)
 
-    if Global.ui_dev_mode:
-        message = f"Currently in UI dev mode, not running actual inference.\n\nYour prompt is:\n\n{prompt}"
-        print(message)
-        time.sleep(1)
-        yield message
-        return
+        if "/" not in lora_model_name:
+            path_of_available_lora_model = get_path_of_available_lora_model(
+                lora_model_name)
+            if path_of_available_lora_model:
+                lora_model_name = path_of_available_lora_model
 
-    model = get_model_with_lora(lora_model_name)
-    tokenizer = get_tokenizer()
+        if Global.ui_dev_mode:
+            message = f"Currently in UI dev mode, not running actual inference.\n\nLoRA model: {lora_model_name}\n\nYour prompt is:\n\n{prompt}"
+            print(message)
+            time.sleep(1)
+            yield message
+            return
 
-    inputs = tokenizer(prompt, return_tensors="pt")
-    input_ids = inputs["input_ids"].to(device)
-    generation_config = GenerationConfig(
-        temperature=temperature,
-        top_p=top_p,
-        top_k=top_k,
-        repetition_penalty=repetition_penalty,
-        num_beams=num_beams,
-        **kwargs,
-    )
+        model = get_model_with_lora(lora_model_name)
+        tokenizer = get_tokenizer()
 
-    generate_params = {
-        "input_ids": input_ids,
-        "generation_config": generation_config,
-        "return_dict_in_generate": True,
-        "output_scores": True,
-        "max_new_tokens": max_new_tokens,
-    }
-
-    if stream_output:
-        # Stream the reply 1 token at a time.
-        # This is based on the trick of using 'stopping_criteria' to create an iterator,
-        # from https://github.com/oobabooga/text-generation-webui/blob/ad37f396fc8bcbab90e11ecf17c56c97bfbd4a9c/modules/text_generation.py#L216-L243.
-
-        def generate_with_callback(callback=None, **kwargs):
-            kwargs.setdefault(
-                "stopping_criteria", transformers.StoppingCriteriaList()
-            )
-            kwargs["stopping_criteria"].append(
-                Stream(callback_func=callback)
-            )
-            with torch.no_grad():
-                model.generate(**kwargs)
-
-        def generate_with_streaming(**kwargs):
-            return Iteratorize(
-                generate_with_callback, kwargs, callback=None
-            )
-
-        with generate_with_streaming(**generate_params) as generator:
-            for output in generator:
-                # new_tokens = len(output) - len(input_ids[0])
-                decoded_output = tokenizer.decode(output)
-
-                if output[-1] in [tokenizer.eos_token_id]:
-                    break
-
-                yield prompter.get_response(decoded_output)
-        return  # early return for stream_output
-
-    # Without streaming
-    with torch.no_grad():
-        generation_output = model.generate(
-            input_ids=input_ids,
-            generation_config=generation_config,
-            return_dict_in_generate=True,
-            output_scores=True,
-            max_new_tokens=max_new_tokens,
+        inputs = tokenizer(prompt, return_tensors="pt")
+        input_ids = inputs["input_ids"].to(device)
+        generation_config = GenerationConfig(
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            repetition_penalty=repetition_penalty,
+            num_beams=num_beams,
         )
-    s = generation_output.sequences[0]
-    output = tokenizer.decode(s)
-    yield prompter.get_response(output)
+
+        generate_params = {
+            "input_ids": input_ids,
+            "generation_config": generation_config,
+            "return_dict_in_generate": True,
+            "output_scores": True,
+            "max_new_tokens": max_new_tokens,
+        }
+
+        if stream_output:
+            # Stream the reply 1 token at a time.
+            # This is based on the trick of using 'stopping_criteria' to create an iterator,
+            # from https://github.com/oobabooga/text-generation-webui/blob/ad37f396fc8bcbab90e11ecf17c56c97bfbd4a9c/modules/text_generation.py#L216-L243.
+
+            def generate_with_callback(callback=None, **kwargs):
+                kwargs.setdefault(
+                    "stopping_criteria", transformers.StoppingCriteriaList()
+                )
+                kwargs["stopping_criteria"].append(
+                    Stream(callback_func=callback)
+                )
+                with torch.no_grad():
+                    model.generate(**kwargs)
+
+            def generate_with_streaming(**kwargs):
+                return Iteratorize(
+                    generate_with_callback, kwargs, callback=None
+                )
+
+            with generate_with_streaming(**generate_params) as generator:
+                for output in generator:
+                    # new_tokens = len(output) - len(input_ids[0])
+                    decoded_output = tokenizer.decode(output)
+
+                    if output[-1] in [tokenizer.eos_token_id]:
+                        break
+
+                    yield prompter.get_response(decoded_output)
+            return  # early return for stream_output
+
+        # Without streaming
+        with torch.no_grad():
+            generation_output = model.generate(
+                input_ids=input_ids,
+                generation_config=generation_config,
+                return_dict_in_generate=True,
+                output_scores=True,
+                max_new_tokens=max_new_tokens,
+            )
+        s = generation_output.sequences[0]
+        output = tokenizer.decode(s)
+        yield prompter.get_response(output)
+
+    except Exception as e:
+        raise gr.Error(e)
 
 
 def reload_selections(current_lora_model, current_prompt_template):
@@ -119,7 +130,7 @@ def reload_selections(current_lora_model, current_prompt_template):
         iter(available_template_names_with_none), None)
 
     default_lora_models = ["tloen/alpaca-lora-7b"]
-    available_lora_models = default_lora_models
+    available_lora_models = default_lora_models + get_available_lora_model_names()
 
     current_lora_model = current_lora_model or next(
         iter(available_lora_models), None)
@@ -263,7 +274,7 @@ def inference_ui():
                                variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
 
         generate_event = generate_btn.click(
-            fn=inference,
+            fn=do_inference,
             inputs=[
                 lora_model,
                 prompt_template,

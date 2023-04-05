@@ -38,6 +38,20 @@ def get_available_dataset_names():
     return [filename for filename in all_files if fnmatch.fnmatch(filename, "*.json") or fnmatch.fnmatch(filename, "*.jsonl")]
 
 
+def get_available_lora_model_names():
+    datasets_directory_path = os.path.join(Global.data_dir, "lora_models")
+    all_items = os.listdir(datasets_directory_path)
+    return [item for item in all_items if os.path.isdir(os.path.join(datasets_directory_path, item))]
+
+
+def get_path_of_available_lora_model(name):
+    datasets_directory_path = os.path.join(Global.data_dir, "lora_models")
+    path = os.path.join(datasets_directory_path, name)
+    if os.path.isdir(path):
+        return path
+    return None
+
+
 def get_dataset_content(name):
     file_name = os.path.join(Global.data_dir, "datasets", name)
     if not os.path.exists(file_name):
