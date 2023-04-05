@@ -14,6 +14,9 @@ class Global:
     loaded_tokenizer: Any = None
     loaded_base_model: Any = None
 
+    # Functions
+    train_fn: Any = None
+
     # UI related
     ui_title: str = "LLaMA-LoRA"
     ui_emoji: str = "🦙🎛️"

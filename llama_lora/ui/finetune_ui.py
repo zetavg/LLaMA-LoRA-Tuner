@@ -1,8 +1,12 @@
+import os
 import json
 import time
+from datetime import datetime
 import gradio as gr
 from random_word import RandomWords
 
+from ..globals import Global
+from ..models import get_base_model, get_tokenizer
 from ..utils.data import (
     get_available_template_names,
     get_available_dataset_names,
@@ -10,13 +14,18 @@ from ..utils.data import (
 )
 from ..utils.prompter import Prompter
 
-r = RandomWords()
-
 
 def random_hyphenated_word():
+    r = RandomWords()
     word1 = r.get_random_word()
     word2 = r.get_random_word()
     return word1 + '-' + word2
+
+
+def random_name():
+    current_datetime = datetime.now()
+    formatted_datetime = current_datetime.strftime("%Y-%m-%d-%H-%M-%S")
+    return f"{random_hyphenated_word()}-{formatted_datetime}"
 
 
 def reload_selections(current_template, current_dataset):
@@ -226,6 +235,127 @@ def parse_plain_text_input(
     return result
 
 
+def do_train(
+    # Dataset
+    template,
+    load_dataset_from,
+    dataset_from_data_dir,
+    dataset_text,
+    dataset_text_format,
+    dataset_plain_text_input_variables_separator,
+    dataset_plain_text_input_and_output_separator,
+    dataset_plain_text_data_separator,
+    # Training Options
+    max_seq_length,
+    micro_batch_size,
+    gradient_accumulation_steps,
+    epochs,
+    learning_rate,
+    lora_r,
+    lora_alpha,
+    lora_dropout,
+    model_name,
+    progress=gr.Progress(track_tqdm=True),
+):
+    try:
+        prompter = Prompter(template)
+        variable_names = prompter.get_variable_names()
+
+        if load_dataset_from == "Text Input":
+            if dataset_text_format == "JSON":
+                data = json.loads(dataset_text)
+                data = process_json_dataset(data)
+
+            elif dataset_text_format == "JSON Lines":
+                lines = dataset_text.split('\n')
+                data = []
+                for i, line in enumerate(lines):
+                    line_number = i + 1
+                    try:
+                        data.append(json.loads(line))
+                    except Exception as e:
+                        raise ValueError(
+                            f"Error parsing JSON on line {line_number}: {e}")
+
+                data = process_json_dataset(data)
+
+            else:  # Plain Text
+                data = parse_plain_text_input(
+                    dataset_text,
+                    (
+                        dataset_plain_text_input_variables_separator or
+                        default_dataset_plain_text_input_variables_separator
+                    ).replace("\\n", "\n"),
+                    (
+                        dataset_plain_text_input_and_output_separator or
+                        default_dataset_plain_text_input_and_output_separator
+                    ).replace("\\n", "\n"),
+                    (
+                        dataset_plain_text_data_separator or
+                        default_dataset_plain_text_data_separator
+                    ).replace("\\n", "\n"),
+                    variable_names
+                )
+
+        else:  # Load dataset from data directory
+            data = get_dataset_content(dataset_from_data_dir)
+            data = process_json_dataset(data)
+
+        data_count = len(data)
+
+        train_data = [
+            {
+                'prompt': prompter.generate_prompt(d['variables']),
+                'completion': d['output']}
+            for d in data]
+
+        if Global.ui_dev_mode:
+            message = f"""Currently in UI dev mode, not doing the actual training.
+
+Train options: {json.dumps({
+    'max_seq_length': max_seq_length,
+    'micro_batch_size': micro_batch_size,
+    'gradient_accumulation_steps': gradient_accumulation_steps,
+    'epochs': epochs,
+    'learning_rate': learning_rate,
+    'lora_r': lora_r,
+    'lora_alpha': lora_alpha,
+    'lora_dropout': lora_dropout,
+    'model_name': model_name,
+}, indent=2)}
+
+Train data (first 10):
+{json.dumps(train_data[:10], indent=2)}
+            """
+            print(message)
+            time.sleep(2)
+            return message
+
+        return Global.train_fn(
+            get_base_model(),  # base_model
+            get_tokenizer(),  # tokenizer
+            os.path.join(Global.data_dir, "lora_models",
+                         model_name),  # output_dir
+            train_data,
+            # 128,  # batch_size (is not used, use gradient_accumulation_steps instead)
+            micro_batch_size,    # micro_batch_size
+            gradient_accumulation_steps,
+            epochs,   # num_epochs
+            learning_rate,   # learning_rate
+            max_seq_length,  # cutoff_len
+            0,  # val_set_size
+            lora_r,  # lora_r
+            lora_alpha,  # lora_alpha
+            lora_dropout,  # lora_dropout
+            ["q_proj", "v_proj"],  # lora_target_modules
+            True,  # train_on_inputs
+            False,  # group_by_length
+            None,  # resume_from_checkpoint
+        )
+    except Exception as e:
+        raise gr.Error(e)
+
+
 def finetune_ui():
     with gr.Blocks() as finetune_ui_blocks:
         with gr.Column(elem_id="finetune_ui_content"):
@@ -356,75 +486,233 @@ def finetune_ui():
                 outputs=[template, dataset_from_data_dir],
             )
 
+            max_seq_length = gr.Slider(
+                minimum=1, maximum=4096, value=512,
+                label="Max Sequence Length",
+                info="The maximum length of each sample text sequence. Sequences longer than this will be truncated."
+            )
+
+        with gr.Row():
+            with gr.Column():
+                micro_batch_size = gr.Slider(
+                    minimum=1, maximum=100, value=1,
+                    label="Micro Batch Size",
+                    info="The number of examples in each mini-batch for gradient computation. A smaller micro_batch_size reduces memory usage but may increase training time."
+                )
+
+                gradient_accumulation_steps = gr.Slider(
+                    minimum=1, maximum=10, value=1,
+                    label="Gradient Accumulation Steps",
+                    info="The number of steps to accumulate gradients before updating model parameters. This can be used to simulate a larger effective batch size without increasing memory usage."
+                )
+
+                epochs = gr.Slider(
+                    minimum=1, maximum=100, value=1,
+                    label="Epochs",
+                    info="The number of times to iterate over the entire training dataset. A larger number of epochs may improve model performance but also increase the risk of overfitting.")
+
+                learning_rate = gr.Slider(
+                    minimum=0.00001, maximum=0.01, value=3e-4,
+                    label="Learning Rate",
+                    info="The initial learning rate for the optimizer. A higher learning rate may speed up convergence but also cause instability or divergence. A lower learning rate may require more steps to reach optimal performance but also avoid overshooting or oscillating around local minima."
+                )
+
+            with gr.Column():
+                lora_r = gr.Slider(
+                    minimum=1, maximum=16, value=8,
+                    label="LoRA R",
+                    info="The rank parameter for LoRA, which controls the dimensionality of the rank decomposition matrices. A larger lora_r increases the expressiveness and flexibility of LoRA but also increases the number of trainable parameters and memory usage."
+                )
+
+                lora_alpha = gr.Slider(
+                    minimum=1, maximum=128, value=16,
+                    label="LoRA Alpha",
+                    info="The scaling parameter for LoRA, which controls how much LoRA affects the original pre-trained model weights. A larger lora_alpha amplifies the impact of LoRA but may also distort or override the pre-trained knowledge."
+                )
+
+                lora_dropout = gr.Slider(
+                    minimum=0, maximum=1, value=0.01,
+                    label="LoRA Dropout",
+                    info="The dropout probability for LoRA, which controls the fraction of LoRA parameters that are set to zero during training. A larger lora_dropout increases the regularization effect of LoRA but also increases the risk of underfitting."
+                )
+
+                with gr.Column():
+                    model_name = gr.Textbox(
+                        lines=1, label="LoRA Model Name", value=random_name(),
+                        elem_id="finetune_model_name",
+                    )
+
+                    with gr.Row():
+                        train_btn = gr.Button(
+                            "Train", variant="primary", label="Train",
+                            elem_id="finetune_start_btn"
+                        )
+
+                        abort_button = gr.Button(
+                            "Abort", label="Abort",
+                            elem_id="finetune_stop_btn"
+                        )
+                        confirm_abort_button = gr.Button(
+                            "Confirm Abort", label="Confirm Abort", variant="stop",
+                            elem_id="finetune_confirm_stop_btn"
+                        )
+
+        training_status = gr.Text(
+            "Training status will be shown here.",
+            label="Training Status/Results",
+            elem_id="finetune_training_status")
+
+        train_progress = train_btn.click(
+            fn=do_train,
+            inputs=(dataset_inputs + [
+                max_seq_length,
+                micro_batch_size,
+                gradient_accumulation_steps,
+                epochs,
+                learning_rate,
+                lora_r,
+                lora_alpha,
+                lora_dropout,
+                model_name
+            ]),
+            outputs=training_status
+        )
+
+        # controlled by JS, shows the confirm_abort_button
+        abort_button.click(None, None, None, None)
+        confirm_abort_button.click(None, None, None, cancels=[train_progress])
+
     finetune_ui_blocks.load(_js="""
     function finetune_ui_blocks_js() {
       // Auto load options
       setTimeout(function () {
-        document.getElementById("finetune_reload_selections_button").click();
+        document.getElementById('finetune_reload_selections_button').click();
       }, 100);
-
 
       // Add tooltips
       setTimeout(function () {
-        tippy("#finetune_reload_selections_button", {
+        tippy('#finetune_reload_selections_button', {
           placement: 'bottom-end',
           delay: [500, 0],
           animation: 'scale-subtle',
           content: 'Press to reload options.',
         });
 
-        tippy("#finetune_template", {
+        tippy('#finetune_template', {
           placement: 'bottom-start',
           delay: [500, 0],
           animation: 'scale-subtle',
-          content: 'Select a template for your prompt. <br />To see how the selected template work, select the "Preview" tab and then check "Show actual prompt". <br />Templates are loaded from the "templates" folder of your data directory.',
+          content:
+            'Select a template for your prompt. <br />To see how the selected template work, select the "Preview" tab and then check "Show actual prompt". <br />Templates are loaded from the "templates" folder of your data directory.',
           allowHTML: true,
         });
 
-        tippy("#finetune_load_dataset_from", {
+        tippy('#finetune_load_dataset_from', {
           placement: 'bottom-start',
           delay: [500, 0],
           animation: 'scale-subtle',
-          content: '<strong>Text Input</strong>: Paste the dataset directly in the UI.<br/><strong>Data Dir</strong>: Select a dataset in the data directory.',
+          content:
+            '<strong>Text Input</strong>: Paste the dataset directly in the UI.<br/><strong>Data Dir</strong>: Select a dataset in the data directory.',
           allowHTML: true,
         });
 
-        tippy("#finetune_dataset_preview_show_actual_prompt", {
+        tippy('#finetune_dataset_preview_show_actual_prompt', {
           placement: 'bottom-start',
           delay: [500, 0],
           animation: 'scale-subtle',
-          content: 'Check to show the prompt that will be feed to the language model.',
+          content:
+            'Check to show the prompt that will be feed to the language model.',
         });
 
-        tippy("#dataset_plain_text_input_variables_separator", {
+        tippy('#dataset_plain_text_input_variables_separator', {
           placement: 'bottom',
           delay: [500, 0],
           animation: 'scale-subtle',
-          content: 'Define a separator to separate input variables. Use "\\\\n" for new lines.',
+          content:
+            'Define a separator to separate input variables. Use "\\\\n" for new lines.',
         });
 
-        tippy("#dataset_plain_text_input_and_output_separator", {
+        tippy('#dataset_plain_text_input_and_output_separator', {
           placement: 'bottom',
           delay: [500, 0],
           animation: 'scale-subtle',
-          content: 'Define a separator to separate the input (prompt) and the output (completion). Use "\\\\n" for new lines.',
+          content:
+            'Define a separator to separate the input (prompt) and the output (completion). Use "\\\\n" for new lines.',
         });
 
-        tippy("#dataset_plain_text_data_separator", {
+        tippy('#dataset_plain_text_data_separator', {
           placement: 'bottom',
           delay: [500, 0],
           animation: 'scale-subtle',
-          content: 'Define a separator to separate different rows of the train data. Use "\\\\n" for new lines.',
+          content:
+            'Define a separator to separate different rows of the train data. Use "\\\\n" for new lines.',
         });
 
-        tippy("#finetune_dataset_text_load_sample_button", {
+        tippy('#finetune_dataset_text_load_sample_button', {
           placement: 'bottom-start',
           delay: [500, 0],
           animation: 'scale-subtle',
-          content: 'Press to load a sample dataset of the current selected format into the textbox.',
+          content:
+            'Press to load a sample dataset of the current selected format into the textbox.',
         });
 
+        tippy('#finetune_model_name', {
+          placement: 'bottom',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content:
+            'The name of the new LoRA model. Must be unique.',
+        });
       }, 100);
+
+      // Show/hide start and stop button base on the state.
+      setTimeout(function () {
+        // Make the '#finetune_training_status > .wrap' element appear
+        if (!document.querySelector('#finetune_training_status > .wrap')) {
+          document.getElementById('finetune_confirm_stop_btn').click();
+        }
+
+        setTimeout(function () {
+          let resetStopButtonTimer;
+          document
+            .getElementById('finetune_stop_btn')
+            .addEventListener('click', function () {
+              if (resetStopButtonTimer) clearTimeout(resetStopButtonTimer);
+              resetStopButtonTimer = setTimeout(function () {
+                document.getElementById('finetune_stop_btn').style.display = 'block';
+                document.getElementById('finetune_confirm_stop_btn').style.display =
+                  'none';
+              }, 5000);
+              document.getElementById('finetune_stop_btn').style.display = 'none';
+              document.getElementById('finetune_confirm_stop_btn').style.display =
+                'block';
+            });
+          const output_wrap_element = document.querySelector(
+            '#finetune_training_status > .wrap'
+          );
+          function handle_output_wrap_element_class_change() {
+            if (Array.from(output_wrap_element.classList).includes('hide')) {
+              if (resetStopButtonTimer) clearTimeout(resetStopButtonTimer);
+              document.getElementById('finetune_start_btn').style.display = 'block';
+              document.getElementById('finetune_stop_btn').style.display = 'none';
+              document.getElementById('finetune_confirm_stop_btn').style.display =
+                'none';
+            } else {
+              document.getElementById('finetune_start_btn').style.display = 'none';
+              document.getElementById('finetune_stop_btn').style.display = 'block';
+              document.getElementById('finetune_confirm_stop_btn').style.display =
+                'none';
+            }
+          }
+          new MutationObserver(function (mutationsList, observer) {
+            handle_output_wrap_element_class_change();
+          }).observe(output_wrap_element, {
+            attributes: true,
+            attributeFilter: ['class'],
+          });
+          handle_output_wrap_element_class_change();
+        }, 500);
+      }, 0);
     }
     """)
 
