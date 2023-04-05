@@ -26,6 +26,7 @@ def inference(
     repetition_penalty=1.2,
     max_new_tokens=128,
     stream_output=False,
+    progress=gr.Progress(track_tqdm=True),
     **kwargs,
 ):
     variables = [variable_0, variable_1, variable_2, variable_3,

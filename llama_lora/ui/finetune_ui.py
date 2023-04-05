@@ -9,7 +9,7 @@ from random_word import RandomWords
 from transformers import TrainerCallback
 
 from ..globals import Global
-from ..models import get_base_model, get_tokenizer
+from ..models import get_base_model, get_tokenizer, unload_models_if_already_used
 from ..utils.data import (
     get_available_template_names,
     get_available_dataset_names,
@@ -352,6 +352,11 @@ Train data (first 10):
                 self._on_progress(args, state, control)
 
         training_callbacks = [UiTrainerCallback]
+
+        # If model has been used in inference, we need to unload it first.
+        # Otherwise, we'll get a 'Function MmBackward0 returned an invalid
+        # gradient at index 1 - expected device meta but got cuda:0' error.
+        unload_models_if_already_used()
 
         Global.should_stop_training = False
 

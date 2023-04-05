@@ -3,6 +3,8 @@ import subprocess
 
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from .lib.finetune import train
+
 
 class Global:
     version = None
@@ -15,10 +17,13 @@ class Global:
     loaded_base_model: Any = None
 
     # Functions
-    train_fn: Any = None
+    train_fn: Any = train
 
     # Training Control
     should_stop_training = False
+
+    # Model related
+    model_has_been_used = False
 
     # UI related
     ui_title: str = "LLaMA-LoRA"
