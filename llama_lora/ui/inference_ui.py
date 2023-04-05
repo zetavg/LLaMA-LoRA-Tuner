@@ -335,6 +335,14 @@ def inference_ui():
       // Add tooltips
       setTimeout(function () {
 
+        tippy("#inference_lora_model", {
+          placement: 'bottom-start',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content: 'Select a LoRA model form your data directory, or type in a model name on HF (e.g.: <code>tloen/alpaca-lora-7b</code>).',
+          allowHTML: true,
+        });
+
         tippy("#inference_prompt_template", {
           placement: 'bottom-start',
           delay: [500, 0],

@@ -360,7 +360,7 @@ Train data (first 10):
 
         Global.should_stop_training = False
 
-        return Global.train_fn(
+        return "Done. " + Global.train_fn(
             get_base_model(),  # base_model
             get_tokenizer(),  # tokenizer
             os.path.join(Global.data_dir, "lora_models",
@@ -529,19 +529,19 @@ def finetune_ui():
         with gr.Row():
             with gr.Column():
                 micro_batch_size = gr.Slider(
-                    minimum=1, maximum=100, value=1,
+                    minimum=1, maximum=100, step=1, value=4,
                     label="Micro Batch Size",
                     info="The number of examples in each mini-batch for gradient computation. A smaller micro_batch_size reduces memory usage but may increase training time."
                 )
 
                 gradient_accumulation_steps = gr.Slider(
-                    minimum=1, maximum=10, value=1,
+                    minimum=1, maximum=10, step=1, value=32,
                     label="Gradient Accumulation Steps",
                     info="The number of steps to accumulate gradients before updating model parameters. This can be used to simulate a larger effective batch size without increasing memory usage."
                 )
 
                 epochs = gr.Slider(
-                    minimum=1, maximum=100, value=1,
+                    minimum=1, maximum=100, step=1, value=1,
                     label="Epochs",
                     info="The number of times to iterate over the entire training dataset. A larger number of epochs may improve model performance but also increase the risk of overfitting.")
 
@@ -553,19 +553,19 @@ def finetune_ui():
 
             with gr.Column():
                 lora_r = gr.Slider(
-                    minimum=1, maximum=16, value=8,
+                    minimum=1, maximum=16, step=1, value=8,
                     label="LoRA R",
                     info="The rank parameter for LoRA, which controls the dimensionality of the rank decomposition matrices. A larger lora_r increases the expressiveness and flexibility of LoRA but also increases the number of trainable parameters and memory usage."
                 )
 
                 lora_alpha = gr.Slider(
-                    minimum=1, maximum=128, value=16,
+                    minimum=1, maximum=128, step=1, value=16,
                     label="LoRA Alpha",
                     info="The scaling parameter for LoRA, which controls how much LoRA affects the original pre-trained model weights. A larger lora_alpha amplifies the impact of LoRA but may also distort or override the pre-trained knowledge."
                 )
 
                 lora_dropout = gr.Slider(
-                    minimum=0, maximum=1, value=0.01,
+                    minimum=0, maximum=1, value=0.05,
                     label="LoRA Dropout",
                     info="The dropout probability for LoRA, which controls the fraction of LoRA parameters that are set to zero during training. A larger lora_dropout increases the regularization effect of LoRA but also increases the risk of underfitting."
                 )
