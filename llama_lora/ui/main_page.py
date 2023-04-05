@@ -143,6 +143,11 @@ def main_page_custom_css():
         box-shadow: none;
     }
 
+    #inference_output > .wrap {
+        /* allow users to select text while generation is still in progress */
+        pointer-events: none;
+    }
+
     #dataset_plain_text_input_variables_separator textarea,
     #dataset_plain_text_input_and_output_separator textarea,
     #dataset_plain_text_data_separator textarea {

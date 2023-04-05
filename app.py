@@ -42,7 +42,7 @@ def main(
     with gr.Blocks(title=get_page_title(), css=main_page_custom_css()) as demo:
         main_page()
 
-    demo.queue(concurrency_count=2).launch(server_name=server_name, share=share)
+    demo.queue(concurrency_count=1).launch(server_name=server_name, share=share)
 
 
 if __name__ == "__main__":

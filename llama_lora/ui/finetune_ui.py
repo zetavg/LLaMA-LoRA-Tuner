@@ -360,7 +360,7 @@ Train data (first 10):
 
         Global.should_stop_training = False
 
-        return Global.train_fn(
+        results = Global.train_fn(
             get_base_model(),  # base_model
             get_tokenizer(),  # tokenizer
             os.path.join(Global.data_dir, "lora_models",
@@ -382,6 +382,8 @@ Train data (first 10):
             None,  # resume_from_checkpoint
             training_callbacks  # callbacks
         )
+        return "Done: " + str(results)
+
     except Exception as e:
         raise gr.Error(e)
 
@@ -529,7 +531,7 @@ def finetune_ui():
         with gr.Row():
             with gr.Column():
                 micro_batch_size = gr.Slider(
-                    minimum=1, maximum=100, step=1, value=4,
+                    minimum=1, maximum=100, step=1, value=8,
                     label="Micro Batch Size",
                     info="The number of examples in each mini-batch for gradient computation. A smaller micro_batch_size reduces memory usage but may increase training time."
                 )
