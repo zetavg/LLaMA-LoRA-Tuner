@@ -4,6 +4,7 @@ from ..globals import Global
 from ..models import get_model_with_lora
 
 from .inference_ui import inference_ui
+from .finetune_ui import finetune_ui
 
 from .js_scripts import popperjs_core_code, tippy_js_code
 
@@ -13,16 +14,21 @@ def main_page():
 
     with gr.Blocks(
             title=title,
-            css=main_page_custom_css()) as main_page_blocks:
-        gr.Markdown(f"""
-            <h1 class="app_title_text">{title}</h1> <wbr /><h2 class="app_subtitle_text">{Global.ui_subtitle}</h2>
-            """)
-        with gr.Tab("Inference"):
-            inference_ui()
-        if Global.ui_show_sys_info:
+            css=main_page_custom_css(),
+    ) as main_page_blocks:
+        with gr.Column(elem_id="main_page_content"):
             gr.Markdown(f"""
-                <small>Data dir: `{Global.data_dir}`</small>
+                <h1 class="app_title_text">{title}</h1> <wbr />
+                <h2 class="app_subtitle_text">{Global.ui_subtitle}</h2>
                 """)
+            with gr.Tab("Inference"):
+                inference_ui()
+            with gr.Tab("Fine-tuning"):
+                finetune_ui()
+            if Global.ui_show_sys_info:
+                gr.Markdown(f"""
+                    <small>Data dir: `{Global.data_dir}`</small>
+                    """)
     main_page_blocks.load(_js=f"""
     function () {{
         {popperjs_core_code()}
@@ -89,6 +95,21 @@ def main_page_custom_css():
         font-weight: 100;
     }
 
+    .textbox_that_is_only_used_to_display_a_label {
+        border: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .textbox_that_is_only_used_to_display_a_label textarea {
+        display: none;
+    }
+
+    #main_page_content > .tabs > .tab-nav * {
+        font-size: 1rem;
+        font-weight: 700;
+        /* text-transform: uppercase; */
+    }
+
     #inference_prompt_box > *:first-child {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
@@ -98,6 +119,20 @@ def main_page_custom_css():
         border-top: 0;
         border-top-left-radius: 0;
         border-top-right-radius: 0;
+    }
+
+    #dataset_plain_text_input_variables_separator textarea,
+    #dataset_plain_text_input_and_output_separator textarea,
+    #dataset_plain_text_data_separator textarea {
+        font-family: var(--font-mono);
+    }
+    #dataset_plain_text_input_and_output_separator,
+    #dataset_plain_text_data_separator {
+        margin-top: -8px;
+    }
+
+    #finetune_dataset_text_load_sample_button {
+        margin: -4px 12px 8px;
     }
 
     #inference_preview_prompt_container .label-wrap {
@@ -111,8 +146,24 @@ def main_page_custom_css():
         border: 0;
     }
 
+    #finetune_reload_selections_button {
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin: 16px;
+        margin-bottom: auto;
+        height: 42px !important;
+        min-width: 42px !important;
+        width: 42px !important;
+        z-index: 1;
+    }
+
+    #finetune_dataset_from_data_dir {
+        border: 0;
+    }
+
     @media screen and (min-width: 640px) {
-        #inference_lora_model {
+        #inference_lora_model, #finetune_template {
             border-top-right-radius: 0;
             border-bottom-right-radius: 0;
             border-right: 0;
@@ -128,7 +179,20 @@ def main_page_custom_css():
             padding-right: 80px;
         }
 
-        #inference_reload_selections_button {
+        #finetune_template + * {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            border-left: 0;
+
+            margin-right: -90px;
+        }
+
+        #finetune_template + * > * {
+            padding-right: 80px;
+        }
+
+        #inference_reload_selections_button, #finetune_reload_selections_button {
+            position: relative;
             margin: 16px;
             margin-bottom: auto;
             height: 42px !important;
@@ -138,15 +202,97 @@ def main_page_custom_css():
         }
     }
 
+    #finetune_ui_content > .tabs > .tab-nav::before {
+        content: "Training Dataset:";
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-right: 12px;
+        padding-left: 8px;
+    }
+
+    #finetune_template,
+    #finetune_template + * {
+        border: 0;
+        box-shadow: none;
+    }
+
+    #finetune_dataset_text_input_group .form {
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    #finetune_dataset_text_input_textbox > .wrap:last-of-type {
+        margin-top: -20px;
+    }
+
+    #finetune_dataset_plain_text_separators_group * {
+        font-size: 0.8rem;
+    }
+    #finetune_dataset_plain_text_separators_group textarea {
+        height: auto !important;
+    }
+    #finetune_dataset_plain_text_separators_group > .form {
+        gap: 0 !important;
+    }
+
+    #finetune_dataset_from_text_message p,
+    #finetune_dataset_from_text_message + * p {
+        font-size: 80%;
+    }
+    #finetune_dataset_from_text_message,
+    #finetune_dataset_from_text_message *,
+    #finetune_dataset_from_text_message + *,
+    #finetune_dataset_from_text_message + * * {
+        display: inline;
+    }
+
+
+    #finetune_dataset_from_data_dir_message,
+    #finetune_dataset_from_data_dir_message * {
+        min-height: 0 !important;
+    }
+    #finetune_dataset_from_data_dir_message {
+        margin: -20px 24px 0;
+        font-size: 0.8rem;
+    }
+
+    #finetune_dataset_from_text_message > .wrap > *:first-child,
+    #finetune_dataset_from_data_dir_message > .wrap > *:first-child {
+        display: none;
+    }
+    #finetune_dataset_from_data_dir_message > .wrap {
+        top: -18px;
+    }
+    #finetune_dataset_from_text_message > .wrap svg,
+    #finetune_dataset_from_data_dir_message > .wrap svg {
+        margin: -32px -16px;
+    }
+
+    .finetune_dataset_error_message {
+        color: var(--error-text-color) !important;
+    }
+
+    #finetune_dataset_preview_info_message {
+        align-items: flex-end;
+        flex-direction: row;
+        display: flex;
+        margin-bottom: -4px;
+    }
+
+    #finetune_dataset_preview td {
+        white-space: pre-wrap;
+    }
 
 
     @media screen and (max-width: 392px) {
-        #inference_lora_model {
+        #inference_lora_model, #finetune_template {
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 0;
         }
 
-        #inference_prompt_template {
+        #inference_prompt_template, #finetune_template + * {
             border-top-left-radius: 0;
             border-top-right-radius: 0;
             border-top: 0;

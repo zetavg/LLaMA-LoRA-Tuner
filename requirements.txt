@@ -10,3 +10,4 @@ git+https://github.com/huggingface/transformers.git
 gradio
 loralib
 sentencepiece
+random-word

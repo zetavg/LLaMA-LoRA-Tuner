@@ -239,6 +239,7 @@ def inference_ui():
             with gr.Column():
                 inference_output = gr.Textbox(
                     lines=12, label="Output", elem_id="inference_output")
+                inference_output.style(show_copy_button=True)
 
         reload_selections_button.click(
             reload_selections,

@@ -41,9 +41,14 @@ class Prompter(object):
         label: Union[None, str] = None,
     ) -> str:
         if self.template_name == "None":
-            res = get_val(variables, 0, "")
+            if type(variables) == list:
+                res = get_val(variables, 0, "")
+            else:
+                res = variables.get("prompt", "")
         elif "variables" in self.template:
             variable_names = self.template.get("variables")
+            if type(variables) == dict:
+                variables = [variables.get(name, None) for name in variable_names]
             if "default" not in self.template:
                 raise ValueError(
                     f"The template {self.template_name} has \"variables\" defined but does not has a default prompt defined. Please do it like: '\"default\": \"prompt_with_instruction\"' to handle cases when a matching prompt can't be found.")
@@ -60,8 +65,12 @@ class Prompter(object):
                 **variables_to_dict(variables, variable_names))
 
         else:
-            instruction = get_val(variables, 0, "")
-            input = get_val(variables, 1)
+            if type(variables) == dict:
+                instruction = variables.get("instruction", "")
+                input = variables.get("input")
+            else:
+                instruction = get_val(variables, 0, "")
+                input = get_val(variables, 1)
             # returns the full prompt from instruction and optional input
             # if a label (=response, =output) is provided, it's also appended.
             if input:
