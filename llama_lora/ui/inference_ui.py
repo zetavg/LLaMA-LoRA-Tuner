@@ -173,7 +173,8 @@ def inference_ui():
         with gr.Row():
             with gr.Column():
                 with gr.Column(elem_id="inference_prompt_box"):
-                    variable_0 = gr.Textbox(lines=2, label="Prompt", placeholder="Tell me about alpecas and llamas.")
+                    variable_0 = gr.Textbox(
+                        lines=2, label="Prompt", placeholder="Tell me about alpecas and llamas.")
                     variable_1 = gr.Textbox(lines=2, label="", visible=False)
                     variable_2 = gr.Textbox(lines=2, label="", visible=False)
                     variable_3 = gr.Textbox(lines=2, label="", visible=False)
@@ -186,15 +187,16 @@ def inference_ui():
                         preview_prompt = gr.Textbox(
                             show_label=False, interactive=False, elem_id="inference_preview_prompt")
 
-                with gr.Column():
-                    with gr.Row():
-                        generate_btn = gr.Button(
-                            "Generate", variant="primary", label="Generate", elem_id="inference_generate_btn",
-                        )
-                        stop_btn = gr.Button(
-                            "Stop", variant="stop", label="Stop Iterating", elem_id="inference_stop_btn")
+                # with gr.Column():
+                #     with gr.Row():
+                #         generate_btn = gr.Button(
+                #             "Generate", variant="primary", label="Generate", elem_id="inference_generate_btn",
+                #         )
+                #         stop_btn = gr.Button(
+                #             "Stop", variant="stop", label="Stop Iterating", elem_id="inference_stop_btn")
 
-                with gr.Column():
+                # with gr.Column():
+                with gr.Accordion("Options", open=True, elem_id="inference_options_accordion"):
                     temperature = gr.Slider(
                         minimum=0.01, maximum=1.99, value=0.1, step=0.01,
                         label="Temperature",
@@ -236,6 +238,15 @@ def inference_ui():
                         elem_id="inference_stream_output",
                         value=True
                     )
+
+                with gr.Column():
+                    with gr.Row():
+                        generate_btn = gr.Button(
+                            "Generate", variant="primary", label="Generate", elem_id="inference_generate_btn",
+                        )
+                        stop_btn = gr.Button(
+                            "Stop", variant="stop", label="Stop Iterating", elem_id="inference_stop_btn")
+
             with gr.Column():
                 inference_output = gr.Textbox(
                     lines=12, label="Output", elem_id="inference_output")
@@ -265,7 +276,8 @@ def inference_ui():
                 max_new_tokens,
                 stream_output,
             ],
-            outputs=inference_output
+            outputs=inference_output,
+            api_name="inference"
         )
         stop_btn.click(fn=None, inputs=None, outputs=None,
                        cancels=[generate_event])
@@ -330,7 +342,7 @@ def inference_ui():
             placement: 'right',
             delay: [500, 0],
             animation: 'scale-subtle',
-            content: 'This is the input that will actually be sent to the language model.',
+            content: 'This is the prompt that will be sent to the language model.',
           });
         });
 
@@ -385,7 +397,7 @@ def inference_ui():
 
       }, 100);
 
-      // Show/hide generate and save button base on the state.
+      // Show/hide generate and stop button base on the state.
       setTimeout(function () {
         // Make the '#inference_output > .wrap' element appear
         document.getElementById("inference_stop_btn").click();

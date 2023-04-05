@@ -25,10 +25,15 @@ def main_page():
                 inference_ui()
             with gr.Tab("Fine-tuning"):
                 finetune_ui()
+            info = []
+            if Global.version:
+                info.append(f"LLaMA-LoRA `{Global.version}`")
+            info.append(f"Base model: `{Global.base_model}`")
             if Global.ui_show_sys_info:
-                gr.Markdown(f"""
-                    <small>Data dir: `{Global.data_dir}`</small>
-                    """)
+                info.append(f"Data dir: `{Global.data_dir}`")
+            gr.Markdown(f"""
+                <small>{"&nbsp;&nbsp;·&nbsp;&nbsp;".join(info)}</small>
+                """)
     main_page_blocks.load(_js=f"""
     function () {{
         {popperjs_core_code()}
@@ -119,6 +124,23 @@ def main_page_custom_css():
         border-top: 0;
         border-top-left-radius: 0;
         border-top-right-radius: 0;
+    }
+
+    #inference_options_accordion {
+        padding: 0;
+    }
+    #inference_options_accordion > .label-wrap {
+        user-select: none;
+        padding: var(--block-padding);
+        margin-bottom: 0;
+    }
+    #inference_options_accordion > *:last-child > .form {
+        border-left: 0;
+        border-right: 0;
+        border-bottom: 0;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        box-shadow: none;
     }
 
     #dataset_plain_text_input_variables_separator textarea,
