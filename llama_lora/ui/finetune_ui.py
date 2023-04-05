@@ -5,6 +5,8 @@ from datetime import datetime
 import gradio as gr
 from random_word import RandomWords
 
+from transformers import TrainerCallback
+
 from ..globals import Global
 from ..models import get_base_model, get_tokenizer
 from ..utils.data import (
@@ -331,6 +333,31 @@ Train data (first 10):
             time.sleep(2)
             return message
 
+        class UiTrainerCallback(TrainerCallback):
+            def on_epoch_begin(self, args, state, control, **kwargs):
+                if Global.should_stop_training:
+                    control.should_training_stop = True
+                total_steps = (
+                    state.max_steps if state.max_steps is not None else state.num_train_epochs * state.steps_per_epoch)
+                progress(
+                    (state.global_step, total_steps),
+                    desc=f"Training... (Epoch {state.epoch}/{epochs}, Step {state.global_step}/{total_steps})"
+                )
+
+            def on_step_end(self, args, state, control, **kwargs):
+                if Global.should_stop_training:
+                    control.should_training_stop = True
+                total_steps = (
+                    state.max_steps if state.max_steps is not None else state.num_train_epochs * state.steps_per_epoch)
+                progress(
+                    (state.global_step, total_steps),
+                    desc=f"Training... (Epoch {state.epoch}/{epochs}, Step {state.global_step}/{total_steps})"
+                )
+
+        training_callbacks = [UiTrainerCallback]
+
+        Global.should_stop_training = False
+
         return Global.train_fn(
             get_base_model(),  # base_model
             get_tokenizer(),  # tokenizer
@@ -351,9 +378,14 @@ Train data (first 10):
             True,  # train_on_inputs
             False,  # group_by_length
             None,  # resume_from_checkpoint
+            training_callbacks  # callbacks
         )
     except Exception as e:
         raise gr.Error(e)
+
+
+def do_abort_training():
+    Global.should_stop_training = True
 
 
 def finetune_ui():
@@ -580,7 +612,10 @@ def finetune_ui():
 
         # controlled by JS, shows the confirm_abort_button
         abort_button.click(None, None, None, None)
-        confirm_abort_button.click(None, None, None, cancels=[train_progress])
+        confirm_abort_button.click(
+            fn=do_abort_training,
+            inputs=None, outputs=None,
+            cancels=[train_progress])
 
     finetune_ui_blocks.load(_js="""
     function finetune_ui_blocks_js() {

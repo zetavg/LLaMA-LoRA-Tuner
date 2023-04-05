@@ -17,6 +17,9 @@ class Global:
     # Functions
     train_fn: Any = None
 
+    # Training Control
+    should_stop_training = False
+
     # UI related
     ui_title: str = "LLaMA-LoRA"
     ui_emoji: str = "🦙🎛️"
