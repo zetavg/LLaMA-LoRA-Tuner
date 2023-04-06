@@ -285,22 +285,23 @@ def inference_ui():
                         stop_btn = gr.Button(
                             "Stop", variant="stop", label="Stop Iterating", elem_id="inference_stop_btn")
 
-            with gr.Column():
-                inference_output = gr.Textbox(
-                    lines=12, label="Output", elem_id="inference_output")
-                inference_output.style(show_copy_button=True)
-                with gr.Accordion(
-                        "Raw Output",
-                        open=not default_show_raw,
-                        visible=default_show_raw,
-                        elem_id="inference_inference_raw_output_accordion"
-                ) as raw_output_group:
-                    inference_raw_output = gr.Code(
-                        label="Raw Output",
-                        show_label=False,
-                        language="json",
-                        interactive=False,
-                        elem_id="inference_raw_output")
+            with gr.Column(elem_id="inference_output_group_container"):
+                with gr.Column(elem_id="inference_output_group"):
+                    inference_output = gr.Textbox(
+                        lines=12, label="Output", elem_id="inference_output")
+                    inference_output.style(show_copy_button=True)
+                    with gr.Accordion(
+                            "Raw Output",
+                            open=not default_show_raw,
+                            visible=default_show_raw,
+                            elem_id="inference_inference_raw_output_accordion"
+                    ) as raw_output_group:
+                        inference_raw_output = gr.Code(
+                            label="Raw Output",
+                            show_label=False,
+                            language="json",
+                            interactive=False,
+                            elem_id="inference_raw_output")
 
         show_raw.change(
             fn=lambda show_raw: gr.Accordion.update(visible=show_raw),

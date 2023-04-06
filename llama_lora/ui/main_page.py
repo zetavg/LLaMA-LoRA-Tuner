@@ -77,6 +77,12 @@ def get_page_title():
 
 def main_page_custom_css():
     css = """
+    /* to make position stick work */
+    .gradio-container {
+        overflow-x: initial !important;
+        overflow-y: clip !important;
+    }
+
     .app_title_text {
         display: inline-block;
         margin-right: 0.5em !important;
@@ -175,6 +181,17 @@ def main_page_custom_css():
     #inference_raw_output > .wrap {
         /* allow users to select text while generation is still in progress */
         pointer-events: none;
+    }
+
+    /* position sticky */
+    #inference_output_group_container {
+        display: block;
+    }
+    #inference_output_group {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 16px;
+        bottom: 16px;
     }
 
     #dataset_plain_text_input_variables_separator textarea,
