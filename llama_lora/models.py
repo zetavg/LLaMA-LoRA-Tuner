@@ -85,14 +85,14 @@ def load_base_model():
                 torch_dtype=torch.float16,
             )
         else:
-            model = LlamaForCausalLM.from_pretrained(
+            Global.loaded_base_model = LlamaForCausalLM.from_pretrained(
                 base_model, device_map={"": device}, low_cpu_mem_usage=True
             )
 
     # unwind broken decapoda-research config
-    model.config.pad_token_id = tokenizer.pad_token_id = 0  # unk
-    model.config.bos_token_id = 1
-    model.config.eos_token_id = 2
+    Global.loaded_base_model.config.pad_token_id = Global.loaded_tokenizer.pad_token_id = 0  # unk
+    Global.loaded_base_model.config.bos_token_id = 1
+    Global.loaded_base_model.config.eos_token_id = 2
 
 
 def unload_models():
