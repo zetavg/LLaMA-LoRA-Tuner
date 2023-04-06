@@ -199,18 +199,25 @@ def inference_ui():
             with gr.Column():
                 with gr.Column(elem_id="inference_prompt_box"):
                     variable_0 = gr.Textbox(
-                        lines=2, label="Prompt", placeholder="Tell me about alpecas and llamas.")
-                    variable_1 = gr.Textbox(lines=2, label="", visible=False)
-                    variable_2 = gr.Textbox(lines=2, label="", visible=False)
-                    variable_3 = gr.Textbox(lines=2, label="", visible=False)
-                    variable_4 = gr.Textbox(lines=2, label="", visible=False)
-                    variable_5 = gr.Textbox(lines=2, label="", visible=False)
-                    variable_6 = gr.Textbox(lines=2, label="", visible=False)
-                    variable_7 = gr.Textbox(lines=2, label="", visible=False)
+                        lines=2,
+                        label="Prompt",
+                        placeholder="Tell me about alpecas and llamas.",
+                        elem_id="inference_variable_0"
+                    )
+                    variable_1 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_1")
+                    variable_2 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_2")
+                    variable_3 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_3")
+                    variable_4 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_4")
+                    variable_5 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_5")
+                    variable_6 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_6")
+                    variable_7 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_7")
 
                     with gr.Accordion("Preview", open=False, elem_id="inference_preview_prompt_container"):
                         preview_prompt = gr.Textbox(
                             show_label=False, interactive=False, elem_id="inference_preview_prompt")
+                        update_prompt_preview_btn = gr.Button(
+                            "↻", elem_id="inference_update_prompt_preview_btn", full_width=False)
+                        update_prompt_preview_btn.style(size="sm")
 
                 # with gr.Column():
                 #     with gr.Row():
@@ -223,22 +230,23 @@ def inference_ui():
                 # with gr.Column():
                 with gr.Accordion("Options", open=True, elem_id="inference_options_accordion"):
                     temperature = gr.Slider(
-                        minimum=0.01, maximum=1.99, value=0.1, step=0.01,
+                        minimum=0, maximum=1, value=0.1, step=0.01,
                         label="Temperature",
                         elem_id="inference_temperature"
                     )
 
-                    top_p = gr.Slider(
-                        minimum=0, maximum=1, value=0.75, step=0.01,
-                        label="Top P",
-                        elem_id="inference_top_p"
-                    )
+                    with gr.Row(elem_classes="inference_options_group"):
+                        top_p = gr.Slider(
+                            minimum=0, maximum=1, value=0.75, step=0.01,
+                            label="Top P",
+                            elem_id="inference_top_p"
+                        )
 
-                    top_k = gr.Slider(
-                        minimum=0, maximum=200, value=40, step=1,
-                        label="Top K",
-                        elem_id="inference_top_k"
-                    )
+                        top_k = gr.Slider(
+                            minimum=0, maximum=100, value=40, step=1,
+                            label="Top K",
+                            elem_id="inference_top_k"
+                        )
 
                     num_beams = gr.Slider(
                         minimum=1, maximum=4, value=1, step=1,
@@ -258,7 +266,7 @@ def inference_ui():
                         elem_id="inference_max_new_tokens"
                     )
 
-                    with gr.Row():
+                    with gr.Row(elem_id="inference_options_bottom_group"):
                         stream_output = gr.Checkbox(
                             label="Stream Output",
                             elem_id="inference_stream_output",
@@ -284,7 +292,7 @@ def inference_ui():
                 inference_output.style(show_copy_button=True)
                 with gr.Accordion(
                         "Raw Output",
-                        open=False,
+                        open=not default_show_raw,
                         visible=default_show_raw,
                         elem_id="inference_inference_raw_output_accordion"
                 ) as raw_output_group:
@@ -331,33 +339,9 @@ def inference_ui():
         stop_btn.click(fn=None, inputs=None, outputs=None,
                        cancels=[generate_event])
 
-        prompt_template.change(fn=update_prompt_preview, inputs=[prompt_template,
-                                                                 variable_0, variable_1, variable_2, variable_3,
-                                                                 variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
-        variable_0.change(fn=update_prompt_preview, inputs=[prompt_template,
-                                                            variable_0, variable_1, variable_2, variable_3,
-                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
-        variable_1.change(fn=update_prompt_preview, inputs=[prompt_template,
-                                                            variable_0, variable_1, variable_2, variable_3,
-                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
-        variable_2.change(fn=update_prompt_preview, inputs=[prompt_template,
-                                                            variable_0, variable_1, variable_2, variable_3,
-                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
-        variable_3.change(fn=update_prompt_preview, inputs=[prompt_template,
-                                                            variable_0, variable_1, variable_2, variable_3,
-                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
-        variable_4.change(fn=update_prompt_preview, inputs=[prompt_template,
-                                                            variable_0, variable_1, variable_2, variable_3,
-                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
-        variable_5.change(fn=update_prompt_preview, inputs=[prompt_template,
-                                                            variable_0, variable_1, variable_2, variable_3,
-                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
-        variable_6.change(fn=update_prompt_preview, inputs=[prompt_template,
-                                                            variable_0, variable_1, variable_2, variable_3,
-                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
-        variable_7.change(fn=update_prompt_preview, inputs=[prompt_template,
-                                                            variable_0, variable_1, variable_2, variable_3,
-                                                            variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        update_prompt_preview_btn.click(fn=update_prompt_preview, inputs=[prompt_template,
+                                                                          variable_0, variable_1, variable_2, variable_3,
+                                                                          variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
 
     inference_ui_blocks.load(_js="""
     function inference_ui_blocks_js() {
@@ -405,6 +389,11 @@ def inference_ui():
               animation: 'scale-subtle',
               content: 'This is the prompt that will be sent to the language model.',
             });
+
+            const update_btn = document.getElementById(
+              'inference_update_prompt_preview_btn'
+            );
+            if (update_btn) update_btn.click();
           });
 
         function setTooltipForOptions() {
@@ -505,5 +494,34 @@ def inference_ui():
           handle_output_wrap_element_class_change();
         }, 500);
       }, 0);
+
+      // Debounced updating the prompt preview.
+      setTimeout(function () {
+        function debounce(func, wait) {
+          let timeout;
+          return function (...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+              func.apply(context, args);
+            }, wait);
+          };
+        }
+
+        function update_preview() {
+          const update_btn = document.getElementById(
+            'inference_update_prompt_preview_btn'
+          );
+          if (!update_btn) return;
+
+          update_btn.click();
+        }
+
+        for (let i = 0; i < 8; i++) {
+          const e = document.querySelector(`#inference_variable_${i} textarea`);
+          if (!e) return;
+          e.addEventListener('input', debounce(update_preview, 500));
+        }
+      }, 100);
     }
     """)

@@ -150,6 +150,27 @@ def main_page_custom_css():
         box-shadow: none;
     }
 
+    .inference_options_group {
+        margin-top: -12px;
+    }
+    .inference_options_group > .form {
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        box-shadow: none;
+    }
+
+    #inference_options_bottom_group {
+        margin-top: -12px;
+    }
+    #inference_options_bottom_group > .form {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        border-bottom: 0;
+    }
+
     #inference_output > .wrap,
     #inference_raw_output > .wrap {
         /* allow users to select text while generation is still in progress */
@@ -179,6 +200,23 @@ def main_page_custom_css():
     }
     #inference_preview_prompt textarea {
         border: 0;
+    }
+    #inference_preview_prompt > .wrap {
+        pointer-events: none;
+        background: transparent;
+        opacity: 0.8;
+    }
+
+    #inference_update_prompt_preview_btn {
+        position: absolute;
+        z-index: 1;
+        right: 0;
+        bottom: 0;
+        width: 32px;
+        border-top-right-radius: 0;
+        border-bottom-left-radius: 0;
+        box-shadow: none;
+        opacity: 0.8;
     }
 
     #finetune_reload_selections_button {
