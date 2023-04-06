@@ -66,12 +66,12 @@ def tokenizer_ui():
             things_that_might_timeout.append(decoding)
             things_that_might_timeout.append(encoding)
 
-            stop_timeoutable_btn = gr.Button(
-                "stop not-responding elements",
-                elem_id="inference_stop_timeoutable_btn",
-                elem_classes="foot_stop_timeoutable_btn")
-            stop_timeoutable_btn.click(
-                fn=None, inputs=None, outputs=None, cancels=things_that_might_timeout)
+        stop_timeoutable_btn = gr.Button(
+            "stop not-responding elements",
+            elem_id="inference_stop_timeoutable_btn",
+            elem_classes="foot_stop_timeoutable_btn")
+        stop_timeoutable_btn.click(
+            fn=None, inputs=None, outputs=None, cancels=things_that_might_timeout)
 
     tokenizer_ui_blocks.load(_js="""
     function tokenizer_ui_blocks_js() {

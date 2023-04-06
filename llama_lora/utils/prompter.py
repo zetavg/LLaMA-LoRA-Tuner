@@ -48,7 +48,8 @@ class Prompter(object):
         elif "variables" in self.template:
             variable_names = self.template.get("variables")
             if type(variables) == dict:
-                variables = [variables.get(name, None) for name in variable_names]
+                variables = [variables.get(name, None)
+                             for name in variable_names]
             if "default" not in self.template:
                 raise ValueError(
                     f"The template {self.template_name} has \"variables\" defined but does not has a default prompt defined. Please do it like: '\"default\": \"prompt_with_instruction\"' to handle cases when a matching prompt can't be found.")
@@ -91,7 +92,9 @@ class Prompter(object):
     def get_response(self, output: str) -> str:
         if self.template_name == "None":
             return output
-        return output.split(self.template["response_split"])[1].strip()
+        return self.template["response_split"].join(
+            output.split(self.template["response_split"])[1:]
+        ).strip()
 
     def get_variable_names(self) -> List[str]:
         if self.template_name == "None":

@@ -109,6 +109,12 @@ def main_page_custom_css():
         font-weight: 100;
     }
 
+    /*
+    .codemirror-wrapper .cm-editor .cm-gutters {
+        background-color: var(--background-fill-secondary);
+    }
+    */
+
     .error-message, .error-message p {
         color: var(--error-text-color) !important;
     }
@@ -161,12 +167,14 @@ def main_page_custom_css():
     }
 
     .inference_options_group {
-        margin-top: -12px;
+        margin-top: -16px;
+        margin-bottom: -16px;
     }
     .inference_options_group > .form {
         border-radius: 0;
         border-left: 0;
         border-right: 0;
+        border-bottom: 0;
         box-shadow: none;
     }
 
@@ -395,9 +403,21 @@ def main_page_custom_css():
         }
     }
 
+    /*
     #tokenizer_encoded_tokens_input_textbox .codemirror-wrapper,
     #tokenizer_decoded_text_input_textbox .codemirror-wrapper {
         margin-bottom: -20px;
+    }
+    */
+    #tokenizer_encoded_tokens_input_textbox,
+    #tokenizer_decoded_text_input_textbox {
+        overflow: hidden !important;
+    }
+
+    /* in case if there's too many logs on the previous run and made the box too high */
+    #finetune_training_status:has(.wrap:not(.hide)) {
+        max-height: 160px;
+        height: 160px;
     }
 
     .foot_stop_timeoutable_btn {

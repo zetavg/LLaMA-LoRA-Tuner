@@ -334,15 +334,30 @@ Train data (first 10):
             time.sleep(2)
             return message
 
+        log_history = []
+
         class UiTrainerCallback(TrainerCallback):
             def _on_progress(self, args, state, control):
+                nonlocal log_history
+
                 if Global.should_stop_training:
                     control.should_training_stop = True
                 total_steps = (
                     state.max_steps if state.max_steps is not None else state.num_train_epochs * state.steps_per_epoch)
+                log_history = state.log_history
+                last_history = None
+                last_loss = None
+                if len(log_history) > 0:
+                    last_history = log_history[-1]
+                    last_loss = last_history.get('loss', None)
+
+                progress_detail = f"Epoch {math.ceil(state.epoch)}/{epochs}"
+                if last_loss is not None:
+                    progress_detail += f", Loss: {last_loss:.4f}"
+
                 progress(
                     (state.global_step, total_steps),
-                    desc=f"Training... (Epoch {math.ceil(state.epoch)}/{epochs}, Step {state.global_step}/{total_steps})"
+                    desc=f"Training... ({progress_detail})"
                 )
 
             def on_epoch_begin(self, args, state, control, **kwargs):
@@ -382,7 +397,12 @@ Train data (first 10):
             None,  # resume_from_checkpoint
             training_callbacks  # callbacks
         )
-        return "Done: " + str(results)
+
+        logs_str = "\n".join([json.dumps(log) for log in log_history]) or "None"
+
+        result_message = f"Training ended:\n{str(results)}\n\nLogs:\n{logs_str}"
+        print(result_message)
+        return result_message
 
     except Exception as e:
         raise gr.Error(e)
@@ -582,7 +602,7 @@ def finetune_ui():
 
                 with gr.Column():
                     model_name = gr.Textbox(
-                        lines=1, label="LoRA Model Name", value=random_name(),
+                        lines=1, label="LoRA Model Name", value=random_name,
                         elem_id="finetune_model_name",
                     )
 
