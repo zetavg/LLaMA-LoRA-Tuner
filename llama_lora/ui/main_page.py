@@ -177,8 +177,8 @@ def main_page_custom_css():
         border-bottom: 0;
     }
 
-    #inference_output > .wrap,
-    #inference_raw_output > .wrap {
+    #inference_output > .wrap:first-child,
+    #inference_raw_output > .wrap:first-child {
         /* allow users to select text while generation is still in progress */
         pointer-events: none;
     }
