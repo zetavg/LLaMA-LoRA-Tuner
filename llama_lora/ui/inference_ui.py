@@ -6,7 +6,7 @@ import transformers
 from transformers import GenerationConfig
 
 from ..globals import Global
-from ..models import get_model_with_lora, get_tokenizer, get_device
+from ..models import get_base_model, get_model_with_lora, get_tokenizer, get_device
 from ..utils.data import (
     get_available_template_names,
     get_available_lora_model_names,
@@ -37,7 +37,7 @@ def do_inference(
         prompter = Prompter(prompt_template)
         prompt = prompter.generate_prompt(variables)
 
-        if "/" not in lora_model_name:
+        if "/" not in lora_model_name and lora_model_name != "None":
             path_of_available_lora_model = get_path_of_available_lora_model(
                 lora_model_name)
             if path_of_available_lora_model:
@@ -50,7 +50,10 @@ def do_inference(
             yield message
             return
 
-        model = get_model_with_lora(lora_model_name)
+        if lora_model_name == "None":
+            model = get_base_model()
+        else:
+            model = get_model_with_lora(lora_model_name)
         tokenizer = get_tokenizer()
 
         inputs = tokenizer(prompt, return_tensors="pt")
@@ -131,6 +134,7 @@ def reload_selections(current_lora_model, current_prompt_template):
 
     default_lora_models = ["tloen/alpaca-lora-7b"]
     available_lora_models = default_lora_models + get_available_lora_model_names()
+    available_lora_models = available_lora_models + ["None"]
 
     current_lora_model = current_lora_model or next(
         iter(available_lora_models), None)
