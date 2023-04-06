@@ -31,6 +31,8 @@ def handle_encode(decoded_tokens):
 
 
 def tokenizer_ui():
+    things_that_might_timeout = []
+
     with gr.Blocks() as tokenizer_ui_blocks:
         with gr.Row():
             with gr.Column():
@@ -50,7 +52,6 @@ def tokenizer_ui():
                 encode_btn = gr.Button("⬅️ Encode")
                 decoded_tokens_error_message = gr.Markdown(
                     "", visible=False, elem_classes="error-message")
-            stop_btn = gr.Button("Stop")
 
             decoding = decode_btn.click(
                 fn=handle_decode,
@@ -62,7 +63,15 @@ def tokenizer_ui():
                 inputs=[decoded_tokens],
                 outputs=[encoded_tokens, decoded_tokens_error_message],
             )
-            stop_btn.click(fn=None, inputs=None, outputs=None, cancels=[decoding, encoding])
+            things_that_might_timeout.append(decoding)
+            things_that_might_timeout.append(encoding)
+
+            stop_timeoutable_btn = gr.Button(
+                "stop not-responding elements",
+                elem_id="inference_stop_timeoutable_btn",
+                elem_classes="foot_stop_timeoutable_btn")
+            stop_timeoutable_btn.click(
+                fn=None, inputs=None, outputs=None, cancels=things_that_might_timeout)
 
     tokenizer_ui_blocks.load(_js="""
     function tokenizer_ui_blocks_js() {

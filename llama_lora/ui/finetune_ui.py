@@ -393,6 +393,8 @@ def do_abort_training():
 
 
 def finetune_ui():
+    things_that_might_timeout = []
+
     with gr.Blocks() as finetune_ui_blocks:
         with gr.Column(elem_id="finetune_ui_content"):
             with gr.Tab("Prepare"):
@@ -466,10 +468,13 @@ def finetune_ui():
                                 elem_id="dataset_plain_text_data_separator",
                                 placeholder=default_dataset_plain_text_data_separator,
                                 value=default_dataset_plain_text_data_separator)
-                        dataset_text_format.change(fn=handle_switch_dataset_text_format, inputs=[
-                                                   dataset_text_format], outputs=[dataset_plain_text_separators_group])
-                    dataset_text_load_sample_button.click(fn=load_sample_dataset_to_text_input, inputs=[
-                                                          dataset_text_format], outputs=[dataset_text])
+                        things_that_might_timeout.append(
+                            dataset_text_format.change(fn=handle_switch_dataset_text_format, inputs=[
+                                dataset_text_format], outputs=[dataset_plain_text_separators_group]))
+
+                    things_that_might_timeout.append(
+                        dataset_text_load_sample_button.click(fn=load_sample_dataset_to_text_input, inputs=[
+                            dataset_text_format], outputs=[dataset_text]))
                 gr.Markdown(
                     "💡 Switch to the \"Preview\" tab to verify that your inputs are correct.")
             with gr.Tab("Preview"):
@@ -484,14 +489,15 @@ def finetune_ui():
                     )
                 finetune_dataset_preview = gr.Dataframe(
                     wrap=True, elem_id="finetune_dataset_preview")
-            load_dataset_from.change(
-                fn=handle_switch_dataset_source,
-                inputs=[load_dataset_from],
-                outputs=[
-                    dataset_text_input_group,
-                    dataset_from_data_dir_group
-                ]
-            )
+            things_that_might_timeout.append(
+                load_dataset_from.change(
+                    fn=handle_switch_dataset_source,
+                    inputs=[load_dataset_from],
+                    outputs=[
+                        dataset_text_input_group,
+                        dataset_from_data_dir_group
+                    ]
+                ))
 
             dataset_inputs = [
                 template,
@@ -506,20 +512,22 @@ def finetune_ui():
             dataset_preview_inputs = dataset_inputs + \
                 [finetune_dataset_preview_show_actual_prompt]
             for i in dataset_preview_inputs:
-                i.change(
-                    fn=refresh_preview,
-                    inputs=dataset_preview_inputs,
-                    outputs=[finetune_dataset_preview,
-                             finetune_dataset_preview_info_message,
-                             dataset_from_text_message,
-                             dataset_from_data_dir_message
-                             ]
-                )
+                things_that_might_timeout.append(
+                    i.change(
+                        fn=refresh_preview,
+                        inputs=dataset_preview_inputs,
+                        outputs=[finetune_dataset_preview,
+                                 finetune_dataset_preview_info_message,
+                                 dataset_from_text_message,
+                                 dataset_from_data_dir_message
+                                 ]
+                    ))
 
-            reload_selections_button.click(
+            things_that_might_timeout.append(reload_selections_button.click(
                 reload_selections,
                 inputs=[template, dataset_from_data_dir],
                 outputs=[template, dataset_from_data_dir],
+            )
             )
 
             max_seq_length = gr.Slider(
@@ -620,6 +628,13 @@ def finetune_ui():
             fn=do_abort_training,
             inputs=None, outputs=None,
             cancels=[train_progress])
+
+        stop_timeoutable_btn = gr.Button(
+            "stop not-responding elements",
+            elem_id="inference_stop_timeoutable_btn",
+            elem_classes="foot_stop_timeoutable_btn")
+        stop_timeoutable_btn.click(
+            fn=None, inputs=None, outputs=None, cancels=things_that_might_timeout)
 
     finetune_ui_blocks.load(_js="""
     function finetune_ui_blocks_js() {

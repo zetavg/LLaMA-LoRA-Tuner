@@ -395,6 +395,30 @@ def main_page_custom_css():
         }
     }
 
+    #tokenizer_encoded_tokens_input_textbox .codemirror-wrapper,
+    #tokenizer_decoded_text_input_textbox .codemirror-wrapper {
+        margin-bottom: -20px;
+    }
+
+    .foot_stop_timeoutable_btn {
+        align-self: flex-end;
+        border: 0 !important;
+        width: auto !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        font-weight: 100 !important;
+        font-size: 80% !important;
+        text-decoration: underline;
+        opacity: 0.3;
+    }
+    .foot_stop_timeoutable_btn:hover {
+        opacity: 0.8;
+    }
+    .foot_stop_timeoutable_btn:active {
+        opacity: 1;
+    }
+
     .tippy-box[data-animation=scale-subtle][data-placement^=top]{transform-origin:bottom}.tippy-box[data-animation=scale-subtle][data-placement^=bottom]{transform-origin:top}.tippy-box[data-animation=scale-subtle][data-placement^=left]{transform-origin:right}.tippy-box[data-animation=scale-subtle][data-placement^=right]{transform-origin:left}.tippy-box[data-animation=scale-subtle][data-state=hidden]{transform:scale(.8);opacity:0}
     """
     return css

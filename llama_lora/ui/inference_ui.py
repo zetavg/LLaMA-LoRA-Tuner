@@ -175,6 +175,8 @@ def update_prompt_preview(prompt_template,
 
 
 def inference_ui():
+    things_that_might_timeout = []
+
     with gr.Blocks() as inference_ui_blocks:
         with gr.Row():
             lora_model = gr.Dropdown(
@@ -203,13 +205,20 @@ def inference_ui():
                         placeholder="Tell me about alpecas and llamas.",
                         elem_id="inference_variable_0"
                     )
-                    variable_1 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_1")
-                    variable_2 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_2")
-                    variable_3 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_3")
-                    variable_4 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_4")
-                    variable_5 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_5")
-                    variable_6 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_6")
-                    variable_7 = gr.Textbox(lines=2, label="", visible=False, elem_id="inference_variable_7")
+                    variable_1 = gr.Textbox(
+                        lines=2, label="", visible=False, elem_id="inference_variable_1")
+                    variable_2 = gr.Textbox(
+                        lines=2, label="", visible=False, elem_id="inference_variable_2")
+                    variable_3 = gr.Textbox(
+                        lines=2, label="", visible=False, elem_id="inference_variable_3")
+                    variable_4 = gr.Textbox(
+                        lines=2, label="", visible=False, elem_id="inference_variable_4")
+                    variable_5 = gr.Textbox(
+                        lines=2, label="", visible=False, elem_id="inference_variable_5")
+                    variable_6 = gr.Textbox(
+                        lines=2, label="", visible=False, elem_id="inference_variable_6")
+                    variable_7 = gr.Textbox(
+                        lines=2, label="", visible=False, elem_id="inference_variable_7")
 
                     with gr.Accordion("Preview", open=False, elem_id="inference_preview_prompt_container"):
                         preview_prompt = gr.Textbox(
@@ -303,19 +312,22 @@ def inference_ui():
                             interactive=False,
                             elem_id="inference_raw_output")
 
-        show_raw.change(
+        show_raw_change_event = show_raw.change(
             fn=lambda show_raw: gr.Accordion.update(visible=show_raw),
             inputs=[show_raw],
             outputs=[raw_output_group])
+        things_that_might_timeout.append(show_raw_change_event)
 
-        reload_selections_button.click(
+        reload_selections_event = reload_selections_button.click(
             reload_selections,
             inputs=[lora_model, prompt_template],
             outputs=[lora_model, prompt_template],
         )
+        things_that_might_timeout.append(reload_selections_event)
 
-        prompt_template.change(fn=handle_prompt_template_change, inputs=[prompt_template], outputs=[
-                               variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
+        prompt_template_change_event = prompt_template.change(fn=handle_prompt_template_change, inputs=[prompt_template], outputs=[
+            variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
+        things_that_might_timeout.append(prompt_template_change_event)
 
         generate_event = generate_btn.click(
             fn=do_inference,
@@ -339,9 +351,17 @@ def inference_ui():
         stop_btn.click(fn=None, inputs=None, outputs=None,
                        cancels=[generate_event])
 
-        update_prompt_preview_btn.click(fn=update_prompt_preview, inputs=[prompt_template,
-                                                                          variable_0, variable_1, variable_2, variable_3,
-                                                                          variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        update_prompt_preview_event = update_prompt_preview_btn.click(fn=update_prompt_preview, inputs=[prompt_template,
+                                                                                                        variable_0, variable_1, variable_2, variable_3,
+                                                                                                        variable_4, variable_5, variable_6, variable_7,], outputs=preview_prompt)
+        things_that_might_timeout.append(update_prompt_preview_event)
+
+        stop_timeoutable_btn = gr.Button(
+            "stop not-responding elements",
+            elem_id="inference_stop_timeoutable_btn",
+            elem_classes="foot_stop_timeoutable_btn")
+        stop_timeoutable_btn.click(
+            fn=None, inputs=None, outputs=None, cancels=things_that_might_timeout)
 
     inference_ui_blocks.load(_js="""
     function inference_ui_blocks_js() {
