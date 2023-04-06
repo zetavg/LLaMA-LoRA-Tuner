@@ -35,25 +35,37 @@ def get_model_with_lora(lora_weights: str = "tloen/alpaca-lora-7b"):
     Global.model_has_been_used = True
 
     if device == "cuda":
-        return PeftModel.from_pretrained(
+        model = PeftModel.from_pretrained(
             get_base_model(),
             lora_weights,
             torch_dtype=torch.float16,
             device_map={'': 0},  # ? https://github.com/tloen/alpaca-lora/issues/21
         )
     elif device == "mps":
-        return PeftModel.from_pretrained(
+        model = PeftModel.from_pretrained(
             get_base_model(),
             lora_weights,
             device_map={"": device},
             torch_dtype=torch.float16,
         )
     else:
-        return PeftModel.from_pretrained(
+        model = PeftModel.from_pretrained(
             get_base_model(),
             lora_weights,
             device_map={"": device},
         )
+
+    model.config.pad_token_id = get_tokenizer().pad_token_id = 0
+    model.config.bos_token_id = 1
+    model.config.eos_token_id = 2
+
+    if not Global.load_8bit:
+        model.half()  # seems to fix bugs for some users.
+
+    model.eval()
+    if torch.__version__ >= "2" and sys.platform != "win32":
+        model = torch.compile(model)
+    return model
 
 
 def get_tokenizer():
@@ -88,11 +100,6 @@ def load_base_model():
             Global.loaded_base_model = LlamaForCausalLM.from_pretrained(
                 base_model, device_map={"": device}, low_cpu_mem_usage=True
             )
-
-    # unwind broken decapoda-research config
-    Global.loaded_base_model.config.pad_token_id = Global.loaded_tokenizer.pad_token_id = 0  # unk
-    Global.loaded_base_model.config.bos_token_id = 1
-    Global.loaded_base_model.config.eos_token_id = 2
 
 
 def unload_models():
