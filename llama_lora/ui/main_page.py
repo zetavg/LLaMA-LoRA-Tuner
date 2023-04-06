@@ -139,6 +139,10 @@ def main_page_custom_css():
         border-top-right-radius: 0;
     }
 
+    #inference_prompt_box {
+        flex-grow: 0 !important;
+    }
+
     #inference_options_accordion {
         padding: 0;
     }

@@ -522,6 +522,22 @@ def inference_ui():
           if (!e) return;
           e.addEventListener('input', debounce(update_preview, 500));
         }
+
+        const prompt_template_selector = document.querySelector(
+          '#inference_prompt_template .wrap-inner'
+        );
+
+        if (prompt_template_selector) {
+          new MutationObserver(
+            debounce(function () {
+              if (prompt_template_selector.classList.contains('showOptions')) return;
+              update_preview();
+            }, 500)
+          ).observe(prompt_template_selector, {
+            attributes: true,
+            attributeFilter: ['class'],
+          });
+        }
       }, 100);
     }
     """)
