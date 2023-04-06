@@ -53,9 +53,8 @@ def do_inference(
             yield message, '[0]'
             return
 
-        if lora_model_name == "None":
-            model = get_base_model()
-        else:
+        model = get_base_model()
+        if not lora_model_name == "None":
             model = get_model_with_lora(lora_model_name)
         tokenizer = get_tokenizer()
 
