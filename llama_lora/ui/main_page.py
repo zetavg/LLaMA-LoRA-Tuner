@@ -5,6 +5,7 @@ from ..models import get_model_with_lora
 
 from .inference_ui import inference_ui
 from .finetune_ui import finetune_ui
+from .tokenizer_ui import tokenizer_ui
 
 from .js_scripts import popperjs_core_code, tippy_js_code
 
@@ -25,6 +26,8 @@ def main_page():
                 inference_ui()
             with gr.Tab("Fine-tuning"):
                 finetune_ui()
+            with gr.Tab("Tokenizer"):
+                tokenizer_ui()
             info = []
             if Global.version:
                 info.append(f"LLaMA-LoRA `{Global.version}`")
@@ -100,6 +103,10 @@ def main_page_custom_css():
         font-weight: 100;
     }
 
+    .error-message, .error-message p {
+        color: var(--error-text-color) !important;
+    }
+
     .textbox_that_is_only_used_to_display_a_label {
         border: 0 !important;
         box-shadow: none !important;
@@ -143,7 +150,8 @@ def main_page_custom_css():
         box-shadow: none;
     }
 
-    #inference_output > .wrap {
+    #inference_output > .wrap,
+    #inference_raw_output > .wrap {
         /* allow users to select text while generation is still in progress */
         pointer-events: none;
     }

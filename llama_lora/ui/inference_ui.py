@@ -16,6 +16,8 @@ from ..utils.callbacks import Iteratorize, Stream
 
 device = get_device()
 
+default_show_raw = True
+
 
 def do_inference(
     lora_model_name,
@@ -29,6 +31,7 @@ def do_inference(
     repetition_penalty=1.2,
     max_new_tokens=128,
     stream_output=False,
+    show_raw=False,
     progress=gr.Progress(track_tqdm=True),
 ):
     try:
@@ -47,7 +50,7 @@ def do_inference(
             message = f"Currently in UI dev mode, not running actual inference.\n\nLoRA model: {lora_model_name}\n\nYour prompt is:\n\n{prompt}"
             print(message)
             time.sleep(1)
-            yield message
+            yield message, '[0]'
             return
 
         if lora_model_name == "None":
@@ -102,7 +105,10 @@ def do_inference(
                     if output[-1] in [tokenizer.eos_token_id]:
                         break
 
-                    yield prompter.get_response(decoded_output)
+                    raw_output = None
+                    if show_raw:
+                        raw_output = str(output)
+                    yield prompter.get_response(decoded_output), raw_output
             return  # early return for stream_output
 
         # Without streaming
@@ -116,7 +122,10 @@ def do_inference(
             )
         s = generation_output.sequences[0]
         output = tokenizer.decode(s)
-        yield prompter.get_response(output)
+        raw_output = None
+        if show_raw:
+            raw_output = str(s)
+        yield prompter.get_response(output), raw_output
 
     except Exception as e:
         raise gr.Error(e)
@@ -249,11 +258,17 @@ def inference_ui():
                         elem_id="inference_max_new_tokens"
                     )
 
-                    stream_output = gr.Checkbox(
-                        label="Stream Output",
-                        elem_id="inference_stream_output",
-                        value=True
-                    )
+                    with gr.Row():
+                        stream_output = gr.Checkbox(
+                            label="Stream Output",
+                            elem_id="inference_stream_output",
+                            value=True
+                        )
+                        show_raw = gr.Checkbox(
+                            label="Show Raw",
+                            elem_id="inference_show_raw",
+                            value=default_show_raw
+                        )
 
                 with gr.Column():
                     with gr.Row():
@@ -267,6 +282,23 @@ def inference_ui():
                 inference_output = gr.Textbox(
                     lines=12, label="Output", elem_id="inference_output")
                 inference_output.style(show_copy_button=True)
+                with gr.Accordion(
+                        "Raw Output",
+                        open=False,
+                        visible=default_show_raw,
+                        elem_id="inference_inference_raw_output_accordion"
+                ) as raw_output_group:
+                    inference_raw_output = gr.Code(
+                        label="Raw Output",
+                        show_label=False,
+                        language="json",
+                        interactive=False,
+                        elem_id="inference_raw_output")
+
+        show_raw.change(
+            fn=lambda show_raw: gr.Accordion.update(visible=show_raw),
+            inputs=[show_raw],
+            outputs=[raw_output_group])
 
         reload_selections_button.click(
             reload_selections,
@@ -291,8 +323,9 @@ def inference_ui():
                 repetition_penalty,
                 max_new_tokens,
                 stream_output,
+                show_raw,
             ],
-            outputs=inference_output,
+            outputs=[inference_output, inference_raw_output],
             api_name="inference"
         )
         stop_btn.click(fn=None, inputs=None, outputs=None,
