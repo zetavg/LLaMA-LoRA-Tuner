@@ -101,6 +101,10 @@ def load_base_model():
                 Global.base_model, device_map={"": device}, low_cpu_mem_usage=True
             )
 
+        Global.base_model.config.pad_token_id = get_tokenizer().pad_token_id = 0
+        Global.base_model.config.bos_token_id = 1
+        Global.base_model.config.eos_token_id = 2
+
 
 def clear_cache():
     gc.collect()
