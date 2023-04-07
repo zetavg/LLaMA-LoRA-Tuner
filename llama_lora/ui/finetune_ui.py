@@ -261,6 +261,11 @@ def do_train(
     progress=gr.Progress(track_tqdm=True),
 ):
     try:
+        # If model has been used in inference, we need to unload it first.
+        # Otherwise, we'll get a 'Function MmBackward0 returned an invalid
+        # gradient at index 1 - expected device meta but got cuda:0' error.
+        unload_models_if_already_used()
+
         prompter = Prompter(template)
         variable_names = prompter.get_variable_names()
 
@@ -392,16 +397,20 @@ Train data (first 10):
 
         training_callbacks = [UiTrainerCallback]
 
-        # If model has been used in inference, we need to unload it first.
-        # Otherwise, we'll get a 'Function MmBackward0 returned an invalid
-        # gradient at index 1 - expected device meta but got cuda:0' error.
-        unload_models_if_already_used()
-
         Global.should_stop_training = False
 
+        # Do this again right before training to make sure the model is not used in inference.
+        unload_models_if_already_used()
+
+        base_model = get_base_model()
+        tokenizer = get_tokenizer()
+
+        # Do not let other tqdm iterations interfere the progress reporting after training starts.
+        progress.track_tqdm = False
+
         results = Global.train_fn(
-            get_base_model(),  # base_model
-            get_tokenizer(),  # tokenizer
+            base_model,  # base_model
+            tokenizer,  # tokenizer
             os.path.join(Global.data_dir, "lora_models",
                          model_name),  # output_dir
             train_data,
