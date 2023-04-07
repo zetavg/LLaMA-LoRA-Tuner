@@ -1,3 +1,25 @@
+---
+title: LLaMA-LoRA UI Demo
+emoji: 🦙🎛️
+colorFrom: pink
+colorTo: gray
+sdk: gradio
+sdk_version: 3.24.1
+python_version: 3.8.9
+app_file: app_hf_ui_demo.py
+pinned: false
+---
+
+# HF UI DEMO
+
+To update, run:
+
+```sh
+git push -f hf-ui-demo hf-ui-demo:main
+```
+
+---
+
 # 🦙🎛️ LLaMA-LoRA
 
 <a href="https://colab.research.google.com/github/zetavg/LLaMA-LoRA/blob/main/LLaMA_LoRA.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
