@@ -102,6 +102,14 @@ def load_base_model():
             )
 
 
+def clear_cache():
+    gc.collect()
+
+    # if not shared.args.cpu: # will not be running on CPUs anyway
+    with torch.no_grad():
+        torch.cuda.empty_cache()
+
+
 def unload_models():
     del Global.loaded_base_model
     Global.loaded_base_model = None
@@ -109,11 +117,7 @@ def unload_models():
     del Global.loaded_tokenizer
     Global.loaded_tokenizer = None
 
-    gc.collect()
-
-    # if not shared.args.cpu: # will not be running on CPUs anyway
-    with torch.no_grad():
-        torch.cuda.empty_cache()
+    clear_cache()
 
     Global.model_has_been_used = False
 
