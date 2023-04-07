@@ -98,7 +98,7 @@ def load_base_model():
             )
         else:
             Global.loaded_base_model = LlamaForCausalLM.from_pretrained(
-                base_model, device_map={"": device}, low_cpu_mem_usage=True
+                Global.base_model, device_map={"": device}, low_cpu_mem_usage=True
             )
 
 

@@ -69,7 +69,7 @@ def main_page():
 def get_page_title():
     title = Global.ui_title
     if (Global.ui_dev_mode):
-        title = f"[UI DEV MODE] {title}"
+        title = Global.ui_dev_mode_title_prefix + title
     if (Global.ui_emoji):
         title = f"{Global.ui_emoji} {title}"
     return title
