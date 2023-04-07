@@ -7,7 +7,9 @@ Making evaluating and fine-tuning LLaMA models with low-rank adaptation (LoRA) e
 
 ## Features
 
-* [1-click up and running in Google Colab](https://colab.research.google.com/github/zetavg/LLaMA-LoRA/blob/main/LLaMA_LoRA.ipynb).
+**[See a demo on Hugging Face](https://huggingface.co/spaces/zetavg/LLaMA-LoRA-UI-Demo)** **Only serves UI demonstration. To try training or text generation, [run on Colab](#run-on-google-colab).*
+
+* **[1-click up and running in Google Colab](#run-on-google-colab)** with a standard GPU runtime.
   * Loads and stores data in Google Drive.
 * Evaluate various LLaMA LoRA models stored in your folder or from Hugging Face.<br /><a href="https://youtu.be/A3kb4VkDWyY"><img width="640px" src="https://user-images.githubusercontent.com/3784687/230272844-09f7a35b-46bf-4101-b15d-4ddf243b8bef.gif" /></a>
 * Fine-tune LLaMA models with different prompt templates and training dataset format.<br /><a href="https://youtu.be/5Db9U8PsaUk"><img width="640px" src="https://user-images.githubusercontent.com/3784687/230277315-9a91d983-1690-4594-9d54-912eda8963ee.gif" /></a>
