@@ -1,5 +1,6 @@
 import gradio as gr
 import time
+import json
 
 import torch
 import transformers
@@ -47,10 +48,30 @@ def do_inference(
                 lora_model_name = path_of_available_lora_model
 
         if Global.ui_dev_mode:
-            message = f"Currently in UI dev mode, not running actual inference.\n\nLoRA model: {lora_model_name}\n\nYour prompt is:\n\n{prompt}"
+            message = f"Hi, I’m currently in UI-development mode and do not have access to resources to process your request. However, this behavior is similar to what will actually happen, so you can try and see how it will work!\n\nBase model: {Global.base_model}\nLoRA model: {lora_model_name}\n\nThe following text is your prompt:\n\n{prompt}"
             print(message)
+
+            if stream_output:
+                def word_generator(sentence):
+                    lines = message.split('\n')
+                    out = ""
+                    for line in lines:
+                        words = line.split(' ')
+                        for i in range(len(words)):
+                            if out:
+                                out += ' '
+                            out += words[i]
+                            yield out
+                        out += "\n"
+                        yield out
+
+                for partial_sentence in word_generator(message):
+                    yield partial_sentence, json.dumps(list(range(len(partial_sentence.split()))), indent=2)
+                    time.sleep(0.05)
+
+                return
             time.sleep(1)
-            yield message, '[0]'
+            yield message, json.dumps(list(range(len(message.split()))), indent=2)
             return
 
         model = get_base_model()

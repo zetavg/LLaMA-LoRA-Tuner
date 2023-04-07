@@ -312,7 +312,31 @@ def do_train(
                 'completion': d['output']}
             for d in data]
 
+        def get_progress_text(epoch, epochs, last_loss):
+            progress_detail = f"Epoch {math.ceil(epoch)}/{epochs}"
+            if last_loss is not None:
+                progress_detail += f", Loss: {last_loss:.4f}"
+            return f"Training... ({progress_detail})"
+
         if Global.ui_dev_mode:
+            Global.should_stop_training = False
+
+            for i in range(300):
+                if (Global.should_stop_training):
+                    return
+                epochs = 3
+                epoch = i / 100
+                last_loss = None
+                if (i > 20):
+                    last_loss = 3 + (i - 0) * (0.5 - 3) / (300 - 0)
+
+                progress(
+                    (i, 300),
+                    desc="(Simulate) " + get_progress_text(epoch, epochs, last_loss)
+                )
+
+                time.sleep(0.1)
+
             message = f"""Currently in UI dev mode, not doing the actual training.
 
 Train options: {json.dumps({
