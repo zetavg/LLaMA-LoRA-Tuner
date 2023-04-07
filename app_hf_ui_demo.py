@@ -16,9 +16,10 @@ def main():
     Global.load_8bit = False
 
     Global.ui_dev_mode = True
+    Global.ui_dev_mode_title_prefix = ""
     Global.ui_show_sys_info = False
 
-    Global.ui_subtitle = "This is a UI demo of <a href=\"https://github.com/zetavg/LLaMA-LoRA\" target=\"_blank\">LLaMA-LoRA</a>, toolkit for evaluating and fine-tuning LLaMA models."
+    Global.ui_subtitle = "This is a UI demo of <a href=\"https://github.com/zetavg/LLaMA-LoRA\" target=\"_blank\">LLaMA-LoRA</a>, toolkit for evaluating and fine-tuning LLaMA models. Run the actual one: <a href=\"https://colab.research.google.com/github/zetavg/LLaMA-LoRA/blob/main/LLaMA_LoRA.ipynb\" target=\"_parent\"><img style=\"display: inline;\" src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
 
     os.makedirs(data_dir, exist_ok=True)
     init_data_dir()
