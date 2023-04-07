@@ -40,7 +40,7 @@ def do_inference(
         prompter = Prompter(prompt_template)
         prompt = prompter.generate_prompt(variables)
 
-        if "/" not in lora_model_name and lora_model_name != "None":
+        if lora_model_name is not None and "/" not in lora_model_name and lora_model_name != "None":
             path_of_available_lora_model = get_path_of_available_lora_model(
                 lora_model_name)
             if path_of_available_lora_model:
@@ -54,7 +54,7 @@ def do_inference(
             return
 
         model = get_base_model()
-        if not lora_model_name == "None":
+        if not lora_model_name == "None" and lora_model_name is not None:
             model = get_model_with_lora(lora_model_name)
         tokenizer = get_tokenizer()
 
