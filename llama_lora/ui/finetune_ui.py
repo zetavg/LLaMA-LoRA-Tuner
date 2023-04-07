@@ -9,7 +9,9 @@ from random_word import RandomWords
 from transformers import TrainerCallback
 
 from ..globals import Global
-from ..models import get_base_model, get_tokenizer, unload_models_if_already_used
+from ..models import (
+    get_base_model, get_tokenizer,
+    clear_cache, unload_models_if_already_used)
 from ..utils.data import (
     get_available_template_names,
     get_available_dataset_names,
@@ -238,6 +240,12 @@ def parse_plain_text_input(
     return result
 
 
+should_training_progress_track_tqdm = True
+
+if Global.gpu_total_cores is not None and Global.gpu_total_cores > 2560:
+    should_training_progress_track_tqdm = False
+
+
 def do_train(
     # Dataset
     template,
@@ -258,9 +266,10 @@ def do_train(
     lora_alpha,
     lora_dropout,
     model_name,
-    progress=gr.Progress(track_tqdm=True),
+    progress=gr.Progress(track_tqdm=should_training_progress_track_tqdm),
 ):
     try:
+        clear_cache()
         # If model has been used in inference, we need to unload it first.
         # Otherwise, we'll get a 'Function MmBackward0 returned an invalid
         # gradient at index 1 - expected device meta but got cuda:0' error.
@@ -337,7 +346,8 @@ def do_train(
 
                 progress(
                     (i, 300),
-                    desc="(Simulate) " + get_progress_text(epoch, epochs, last_loss)
+                    desc="(Simulate) " +
+                    get_progress_text(epoch, epochs, last_loss)
                 )
 
                 time.sleep(0.1)
@@ -401,12 +411,13 @@ Train data (first 10):
 
         # Do this again right before training to make sure the model is not used in inference.
         unload_models_if_already_used()
+        clear_cache()
 
         base_model = get_base_model()
         tokenizer = get_tokenizer()
 
         # Do not let other tqdm iterations interfere the progress reporting after training starts.
-        progress.track_tqdm = False
+        # progress.track_tqdm = False  # setting this dynamically is not working, determining if track_tqdm should be enabled based on GPU cores at start instead.
 
         results = Global.train_fn(
             base_model,  # base_model
@@ -431,7 +442,8 @@ Train data (first 10):
             training_callbacks  # callbacks
         )
 
-        logs_str = "\n".join([json.dumps(log) for log in log_history]) or "None"
+        logs_str = "\n".join([json.dumps(log)
+                             for log in log_history]) or "None"
 
         result_message = f"Training ended:\n{str(results)}\n\nLogs:\n{logs_str}"
         print(result_message)
@@ -590,9 +602,18 @@ def finetune_ui():
             )
 
         with gr.Row():
+            micro_batch_size_default_value = 1
+
+            if Global.gpu_total_cores is not None and Global.gpu_total_memory is not None:
+                memory_per_core = Global.gpu_total_memory / Global.gpu_total_cores
+                if memory_per_core >= 6291456:
+                    micro_batch_size_default_value = 8
+                elif memory_per_core >= 4000000:  # ?
+                    micro_batch_size_default_value = 4
+
             with gr.Column():
                 micro_batch_size = gr.Slider(
-                    minimum=1, maximum=100, step=1, value=8,
+                    minimum=1, maximum=100, step=1, value=micro_batch_size_default_value,
                     label="Micro Batch Size",
                     info="The number of examples in each mini-batch for gradient computation. A smaller micro_batch_size reduces memory usage but may increase training time."
                 )

@@ -7,6 +7,8 @@ datasets
 fire
 git+https://github.com/huggingface/peft.git
 git+https://github.com/huggingface/transformers.git
+numba
+nvidia-ml-py3
 gradio
 loralib
 sentencepiece

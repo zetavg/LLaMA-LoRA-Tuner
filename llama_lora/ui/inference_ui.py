@@ -245,7 +245,7 @@ def inference_ui():
                         preview_prompt = gr.Textbox(
                             show_label=False, interactive=False, elem_id="inference_preview_prompt")
                         update_prompt_preview_btn = gr.Button(
-                            "↻", elem_id="inference_update_prompt_preview_btn", full_width=False)
+                            "↻", elem_id="inference_update_prompt_preview_btn")
                         update_prompt_preview_btn.style(size="sm")
 
                 # with gr.Column():
