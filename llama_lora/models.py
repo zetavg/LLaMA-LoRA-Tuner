@@ -34,6 +34,9 @@ def get_base_model():
 def get_model_with_lora(lora_weights: str = "tloen/alpaca-lora-7b"):
     Global.model_has_been_used = True
 
+    if Global.loaded_base_model_with_lora and Global.loaded_base_model_with_lora_name == lora_weights:
+        return Global.loaded_base_model_with_lora
+
     if device == "cuda":
         model = PeftModel.from_pretrained(
             get_base_model(),
@@ -65,6 +68,9 @@ def get_model_with_lora(lora_weights: str = "tloen/alpaca-lora-7b"):
     model.eval()
     if torch.__version__ >= "2" and sys.platform != "win32":
         model = torch.compile(model)
+
+    Global.loaded_base_model_with_lora = model
+    Global.loaded_base_model_with_lora_name = lora_weights
     return model
 
 
@@ -120,6 +126,11 @@ def unload_models():
 
     del Global.loaded_tokenizer
     Global.loaded_tokenizer = None
+
+    del Global.loaded_base_model_with_lora
+    Global.loaded_base_model_with_lora = None
+
+    Global.loaded_base_model_with_lora_name = None
 
     clear_cache()
 

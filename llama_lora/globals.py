@@ -27,6 +27,8 @@ class Global:
 
     # Model related
     model_has_been_used = False
+    loaded_base_model_with_lora = None
+    loaded_base_model_with_lora_name = None
 
     # GPU Info
     gpu_cc = None  # GPU compute capability
