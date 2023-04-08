@@ -107,7 +107,7 @@ toolz==0.12.0
 torch==2.0.0
 tqdm==4.65.0
 traitlets==5.9.0
-transformers @ git+https://github.com/huggingface/transformers.git@6c640f098a6a7dd7337d4a630332fd418d41e396
+transformers @ git+https://github.com/huggingface/transformers.git@3f96e0b4e483c4c7d4ec9dcdc24b0b0cdf31ea5c
 typing_extensions==4.5.0
 tzdata==2023.3
 uc-micro-py==1.0.1
