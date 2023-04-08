@@ -56,7 +56,7 @@ file_mounts:
 # Clone the LLaMA-LoRA repo and install its dependencies.
 setup: |
   git clone https://github.com/zetavg/LLaMA-LoRA.git llama_lora
-  cd llama_lora && pip install -r requirements.txt
+  cd llama_lora && pip install -r requirements.lock.txt
   cd ..
   echo 'Dependencies installed.'
 
@@ -86,13 +86,13 @@ When you are done, run `sky stop <cluster_name>` to stop the cluster. To termina
   <summary>Prepare environment with conda</summary>
 
   ```bash
-  conda create -y -n llama-lora-multitool python=3.8
+  conda create -y python=3.8 -n llama-lora-multitool
   conda activate llama-lora-multitool
   ```
 </details>
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.lock.txt
 python app.py --data_dir='./data' --base_model='decapoda-research/llama-7b-hf' --share
 ```
 
