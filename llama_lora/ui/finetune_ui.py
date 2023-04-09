@@ -269,6 +269,9 @@ def do_train(
     progress=gr.Progress(track_tqdm=should_training_progress_track_tqdm),
 ):
     try:
+        if not should_training_progress_track_tqdm:
+            progress(0, desc="Preparing train data...")
+
         clear_cache()
         # If model has been used in inference, we need to unload it first.
         # Otherwise, we'll get a 'Function MmBackward0 returned an invalid
@@ -373,6 +376,9 @@ Train data (first 10):
             time.sleep(2)
             return message
 
+        if not should_training_progress_track_tqdm:
+            progress(0, desc="Preparing model for training...")
+
         log_history = []
 
         class UiTrainerCallback(TrainerCallback):
@@ -436,7 +442,10 @@ Train data (first 10):
             }
             json.dump(info, info_json_file, indent=2)
 
-        results = Global.train_fn(
+        if not should_training_progress_track_tqdm:
+            progress(0, desc="Train starting...")
+
+        train_output = Global.train_fn(
             base_model,  # base_model
             tokenizer,  # tokenizer
             output_dir,  # output_dir
@@ -461,7 +470,7 @@ Train data (first 10):
         logs_str = "\n".join([json.dumps(log)
                              for log in log_history]) or "None"
 
-        result_message = f"Training ended:\n{str(results)}\n\nLogs:\n{logs_str}"
+        result_message = f"Training ended:\n{str(train_output)}\n\nLogs:\n{logs_str}"
         print(result_message)
         clear_cache()
         return result_message
@@ -692,9 +701,9 @@ def finetune_ui():
                             elem_id="finetune_confirm_stop_btn"
                         )
 
-        training_status = gr.Text(
-            "Training status will be shown here.",
-            label="Training Status/Results",
+        train_output = gr.Text(
+            "Training results will be shown here.",
+            label="Train Output",
             elem_id="finetune_training_status")
 
         train_progress = train_btn.click(
@@ -710,7 +719,7 @@ def finetune_ui():
                 lora_dropout,
                 model_name
             ]),
-            outputs=training_status
+            outputs=train_output
         )
 
         # controlled by JS, shows the confirm_abort_button
