@@ -13,12 +13,10 @@ from .lib.finetune import train
 class Global:
     version = None
 
-    base_model: str = ""
     data_dir: str = ""
     load_8bit: bool = False
 
-    loaded_tokenizer: Any = None
-    loaded_base_model: Any = None
+    default_base_model_name: str = ""
 
     # Functions
     train_fn: Any = train
@@ -31,8 +29,8 @@ class Global:
     generation_force_stopped_at = None
 
     # Model related
-    model_has_been_used = False
-    cached_lora_models = LRUCache(10)
+    loaded_models = LRUCache(1)
+    loaded_tokenizers = LRUCache(1)
 
     # GPU Info
     gpu_cc = None  # GPU compute capability

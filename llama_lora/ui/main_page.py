@@ -1,7 +1,6 @@
 import gradio as gr
 
 from ..globals import Global
-from ..models import get_model_with_lora
 
 from .inference_ui import inference_ui
 from .finetune_ui import finetune_ui
@@ -31,7 +30,7 @@ def main_page():
             info = []
             if Global.version:
                 info.append(f"LLaMA-LoRA Tuner `{Global.version}`")
-            info.append(f"Base model: `{Global.base_model}`")
+            info.append(f"Base model: `{Global.default_base_model_name}`")
             if Global.ui_show_sys_info:
                 info.append(f"Data dir: `{Global.data_dir}`")
             gr.Markdown(f"""

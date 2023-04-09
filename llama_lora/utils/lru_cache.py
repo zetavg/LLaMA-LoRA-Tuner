@@ -25,3 +25,7 @@ class LRUCache:
 
     def clear(self):
         self.cache.clear()
+
+    def prepare_to_set(self):
+        if len(self.cache) >= self.capacity:
+            self.cache.popitem(last=False)

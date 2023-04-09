@@ -7,7 +7,6 @@ import gradio as gr
 from llama_lora.globals import Global
 from llama_lora.ui.main_page import main_page, get_page_title, main_page_custom_css
 from llama_lora.utils.data import init_data_dir
-from llama_lora.models import load_base_model
 
 
 def main(
@@ -31,7 +30,7 @@ def main(
         data_dir
     ), "Please specify a --data_dir, e.g. --data_dir='./data'"
 
-    Global.base_model = base_model
+    Global.default_base_model_name = base_model
     Global.data_dir = os.path.abspath(data_dir)
     Global.load_8bit = load_8bit
 
@@ -40,9 +39,6 @@ def main(
 
     os.makedirs(data_dir, exist_ok=True)
     init_data_dir()
-
-    if not skip_loading_base_model:
-        load_base_model()
 
     with gr.Blocks(title=get_page_title(), css=main_page_custom_css()) as demo:
         main_page()

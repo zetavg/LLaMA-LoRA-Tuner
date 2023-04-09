@@ -10,8 +10,8 @@ from transformers import TrainerCallback
 
 from ..globals import Global
 from ..models import (
-    get_base_model, get_tokenizer,
-    clear_cache, unload_models_if_already_used)
+    get_new_base_model, get_tokenizer,
+    clear_cache, unload_models)
 from ..utils.data import (
     get_available_template_names,
     get_available_dataset_names,
@@ -269,14 +269,16 @@ def do_train(
     progress=gr.Progress(track_tqdm=should_training_progress_track_tqdm),
 ):
     try:
+        base_model_name = Global.default_base_model_name
+        output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
+        if os.path.exists(output_dir):
+            if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
+                raise ValueError(f"The output directory already exists and is not empty. ({output_dir})")
+
         if not should_training_progress_track_tqdm:
             progress(0, desc="Preparing train data...")
 
-        clear_cache()
-        # If model has been used in inference, we need to unload it first.
-        # Otherwise, we'll get a 'Function MmBackward0 returned an invalid
-        # gradient at index 1 - expected device meta but got cuda:0' error.
-        unload_models_if_already_used()
+        unload_models()  # Need RAM for training
 
         prompter = Prompter(template)
         variable_names = prompter.get_variable_names()
@@ -415,17 +417,12 @@ Train data (first 10):
 
         Global.should_stop_training = False
 
-        # Do this again right before training to make sure the model is not used in inference.
-        unload_models_if_already_used()
-        clear_cache()
-
-        base_model = get_base_model()
-        tokenizer = get_tokenizer()
+        base_model = get_new_base_model(base_model_name)
+        tokenizer = get_tokenizer(base_model_name)
 
         # Do not let other tqdm iterations interfere the progress reporting after training starts.
         # progress.track_tqdm = False  # setting this dynamically is not working, determining if track_tqdm should be enabled based on GPU cores at start instead.
 
-        output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -435,10 +432,11 @@ Train data (first 10):
                 dataset_name = dataset_from_data_dir
 
             info = {
-                'base_model': Global.base_model,
+                'base_model': base_model_name,
                 'prompt_template': template,
                 'dataset_name': dataset_name,
                 'dataset_rows': len(train_data),
+                'timestamp': time.time()
             }
             json.dump(info, info_json_file, indent=2)
 
@@ -472,7 +470,11 @@ Train data (first 10):
 
         result_message = f"Training ended:\n{str(train_output)}\n\nLogs:\n{logs_str}"
         print(result_message)
+
+        del base_model
+        del tokenizer
         clear_cache()
+
         return result_message
 
     except Exception as e:
@@ -837,6 +839,12 @@ def finetune_ui():
                 document.getElementById('finetune_confirm_stop_btn').style.display =
                   'none';
               }, 5000);
+              document.getElementById('finetune_confirm_stop_btn').style['pointer-events'] =
+                'none';
+              setTimeout(function () {
+                document.getElementById('finetune_confirm_stop_btn').style['pointer-events'] =
+                  'inherit';
+              }, 300);
               document.getElementById('finetune_stop_btn').style.display = 'none';
               document.getElementById('finetune_confirm_stop_btn').style.display =
                 'block';

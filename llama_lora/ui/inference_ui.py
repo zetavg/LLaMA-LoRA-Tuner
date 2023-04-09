@@ -7,11 +7,10 @@ import transformers
 from transformers import GenerationConfig
 
 from ..globals import Global
-from ..models import get_base_model, get_model_with_lora, get_tokenizer, get_device
+from ..models import get_model, get_tokenizer, get_device
 from ..utils.data import (
     get_available_template_names,
     get_available_lora_model_names,
-    get_path_of_available_lora_model,
     get_info_of_available_lora_model)
 from ..utils.prompter import Prompter
 from ..utils.callbacks import Iteratorize, Stream
@@ -20,6 +19,18 @@ device = get_device()
 
 default_show_raw = True
 inference_output_lines = 12
+
+
+def prepare_inference(lora_model_name, progress=gr.Progress(track_tqdm=True)):
+    base_model_name = Global.default_base_model_name
+
+    try:
+        get_tokenizer(base_model_name)
+        get_model(base_model_name, lora_model_name)
+        return ("", "")
+
+    except Exception as e:
+        raise gr.Error(e)
 
 
 def do_inference(
@@ -37,6 +48,8 @@ def do_inference(
     show_raw=False,
     progress=gr.Progress(track_tqdm=True),
 ):
+    base_model_name = Global.default_base_model_name
+
     try:
         if Global.generation_force_stopped_at is not None:
             required_elapsed_time_after_forced_stop = 1
@@ -52,16 +65,8 @@ def do_inference(
         prompter = Prompter(prompt_template)
         prompt = prompter.generate_prompt(variables)
 
-        if not lora_model_name:
-            lora_model_name = "None"
-        if "/" not in lora_model_name and lora_model_name != "None":
-            path_of_available_lora_model = get_path_of_available_lora_model(
-                lora_model_name)
-            if path_of_available_lora_model:
-                lora_model_name = path_of_available_lora_model
-
         if Global.ui_dev_mode:
-            message = f"Hi, I’m currently in UI-development mode and do not have access to resources to process your request. However, this behavior is similar to what will actually happen, so you can try and see how it will work!\n\nBase model: {Global.base_model}\nLoRA model: {lora_model_name}\n\nThe following text is your prompt:\n\n{prompt}"
+            message = f"Hi, I’m currently in UI-development mode and do not have access to resources to process your request. However, this behavior is similar to what will actually happen, so you can try and see how it will work!\n\nBase model: {base_model_name}\nLoRA model: {lora_model_name}\n\nThe following is your prompt:\n\n{prompt}"
             print(message)
 
             if stream_output:
@@ -90,18 +95,13 @@ def do_inference(
                 return
             time.sleep(1)
             yield (
-                gr.Textbox.update(value=message, lines=1), # TODO
+                gr.Textbox.update(value=message, lines=1),  # TODO
                 json.dumps(list(range(len(message.split()))), indent=2)
             )
             return
 
-        # model = get_base_model()
-        if lora_model_name != "None":
-            model = get_model_with_lora(lora_model_name)
-        else:
-            raise ValueError("No LoRA model selected.")
-
-        tokenizer = get_tokenizer()
+        tokenizer = get_tokenizer(base_model_name)
+        model = get_model(base_model_name, lora_model_name)
 
         inputs = tokenizer(prompt, return_tensors="pt")
         input_ids = inputs["input_ids"].to(device)
@@ -210,7 +210,6 @@ def do_inference(
             gr.Textbox.update(value=response, lines=inference_output_lines),
             raw_output)
 
-
     except Exception as e:
         raise gr.Error(e)
 
@@ -232,7 +231,7 @@ def reload_selections(current_lora_model, current_prompt_template):
 
     default_lora_models = ["tloen/alpaca-lora-7b"]
     available_lora_models = default_lora_models + get_available_lora_model_names()
-    available_lora_models = available_lora_models
+    available_lora_models = available_lora_models + ["None"]
 
     current_lora_model = current_lora_model or next(
         iter(available_lora_models), None)
@@ -462,6 +461,10 @@ def inference_ui():
         things_that_might_timeout.append(lora_model_change_event)
 
         generate_event = generate_btn.click(
+            fn=prepare_inference,
+            inputs=[lora_model],
+            outputs=[inference_output, inference_raw_output],
+        ).then(
             fn=do_inference,
             inputs=[
                 lora_model,

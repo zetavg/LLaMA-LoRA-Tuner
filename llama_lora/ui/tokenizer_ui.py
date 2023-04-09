@@ -7,11 +7,12 @@ from ..models import get_tokenizer
 
 
 def handle_decode(encoded_tokens_json):
+    base_model_name = Global.default_base_model_name
     try:
         encoded_tokens = json.loads(encoded_tokens_json)
         if Global.ui_dev_mode:
             return f"Not actually decoding tokens in UI dev mode.", gr.Markdown.update("", visible=False)
-        tokenizer = get_tokenizer()
+        tokenizer = get_tokenizer(base_model_name)
         decoded_tokens = tokenizer.decode(encoded_tokens)
         return decoded_tokens, gr.Markdown.update("", visible=False)
     except Exception as e:
@@ -19,10 +20,11 @@ def handle_decode(encoded_tokens_json):
 
 
 def handle_encode(decoded_tokens):
+    base_model_name = Global.default_base_model_name
     try:
         if Global.ui_dev_mode:
             return f"[\"Not actually encoding tokens in UI dev mode.\"]", gr.Markdown.update("", visible=False)
-        tokenizer = get_tokenizer()
+        tokenizer = get_tokenizer(base_model_name)
         result = tokenizer(decoded_tokens)
         encoded_tokens_json = json.dumps(result['input_ids'], indent=2)
         return encoded_tokens_json, gr.Markdown.update("", visible=False)
