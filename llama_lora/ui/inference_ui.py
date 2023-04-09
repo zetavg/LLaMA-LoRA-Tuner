@@ -95,9 +95,12 @@ def do_inference(
             )
             return
 
-        model = get_base_model()
+        # model = get_base_model()
         if lora_model_name != "None":
             model = get_model_with_lora(lora_model_name)
+        else:
+            raise ValueError("No LoRA model selected.")
+
         tokenizer = get_tokenizer()
 
         inputs = tokenizer(prompt, return_tensors="pt")
@@ -229,7 +232,7 @@ def reload_selections(current_lora_model, current_prompt_template):
 
     default_lora_models = ["tloen/alpaca-lora-7b"]
     available_lora_models = default_lora_models + get_available_lora_model_names()
-    available_lora_models = available_lora_models + ["None"]
+    available_lora_models = available_lora_models
 
     current_lora_model = current_lora_model or next(
         iter(available_lora_models), None)
