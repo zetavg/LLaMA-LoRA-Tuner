@@ -428,6 +428,9 @@ def main_page_custom_css():
         white-space: pre-wrap;
     }
 
+    #finetune_max_seq_length {
+        flex: 2;
+    }
 
     @media screen and (max-width: 392px) {
         #inference_lora_model, #finetune_template {

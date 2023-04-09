@@ -258,13 +258,16 @@ def do_train(
     dataset_plain_text_data_separator,
     # Training Options
     max_seq_length,
+    evaluate_data_percentage,
     micro_batch_size,
     gradient_accumulation_steps,
     epochs,
     learning_rate,
+    train_on_inputs,
     lora_r,
     lora_alpha,
     lora_dropout,
+    lora_target_modules,
     model_name,
     progress=gr.Progress(track_tqdm=should_training_progress_track_tqdm),
 ):
@@ -324,6 +327,7 @@ def do_train(
             data = process_json_dataset(data)
 
         data_count = len(data)
+        evaluate_data_count = math.ceil(data_count * evaluate_data_percentage)
 
         train_data = [
             {
@@ -361,13 +365,16 @@ def do_train(
 
 Train options: {json.dumps({
     'max_seq_length': max_seq_length,
+    'val_set_size': evaluate_data_count,
     'micro_batch_size': micro_batch_size,
     'gradient_accumulation_steps': gradient_accumulation_steps,
     'epochs': epochs,
     'learning_rate': learning_rate,
+    'train_on_inputs': train_on_inputs,
     'lora_r': lora_r,
     'lora_alpha': lora_alpha,
     'lora_dropout': lora_dropout,
+    'lora_target_modules': lora_target_modules,
     'model_name': model_name,
 }, indent=2)}
 
@@ -436,7 +443,22 @@ Train data (first 10):
                 'prompt_template': template,
                 'dataset_name': dataset_name,
                 'dataset_rows': len(train_data),
-                'timestamp': time.time()
+                'timestamp': time.time(),
+
+                'max_seq_length': max_seq_length,
+                'train_on_inputs': train_on_inputs,
+
+                'micro_batch_size': micro_batch_size,
+                'gradient_accumulation_steps': gradient_accumulation_steps,
+                'epochs': epochs,
+                'learning_rate': learning_rate,
+
+                'evaluate_data_percentage': evaluate_data_percentage,
+
+                'lora_r': lora_r,
+                'lora_alpha': lora_alpha,
+                'lora_dropout': lora_dropout,
+                'lora_target_modules': lora_target_modules,
             }
             json.dump(info, info_json_file, indent=2)
 
@@ -454,12 +476,12 @@ Train data (first 10):
             epochs,   # num_epochs
             learning_rate,   # learning_rate
             max_seq_length,  # cutoff_len
-            0,  # val_set_size
+            evaluate_data_count,  # val_set_size
             lora_r,  # lora_r
             lora_alpha,  # lora_alpha
             lora_dropout,  # lora_dropout
-            ["q_proj", "v_proj"],  # lora_target_modules
-            True,  # train_on_inputs
+            lora_target_modules,  # lora_target_modules
+            train_on_inputs,  # train_on_inputs
             False,  # group_by_length
             None,  # resume_from_checkpoint
             training_callbacks  # callbacks
@@ -623,11 +645,20 @@ def finetune_ui():
             )
             )
 
-            max_seq_length = gr.Slider(
-                minimum=1, maximum=4096, value=512,
-                label="Max Sequence Length",
-                info="The maximum length of each sample text sequence. Sequences longer than this will be truncated."
-            )
+            with gr.Row():
+                max_seq_length = gr.Slider(
+                    minimum=1, maximum=4096, value=512,
+                    label="Max Sequence Length",
+                    info="The maximum length of each sample text sequence. Sequences longer than this will be truncated.",
+                    elem_id="finetune_max_seq_length"
+                )
+
+                train_on_inputs = gr.Checkbox(
+                    label="Train on Inputs",
+                    value=True,
+                    info="If not enabled, inputs will be masked out in loss.",
+                    elem_id="finetune_train_on_inputs"
+                )
 
         with gr.Row():
             micro_batch_size_default_value = 1
@@ -663,6 +694,12 @@ def finetune_ui():
                     info="The initial learning rate for the optimizer. A higher learning rate may speed up convergence but also cause instability or divergence. A lower learning rate may require more steps to reach optimal performance but also avoid overshooting or oscillating around local minima."
                 )
 
+                evaluate_data_percentage = gr.Slider(
+                    minimum=0, maximum=0.5, step=0.001, value=0.03,
+                    label="Evaluation Data Percentage",
+                    info="The percentage of data to be used for evaluation. This percentage of data will not be used for training and will be used to assess the performance of the model during the process."
+                )
+
             with gr.Column():
                 lora_r = gr.Slider(
                     minimum=1, maximum=16, step=1, value=8,
@@ -680,6 +717,12 @@ def finetune_ui():
                     minimum=0, maximum=1, value=0.05,
                     label="LoRA Dropout",
                     info="The dropout probability for LoRA, which controls the fraction of LoRA parameters that are set to zero during training. A larger lora_dropout increases the regularization effect of LoRA but also increases the risk of underfitting."
+                )
+
+                lora_target_modules = gr.CheckboxGroup(
+                    label="LoRA Target Modules",
+                    choices=["q_proj", "k_proj", "v_proj", "o_proj"],
+                    value=["q_proj", "v_proj"],
                 )
 
                 with gr.Column():
@@ -712,13 +755,16 @@ def finetune_ui():
             fn=do_train,
             inputs=(dataset_inputs + [
                 max_seq_length,
+                evaluate_data_percentage,
                 micro_batch_size,
                 gradient_accumulation_steps,
                 epochs,
                 learning_rate,
+                train_on_inputs,
                 lora_r,
                 lora_alpha,
                 lora_dropout,
+                lora_target_modules,
                 model_name
             ]),
             outputs=train_output
