@@ -227,6 +227,8 @@ def main_page_custom_css():
     #inference_raw_output > .wrap:first-child {
         /* allow users to select text while generation is still in progress */
         pointer-events: none;
+
+        padding: 12px !important;
     }
 
     /* position sticky */
