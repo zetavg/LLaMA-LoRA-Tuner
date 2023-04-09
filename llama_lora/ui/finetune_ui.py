@@ -447,6 +447,7 @@ Train data (first 10):
 
         result_message = f"Training ended:\n{str(results)}\n\nLogs:\n{logs_str}"
         print(result_message)
+        clear_cache()
         return result_message
 
     except Exception as e:
