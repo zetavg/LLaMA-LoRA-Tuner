@@ -357,7 +357,7 @@ def inference_ui():
                 # with gr.Column():
                 with gr.Accordion("Options", open=True, elem_id="inference_options_accordion"):
                     temperature = gr.Slider(
-                        minimum=0, maximum=1, value=0.1, step=0.01,
+                        minimum=0, maximum=10, value=0.1, step=0.01,
                         label="Temperature",
                         elem_id="inference_temperature"
                     )
@@ -376,7 +376,7 @@ def inference_ui():
                         )
 
                     num_beams = gr.Slider(
-                        minimum=1, maximum=4, value=2, step=1,
+                        minimum=1, maximum=5, value=2, step=1,
                         label="Beams",
                         elem_id="inference_beams"
                     )

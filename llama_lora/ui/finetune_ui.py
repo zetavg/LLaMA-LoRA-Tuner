@@ -651,7 +651,7 @@ def finetune_ui():
                 )
 
                 epochs = gr.Slider(
-                    minimum=1, maximum=100, step=1, value=3,
+                    minimum=1, maximum=100, step=1, value=10,
                     label="Epochs",
                     info="The number of times to iterate over the entire training dataset. A larger number of epochs may improve model performance but also increase the risk of overfitting.")
 
