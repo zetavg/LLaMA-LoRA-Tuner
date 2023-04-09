@@ -419,11 +419,27 @@ Train data (first 10):
         # Do not let other tqdm iterations interfere the progress reporting after training starts.
         # progress.track_tqdm = False  # setting this dynamically is not working, determining if track_tqdm should be enabled based on GPU cores at start instead.
 
+        output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        with open(os.path.join(output_dir, "info.json"), 'w') as info_json_file:
+            dataset_name = "N/A (from text input)"
+            if load_dataset_from == "Data Dir":
+                dataset_name = dataset_from_data_dir
+
+            info = {
+                'base_model': Global.base_model,
+                'prompt_template': template,
+                'dataset_name': dataset_name,
+                'dataset_rows': len(train_data),
+            }
+            json.dump(info, info_json_file, indent=2)
+
         results = Global.train_fn(
             base_model,  # base_model
             tokenizer,  # tokenizer
-            os.path.join(Global.data_dir, "lora_models",
-                         model_name),  # output_dir
+            output_dir,  # output_dir
             train_data,
             # 128,  # batch_size (is not used, use gradient_accumulation_steps instead)
             micro_batch_size,    # micro_batch_size
@@ -451,7 +467,7 @@ Train data (first 10):
         return result_message
 
     except Exception as e:
-        raise gr.Error(e)
+        raise gr.Error(f"{e} (To dismiss this error, click the 'Abort' button)")
 
 
 def do_abort_training():
