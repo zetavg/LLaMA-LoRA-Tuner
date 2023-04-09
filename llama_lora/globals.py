@@ -25,6 +25,10 @@ class Global:
     # Training Control
     should_stop_training = False
 
+    # Generation Control
+    should_stop_generating = False
+    generation_force_stopped_at = None
+
     # Model related
     model_has_been_used = False
     loaded_base_model_with_lora = None
