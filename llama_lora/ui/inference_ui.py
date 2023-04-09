@@ -256,7 +256,7 @@ def handle_prompt_template_change(prompt_template, lora_model):
         model_prompt_template = lora_mode_info.get("prompt_template")
         if model_prompt_template and model_prompt_template != prompt_template:
             model_prompt_template_message_update = gr.Markdown.update(
-                f"Trained with prompt template `{model_prompt_template}`", visible=True)
+                f"This model was trained with prompt template `{model_prompt_template}`.", visible=True)
 
     return [model_prompt_template_message_update] + gr_updates
 
