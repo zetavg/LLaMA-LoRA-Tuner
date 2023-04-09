@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from numba import cuda
 import nvidia_smi
 
+from .utils.lru_cache import LRUCache
 from .lib.finetune import train
 
 
@@ -31,8 +32,7 @@ class Global:
 
     # Model related
     model_has_been_used = False
-    loaded_base_model_with_lora = None
-    loaded_base_model_with_lora_name = None
+    cached_lora_models = LRUCache(10)
 
     # GPU Info
     gpu_cc = None  # GPU compute capability
