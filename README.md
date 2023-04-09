@@ -41,7 +41,7 @@ After following the [installation guide of SkyPilot](https://skypilot.readthedoc
 # llama-lora-multitool.yaml
 
 resources:
-  accelerators: A10:1  # 1x NVIDIA A10 GPU
+  accelerators: A10:1  # 1x NVIDIA A10 GPU, about US$ 0.6 / hr on Lambda Cloud.
   cloud: lambda  # Optional; if left out, SkyPilot will automatically pick the cheapest cloud.
 
 file_mounts:
@@ -50,7 +50,7 @@ file_mounts:
   # See https://skypilot.readthedocs.io/en/latest/reference/storage.html for details.
   /data:
     name: llama-lora-multitool-data  # Make sure this name is unique or you own this bucket. If it does not exists, SkyPilot will try to create a bucket with this name.
-    store: gcs  # Could be either of [s3, gcs]
+    store: s3  # Could be either of [s3, gcs]
     mode: MOUNT
 
 # Clone the LLaMA-LoRA repo and install its dependencies.
