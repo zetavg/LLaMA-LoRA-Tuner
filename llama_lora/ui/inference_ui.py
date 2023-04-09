@@ -11,7 +11,8 @@ from ..models import get_base_model, get_model_with_lora, get_tokenizer, get_dev
 from ..utils.data import (
     get_available_template_names,
     get_available_lora_model_names,
-    get_path_of_available_lora_model)
+    get_path_of_available_lora_model,
+    get_info_of_available_lora_model)
 from ..utils.prompter import Prompter
 from ..utils.callbacks import Iteratorize, Stream
 
@@ -41,7 +42,9 @@ def do_inference(
         prompter = Prompter(prompt_template)
         prompt = prompter.generate_prompt(variables)
 
-        if lora_model_name is not None and "/" not in lora_model_name and lora_model_name != "None":
+        if not lora_model_name:
+            lora_model_name = "None"
+        if "/" not in lora_model_name and lora_model_name != "None":
             path_of_available_lora_model = get_path_of_available_lora_model(
                 lora_model_name)
             if path_of_available_lora_model:
@@ -75,7 +78,7 @@ def do_inference(
             return
 
         model = get_base_model()
-        if not lora_model_name == "None" and lora_model_name is not None:
+        if lora_model_name != "None":
             model = get_model_with_lora(lora_model_name)
         tokenizer = get_tokenizer()
 
@@ -172,7 +175,7 @@ def reload_selections(current_lora_model, current_prompt_template):
             gr.Dropdown.update(choices=available_template_names_with_none, value=current_prompt_template))
 
 
-def handle_prompt_template_change(prompt_template):
+def handle_prompt_template_change(prompt_template, lora_model):
     prompter = Prompter(prompt_template)
     var_names = prompter.get_variable_names()
     human_var_names = [' '.join(word.capitalize()
@@ -182,7 +185,35 @@ def handle_prompt_template_change(prompt_template):
     while len(gr_updates) < 8:
         gr_updates.append(gr.Textbox.update(
             label="Not Used", visible=False))
-    return gr_updates
+
+    model_prompt_template_message_update = gr.Markdown.update("", visible=False)
+    lora_mode_info = get_info_of_available_lora_model(lora_model)
+    if lora_mode_info and isinstance(lora_mode_info, dict):
+        model_prompt_template = lora_mode_info.get("prompt_template")
+        if model_prompt_template and model_prompt_template != prompt_template:
+            model_prompt_template_message_update = gr.Markdown.update(
+                f"Trained with prompt template `{model_prompt_template}`", visible=True)
+
+    return [model_prompt_template_message_update] + gr_updates
+
+
+def handle_lora_model_change(lora_model, prompt_template):
+    lora_mode_info = get_info_of_available_lora_model(lora_model)
+    if not lora_mode_info:
+        return gr.Markdown.update("", visible=False), prompt_template
+
+    if not isinstance(lora_mode_info, dict):
+        return gr.Markdown.update("", visible=False), prompt_template
+
+    model_prompt_template = lora_mode_info.get("prompt_template")
+    if not model_prompt_template:
+        return gr.Markdown.update("", visible=False), prompt_template
+
+    available_template_names = get_available_template_names()
+    if model_prompt_template in available_template_names:
+        return gr.Markdown.update("", visible=False), model_prompt_template
+
+    return gr.Markdown.update(f"Trained with prompt template `{model_prompt_template}`", visible=True), prompt_template
 
 
 def update_prompt_preview(prompt_template,
@@ -200,12 +231,15 @@ def inference_ui():
 
     with gr.Blocks() as inference_ui_blocks:
         with gr.Row():
-            lora_model = gr.Dropdown(
-                label="LoRA Model",
-                elem_id="inference_lora_model",
-                value="tloen/alpaca-lora-7b",
-                allow_custom_value=True,
-            )
+            with gr.Column(elem_id="inference_lora_model_group"):
+                model_prompt_template_message = gr.Markdown(
+                    "", visible=False, elem_id="inference_lora_model_prompt_template_message")
+                lora_model = gr.Dropdown(
+                    label="LoRA Model",
+                    elem_id="inference_lora_model",
+                    value="tloen/alpaca-lora-7b",
+                    allow_custom_value=True,
+                )
             prompt_template = gr.Dropdown(
                 label="Prompt Template",
                 elem_id="inference_prompt_template",
@@ -346,9 +380,19 @@ def inference_ui():
         )
         things_that_might_timeout.append(reload_selections_event)
 
-        prompt_template_change_event = prompt_template.change(fn=handle_prompt_template_change, inputs=[prompt_template], outputs=[
-            variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
+        prompt_template_change_event = prompt_template.change(
+            fn=handle_prompt_template_change,
+            inputs=[prompt_template, lora_model],
+            outputs=[
+                model_prompt_template_message,
+                variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
         things_that_might_timeout.append(prompt_template_change_event)
+
+        lora_model_change_event = lora_model.change(
+            fn=handle_lora_model_change,
+            inputs=[lora_model, prompt_template],
+            outputs=[model_prompt_template_message, prompt_template])
+        things_that_might_timeout.append(lora_model_change_event)
 
         generate_event = generate_btn.click(
             fn=do_inference,
