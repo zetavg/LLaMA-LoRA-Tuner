@@ -95,7 +95,7 @@ def do_inference(
                 return
             time.sleep(1)
             yield (
-                gr.Textbox.update(value=message, lines=1),  # TODO
+                gr.Textbox.update(value=message, lines=inference_output_lines),
                 json.dumps(list(range(len(message.split()))), indent=2)
             )
             return
