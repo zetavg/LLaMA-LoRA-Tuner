@@ -655,9 +655,15 @@ def inference_ui():
           return function (...args) {
             const context = this;
             clearTimeout(timeout);
-            timeout = setTimeout(() => {
+            const fn = () => {
+              if (document.querySelector('#inference_preview_prompt > .wrap:not(.hide)')) {
+                // Preview request is still loading, wait for 10ms and try again.
+                timeout = setTimeout(fn, 10);
+                return;
+              }
               func.apply(context, args);
-            }, wait);
+            };
+            timeout = setTimeout(fn, wait);
           };
         }
 
