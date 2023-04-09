@@ -7,6 +7,7 @@ import gradio as gr
 from llama_lora.globals import Global
 from llama_lora.ui.main_page import main_page, get_page_title, main_page_custom_css
 from llama_lora.utils.data import init_data_dir
+from llama_lora.models import load_base_model
 
 
 def main(
@@ -16,6 +17,7 @@ def main(
     # Allows to listen on all interfaces by providing '0.0.0.0'.
     server_name: str = "127.0.0.1",
     share: bool = False,
+    skip_loading_base_model: bool = False,
     ui_show_sys_info: bool = True,
     ui_dev_mode: bool = False,
 ):
@@ -38,6 +40,9 @@ def main(
 
     os.makedirs(data_dir, exist_ok=True)
     init_data_dir()
+
+    if not skip_loading_base_model:
+        load_base_model()
 
     with gr.Blocks(title=get_page_title(), css=main_page_custom_css()) as demo:
         main_page()

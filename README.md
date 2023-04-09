@@ -1,6 +1,6 @@
-# 🦙🎛️ LLaMA-LoRA
+# 🦙🎛️ LLaMA-LoRA Tuner
 
-<a href="https://colab.research.google.com/github/zetavg/LLaMA-LoRA/blob/main/LLaMA_LoRA.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/zetavg/LLaMA-LoRA-Tuner/blob/main/LLaMA_LoRA.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 Making evaluating and fine-tuning LLaMA models with low-rank adaptation (LoRA) easy.
 
@@ -27,7 +27,7 @@ There are various ways to run this app:
 
 ### Run On Google Colab
 
-Open [this Colab Notebook](https://colab.research.google.com/github/zetavg/LLaMA-LoRA/blob/main/LLaMA_LoRA.ipynb) and select **Runtime > Run All** (`⌘/Ctrl+F9`).
+Open [this Colab Notebook](https://colab.research.google.com/github/zetavg/LLaMA-LoRA-Tuner/blob/main/LLaMA_LoRA.ipynb) and select **Runtime > Run All** (`⌘/Ctrl+F9`).
 
 You will be prompted to authorize Google Drive access, as Google Drive will be used to store your data. See the "Config"/"Google Drive" section for settings and more info.
 
@@ -38,7 +38,7 @@ After approximately 5 minutes of running, you will see the public URL in the out
 After following the [installation guide of SkyPilot](https://skypilot.readthedocs.io/en/latest/getting-started/installation.html), create a `.yaml` to define a task for running the app:
 
 ```yaml
-# llama-lora-multitool.yaml
+# llama-lora-tuner.yaml
 
 resources:
   accelerators: A10:1  # 1x NVIDIA A10 GPU, about US$ 0.6 / hr on Lambda Cloud.
@@ -49,13 +49,13 @@ file_mounts:
   # (to store train datasets trained models)
   # See https://skypilot.readthedocs.io/en/latest/reference/storage.html for details.
   /data:
-    name: llama-lora-multitool-data  # Make sure this name is unique or you own this bucket. If it does not exists, SkyPilot will try to create a bucket with this name.
+    name: llama-lora-tuner-data  # Make sure this name is unique or you own this bucket. If it does not exists, SkyPilot will try to create a bucket with this name.
     store: s3  # Could be either of [s3, gcs]
     mode: MOUNT
 
-# Clone the LLaMA-LoRA repo and install its dependencies.
+# Clone the LLaMA-LoRA Tuner repo and install its dependencies.
 setup: |
-  git clone https://github.com/zetavg/LLaMA-LoRA.git llama_lora
+  git clone https://github.com/zetavg/LLaMA-LoRA-Tuner.git llama_lora
   cd llama_lora && pip install -r requirements.lock.txt
   cd ..
   echo 'Dependencies installed.'
@@ -69,7 +69,7 @@ run: |
 Then launch a cluster to run the task:
 
 ```
-sky launch -c llama-lora-multitool llama-lora-multitool.yaml
+sky launch -c llama-lora-tuner llama-lora-tuner.yaml
 ```
 
 `-c ...` is an optional flag to specify a cluster name. If not specified, SkyPilot will automatically generate one.
@@ -86,8 +86,8 @@ When you are done, run `sky stop <cluster_name>` to stop the cluster. To termina
   <summary>Prepare environment with conda</summary>
 
   ```bash
-  conda create -y python=3.8 -n llama-lora-multitool
-  conda activate llama-lora-multitool
+  conda create -y python=3.8 -n llama-lora-tuner
+  conda activate llama-lora-tuner
   ```
 </details>
 

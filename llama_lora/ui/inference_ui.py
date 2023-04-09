@@ -11,13 +11,15 @@ from ..models import get_base_model, get_model_with_lora, get_tokenizer, get_dev
 from ..utils.data import (
     get_available_template_names,
     get_available_lora_model_names,
-    get_path_of_available_lora_model)
+    get_path_of_available_lora_model,
+    get_info_of_available_lora_model)
 from ..utils.prompter import Prompter
 from ..utils.callbacks import Iteratorize, Stream
 
 device = get_device()
 
 default_show_raw = True
+inference_output_lines = 12
 
 
 def do_inference(
@@ -36,12 +38,23 @@ def do_inference(
     progress=gr.Progress(track_tqdm=True),
 ):
     try:
+        if Global.generation_force_stopped_at is not None:
+            required_elapsed_time_after_forced_stop = 1
+            current_unix_time = time.time()
+            remaining_time = required_elapsed_time_after_forced_stop - \
+                (current_unix_time - Global.generation_force_stopped_at)
+            if remaining_time > 0:
+                time.sleep(remaining_time)
+            Global.generation_force_stopped_at = None
+
         variables = [variable_0, variable_1, variable_2, variable_3,
                      variable_4, variable_5, variable_6, variable_7]
         prompter = Prompter(prompt_template)
         prompt = prompter.generate_prompt(variables)
 
-        if lora_model_name is not None and "/" not in lora_model_name and lora_model_name != "None":
+        if not lora_model_name:
+            lora_model_name = "None"
+        if "/" not in lora_model_name and lora_model_name != "None":
             path_of_available_lora_model = get_path_of_available_lora_model(
                 lora_model_name)
             if path_of_available_lora_model:
@@ -66,16 +79,24 @@ def do_inference(
                         yield out
 
                 for partial_sentence in word_generator(message):
-                    yield partial_sentence, json.dumps(list(range(len(partial_sentence.split()))), indent=2)
+                    yield (
+                        gr.Textbox.update(
+                            value=partial_sentence, lines=inference_output_lines),
+                        json.dumps(
+                            list(range(len(partial_sentence.split()))), indent=2)
+                    )
                     time.sleep(0.05)
 
                 return
             time.sleep(1)
-            yield message, json.dumps(list(range(len(message.split()))), indent=2)
+            yield (
+                gr.Textbox.update(value=message, lines=1), # TODO
+                json.dumps(list(range(len(message.split()))), indent=2)
+            )
             return
 
         model = get_base_model()
-        if not lora_model_name == "None" and lora_model_name is not None:
+        if lora_model_name != "None":
             model = get_model_with_lora(lora_model_name)
         tokenizer = get_tokenizer()
 
@@ -96,6 +117,19 @@ def do_inference(
             "output_scores": True,
             "max_new_tokens": max_new_tokens,
         }
+
+        def ui_generation_stopping_criteria(input_ids, score, **kwargs):
+            if Global.should_stop_generating:
+                return True
+            return False
+
+        Global.should_stop_generating = False
+        generate_params.setdefault(
+            "stopping_criteria", transformers.StoppingCriteriaList()
+        )
+        generate_params["stopping_criteria"].append(
+            ui_generation_stopping_criteria
+        )
 
         if stream_output:
             # Stream the reply 1 token at a time.
@@ -128,27 +162,59 @@ def do_inference(
                     raw_output = None
                     if show_raw:
                         raw_output = str(output)
-                    yield prompter.get_response(decoded_output), raw_output
+                    response = prompter.get_response(decoded_output)
+
+                    if Global.should_stop_generating:
+                        return
+
+                    yield (
+                        gr.Textbox.update(
+                            value=response, lines=inference_output_lines),
+                        raw_output)
+
+                    if Global.should_stop_generating:
+                        # If the user stops the generation, and then clicks the
+                        # generation button again, they may mysteriously landed
+                        # here, in the previous, should-be-stopped generation
+                        # function call, with the new generation function not be
+                        # called at all. To workaround this, we yield a message
+                        # and setting lines=1, and if the front-end JS detects
+                        # that lines has been set to 1 (rows="1" in HTML),
+                        # it will automatically click the generate button again
+                        # (gr.Textbox.update() does not support updating
+                        # elem_classes or elem_id).
+                        # [WORKAROUND-UI01]
+                        yield (
+                            gr.Textbox.update(
+                                value="Please retry", lines=1),
+                            None)
             return  # early return for stream_output
 
         # Without streaming
         with torch.no_grad():
-            generation_output = model.generate(
-                input_ids=input_ids,
-                generation_config=generation_config,
-                return_dict_in_generate=True,
-                output_scores=True,
-                max_new_tokens=max_new_tokens,
-            )
+            generation_output = model.generate(**generate_params)
         s = generation_output.sequences[0]
         output = tokenizer.decode(s)
         raw_output = None
         if show_raw:
             raw_output = str(s)
-        yield prompter.get_response(output), raw_output
+
+        response = prompter.get_response(output)
+        if Global.should_stop_generating:
+            return
+
+        yield (
+            gr.Textbox.update(value=response, lines=inference_output_lines),
+            raw_output)
+
 
     except Exception as e:
         raise gr.Error(e)
+
+
+def handle_stop_generate():
+    Global.generation_force_stopped_at = time.time()
+    Global.should_stop_generating = True
 
 
 def reload_selections(current_lora_model, current_prompt_template):
@@ -172,7 +238,7 @@ def reload_selections(current_lora_model, current_prompt_template):
             gr.Dropdown.update(choices=available_template_names_with_none, value=current_prompt_template))
 
 
-def handle_prompt_template_change(prompt_template):
+def handle_prompt_template_change(prompt_template, lora_model):
     prompter = Prompter(prompt_template)
     var_names = prompter.get_variable_names()
     human_var_names = [' '.join(word.capitalize()
@@ -182,7 +248,36 @@ def handle_prompt_template_change(prompt_template):
     while len(gr_updates) < 8:
         gr_updates.append(gr.Textbox.update(
             label="Not Used", visible=False))
-    return gr_updates
+
+    model_prompt_template_message_update = gr.Markdown.update(
+        "", visible=False)
+    lora_mode_info = get_info_of_available_lora_model(lora_model)
+    if lora_mode_info and isinstance(lora_mode_info, dict):
+        model_prompt_template = lora_mode_info.get("prompt_template")
+        if model_prompt_template and model_prompt_template != prompt_template:
+            model_prompt_template_message_update = gr.Markdown.update(
+                f"Trained with prompt template `{model_prompt_template}`", visible=True)
+
+    return [model_prompt_template_message_update] + gr_updates
+
+
+def handle_lora_model_change(lora_model, prompt_template):
+    lora_mode_info = get_info_of_available_lora_model(lora_model)
+    if not lora_mode_info:
+        return gr.Markdown.update("", visible=False), prompt_template
+
+    if not isinstance(lora_mode_info, dict):
+        return gr.Markdown.update("", visible=False), prompt_template
+
+    model_prompt_template = lora_mode_info.get("prompt_template")
+    if not model_prompt_template:
+        return gr.Markdown.update("", visible=False), prompt_template
+
+    available_template_names = get_available_template_names()
+    if model_prompt_template in available_template_names:
+        return gr.Markdown.update("", visible=False), model_prompt_template
+
+    return gr.Markdown.update(f"Trained with prompt template `{model_prompt_template}`", visible=True), prompt_template
 
 
 def update_prompt_preview(prompt_template,
@@ -200,12 +295,15 @@ def inference_ui():
 
     with gr.Blocks() as inference_ui_blocks:
         with gr.Row():
-            lora_model = gr.Dropdown(
-                label="LoRA Model",
-                elem_id="inference_lora_model",
-                value="tloen/alpaca-lora-7b",
-                allow_custom_value=True,
-            )
+            with gr.Column(elem_id="inference_lora_model_group"):
+                model_prompt_template_message = gr.Markdown(
+                    "", visible=False, elem_id="inference_lora_model_prompt_template_message")
+                lora_model = gr.Dropdown(
+                    label="LoRA Model",
+                    elem_id="inference_lora_model",
+                    value="tloen/alpaca-lora-7b",
+                    allow_custom_value=True,
+                )
             prompt_template = gr.Dropdown(
                 label="Prompt Template",
                 elem_id="inference_prompt_template",
@@ -318,7 +416,7 @@ def inference_ui():
             with gr.Column(elem_id="inference_output_group_container"):
                 with gr.Column(elem_id="inference_output_group"):
                     inference_output = gr.Textbox(
-                        lines=12, label="Output", elem_id="inference_output")
+                        lines=inference_output_lines, label="Output", elem_id="inference_output")
                     inference_output.style(show_copy_button=True)
                     with gr.Accordion(
                             "Raw Output",
@@ -346,9 +444,19 @@ def inference_ui():
         )
         things_that_might_timeout.append(reload_selections_event)
 
-        prompt_template_change_event = prompt_template.change(fn=handle_prompt_template_change, inputs=[prompt_template], outputs=[
-            variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
+        prompt_template_change_event = prompt_template.change(
+            fn=handle_prompt_template_change,
+            inputs=[prompt_template, lora_model],
+            outputs=[
+                model_prompt_template_message,
+                variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
         things_that_might_timeout.append(prompt_template_change_event)
+
+        lora_model_change_event = lora_model.change(
+            fn=handle_lora_model_change,
+            inputs=[lora_model, prompt_template],
+            outputs=[model_prompt_template_message, prompt_template])
+        things_that_might_timeout.append(lora_model_change_event)
 
         generate_event = generate_btn.click(
             fn=do_inference,
@@ -369,8 +477,12 @@ def inference_ui():
             outputs=[inference_output, inference_raw_output],
             api_name="inference"
         )
-        stop_btn.click(fn=None, inputs=None, outputs=None,
-                       cancels=[generate_event])
+        stop_btn.click(
+            fn=handle_stop_generate,
+            inputs=None,
+            outputs=None,
+            cancels=[generate_event]
+        )
 
         update_prompt_preview_event = update_prompt_preview_btn.click(fn=update_prompt_preview, inputs=[prompt_template,
                                                                                                         variable_0, variable_1, variable_2, variable_3,
@@ -543,9 +655,15 @@ def inference_ui():
           return function (...args) {
             const context = this;
             clearTimeout(timeout);
-            timeout = setTimeout(() => {
+            const fn = () => {
+              if (document.querySelector('#inference_preview_prompt > .wrap:not(.hide)')) {
+                // Preview request is still loading, wait for 10ms and try again.
+                timeout = setTimeout(fn, 10);
+                return;
+              }
               func.apply(context, args);
-            }, wait);
+            };
+            timeout = setTimeout(fn, wait);
           };
         }
 
@@ -579,6 +697,28 @@ def inference_ui():
             attributeFilter: ['class'],
           });
         }
+      }, 100);
+
+      // [WORKAROUND-UI01]
+      setTimeout(function () {
+        const inference_output_textarea = document.querySelector(
+          '#inference_output textarea'
+        );
+        if (!inference_output_textarea) return;
+        const observer = new MutationObserver(function () {
+          if (inference_output_textarea.getAttribute('rows') === '1') {
+            setTimeout(function () {
+              const inference_generate_btn = document.getElementById(
+                'inference_generate_btn'
+              );
+              if (inference_generate_btn) inference_generate_btn.click();
+            }, 10);
+          }
+        });
+        observer.observe(inference_output_textarea, {
+          attributes: true,
+          attributeFilter: ['rows'],
+        });
       }, 100);
     }
     """)

@@ -30,7 +30,7 @@ def main_page():
                 tokenizer_ui()
             info = []
             if Global.version:
-                info.append(f"LLaMA-LoRA `{Global.version}`")
+                info.append(f"LLaMA-LoRA Tuner `{Global.version}`")
             info.append(f"Base model: `{Global.base_model}`")
             if Global.ui_show_sys_info:
                 info.append(f"Data dir: `{Global.data_dir}`")
@@ -132,6 +132,41 @@ def main_page_custom_css():
         font-size: 1rem;
         font-weight: 700;
         /* text-transform: uppercase; */
+    }
+
+    #inference_lora_model_group {
+        border-radius: var(--block-radius);
+        background: var(--block-background-fill);
+    }
+    #inference_lora_model_group #inference_lora_model {
+        background: transparent;
+    }
+    #inference_lora_model_prompt_template_message:not(.hidden) + #inference_lora_model {
+        padding-bottom: 28px;
+    }
+    #inference_lora_model_group > #inference_lora_model_prompt_template_message {
+        position: absolute;
+        bottom: 8px;
+        left: 20px;
+        z-index: 1;
+        font-size: 12px;
+        opacity: 0.7;
+    }
+    #inference_lora_model_group > #inference_lora_model_prompt_template_message p {
+        font-size: 12px;
+    }
+    #inference_lora_model_prompt_template_message > .wrap {
+        display: none;
+    }
+    #inference_lora_model > .wrap:first-child:not(.hide),
+    #inference_prompt_template > .wrap:first-child:not(.hide) {
+        opacity: 0.5;
+    }
+    #inference_lora_model_group, #inference_lora_model {
+        z-index: 60;
+    }
+    #inference_prompt_template {
+        z-index: 55;
     }
 
     #inference_prompt_box > *:first-child {
@@ -266,11 +301,15 @@ def main_page_custom_css():
     }
 
     @media screen and (min-width: 640px) {
-        #inference_lora_model, #finetune_template {
+        #inference_lora_model, #inference_lora_model_group,
+        #finetune_template {
             border-top-right-radius: 0;
             border-bottom-right-radius: 0;
             border-right: 0;
             margin-right: -16px;
+        }
+        #inference_lora_model_group #inference_lora_model {
+            box-shadow: var(--block-shadow);
         }
 
         #inference_prompt_template {
@@ -301,7 +340,7 @@ def main_page_custom_css():
             height: 42px !important;
             min-width: 42px !important;
             width: 42px !important;
-            z-index: 1;
+            z-index: 61;
         }
     }
 

@@ -31,27 +31,32 @@ def get_base_model():
     return Global.loaded_base_model
 
 
-def get_model_with_lora(lora_weights: str = "tloen/alpaca-lora-7b"):
+def get_model_with_lora(lora_weights_name_or_path: str = "tloen/alpaca-lora-7b"):
     Global.model_has_been_used = True
+
+    if Global.cached_lora_models:
+        model_from_cache = Global.cached_lora_models.get(lora_weights_name_or_path)
+        if model_from_cache:
+            return model_from_cache
 
     if device == "cuda":
         model = PeftModel.from_pretrained(
             get_base_model(),
-            lora_weights,
+            lora_weights_name_or_path,
             torch_dtype=torch.float16,
             device_map={'': 0},  # ? https://github.com/tloen/alpaca-lora/issues/21
         )
     elif device == "mps":
         model = PeftModel.from_pretrained(
             get_base_model(),
-            lora_weights,
+            lora_weights_name_or_path,
             device_map={"": device},
             torch_dtype=torch.float16,
         )
     else:
         model = PeftModel.from_pretrained(
             get_base_model(),
-            lora_weights,
+            lora_weights_name_or_path,
             device_map={"": device},
         )
 
@@ -65,6 +70,10 @@ def get_model_with_lora(lora_weights: str = "tloen/alpaca-lora-7b"):
     model.eval()
     if torch.__version__ >= "2" and sys.platform != "win32":
         model = torch.compile(model)
+
+    if Global.cached_lora_models:
+        Global.cached_lora_models.set(lora_weights_name_or_path, model)
+
     return model
 
 
@@ -120,6 +129,8 @@ def unload_models():
 
     del Global.loaded_tokenizer
     Global.loaded_tokenizer = None
+
+    Global.cached_lora_models.clear()
 
     clear_cache()
 

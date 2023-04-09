@@ -52,6 +52,22 @@ def get_path_of_available_lora_model(name):
     return None
 
 
+def get_info_of_available_lora_model(name):
+    try:
+        if "/" in name:
+            return None
+        path_of_available_lora_model = get_path_of_available_lora_model(
+            name)
+        if not path_of_available_lora_model:
+            return None
+
+        with open(os.path.join(path_of_available_lora_model, "info.json"), "r") as json_file:
+            return json.load(json_file)
+
+    except Exception as e:
+        return None
+
+
 def get_dataset_content(name):
     file_name = os.path.join(Global.data_dir, "datasets", name)
     if not os.path.exists(file_name):

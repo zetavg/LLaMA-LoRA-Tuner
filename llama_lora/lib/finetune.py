@@ -2,6 +2,8 @@ import os
 import sys
 from typing import Any, List
 
+import json
+
 import fire
 import torch
 import transformers
@@ -47,6 +49,10 @@ def train(
     # logging
     callbacks: List[Any] = []
 ):
+    if os.path.exists(output_dir):
+        if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
+            raise ValueError(f"The output directory already exists and is not empty. ({output_dir})")
+
     device_map = "auto"
     world_size = int(os.environ.get("WORLD_SIZE", 1))
     ddp = world_size != 1
@@ -202,6 +208,12 @@ def train(
         ),
         callbacks=callbacks,
     )
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    with open(os.path.join(output_dir, "trainer_args.json"), 'w') as trainer_args_json_file:
+        json.dump(trainer.args.to_dict(), trainer_args_json_file, indent=2)
+
     model.config.use_cache = False
 
     old_state_dict = model.state_dict
@@ -214,9 +226,16 @@ def train(
     if torch.__version__ >= "2" and sys.platform != "win32":
         model = torch.compile(model)
 
-    result = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+    train_output = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     model.save_pretrained(output_dir)
     print(f"Model saved to {output_dir}.")
 
-    return result
+    with open(os.path.join(output_dir, "trainer_log_history.jsonl"), 'w') as trainer_log_history_jsonl_file:
+        trainer_log_history = "\n".join([json.dumps(line) for line in trainer.state.log_history])
+        trainer_log_history_jsonl_file.write(trainer_log_history)
+
+    with open(os.path.join(output_dir, "train_output.json"), 'w') as train_output_json_file:
+        json.dump(train_output, train_output_json_file, indent=2)
+
+    return train_output

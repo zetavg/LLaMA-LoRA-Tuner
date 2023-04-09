@@ -1,0 +1,7 @@
+{
+  "description": "Unhelpful AI assistant.",
+  "variables": ["instruction"],
+  "prompt": "### User:\n{instruction}\n\n### AI:\n",
+  "default": "prompt",
+  "response_split": "### AI:"
+}
