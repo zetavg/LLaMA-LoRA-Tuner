@@ -30,7 +30,7 @@ def main_page():
                 tokenizer_ui()
             info = []
             if Global.version:
-                info.append(f"LLaMA-LoRA `{Global.version}`")
+                info.append(f"LLaMA-LoRA Tuner `{Global.version}`")
             info.append(f"Base model: `{Global.base_model}`")
             if Global.ui_show_sys_info:
                 info.append(f"Data dir: `{Global.data_dir}`")
