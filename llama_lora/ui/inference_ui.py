@@ -376,7 +376,7 @@ def inference_ui():
                         )
 
                     num_beams = gr.Slider(
-                        minimum=1, maximum=4, value=1, step=1,
+                        minimum=1, maximum=4, value=2, step=1,
                         label="Beams",
                         elem_id="inference_beams"
                     )
