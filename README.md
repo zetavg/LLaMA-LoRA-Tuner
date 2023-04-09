@@ -55,15 +55,15 @@ file_mounts:
 
 # Clone the LLaMA-LoRA Tuner repo and install its dependencies.
 setup: |
-  git clone https://github.com/zetavg/LLaMA-LoRA-Tuner.git llama_lora
-  cd llama_lora && pip install -r requirements.lock.txt
+  git clone https://github.com/zetavg/LLaMA-LoRA-Tuner.git llama_lora_tuner
+  cd llama_lora_tuner && pip install -r requirements.lock.txt
   cd ..
   echo 'Dependencies installed.'
 
 # Start the app.
 run: |
   echo 'Starting...'
-  python llama_lora/app.py --data_dir='/data' --base_model='decapoda-research/llama-7b-hf' --share
+  python llama_lora_tuner/app.py --data_dir='/data' --base_model='decapoda-research/llama-7b-hf' --share
 ```
 
 Then launch a cluster to run the task:
