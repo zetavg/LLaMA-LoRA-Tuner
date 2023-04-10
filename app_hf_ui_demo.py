@@ -11,7 +11,7 @@ from llama_lora.utils.data import init_data_dir
 
 def main():
     data_dir = os.path.abspath("./data")
-    Global.base_model = "decapoda-research/llama-7b-hf"
+    Global.default_base_model_name = "decapoda-research/llama-7b-hf"
     Global.data_dir = data_dir
     Global.load_8bit = False
 
