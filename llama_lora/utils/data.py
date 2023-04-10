@@ -16,6 +16,8 @@ def init_data_dir():
                                    os.path.join(Global.data_dir, "templates"))
     copy_sample_data_if_not_exists(os.path.join(project_dir_path, "datasets"),
                                    os.path.join(Global.data_dir, "datasets"))
+    copy_sample_data_if_not_exists(os.path.join(project_dir_path, "lora_models"),
+                                   os.path.join(Global.data_dir, "lora_models"))
 
 
 def copy_sample_data_if_not_exists(source, destination):
