@@ -31,6 +31,8 @@ class Global:
     # Model related
     loaded_models = LRUCache(1)
     loaded_tokenizers = LRUCache(1)
+    new_base_model_that_is_ready_to_be_used = None
+    name_of_new_base_model_that_is_ready_to_be_used = None
 
     # GPU Info
     gpu_cc = None  # GPU compute capability

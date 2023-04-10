@@ -26,6 +26,17 @@ def get_new_base_model(base_model_name):
     if Global.ui_dev_mode:
         return
 
+    if Global.new_base_model_that_is_ready_to_be_used:
+        if Global.name_of_new_base_model_that_is_ready_to_be_used == base_model_name:
+            model = Global.new_base_model_that_is_ready_to_be_used
+            Global.new_base_model_that_is_ready_to_be_used = None
+            Global.name_of_new_base_model_that_is_ready_to_be_used = None
+            return model
+        else:
+            Global.new_base_model_that_is_ready_to_be_used = None
+            Global.name_of_new_base_model_that_is_ready_to_be_used = None
+            clear_cache()
+
     device = get_device()
 
     if device == "cuda":
@@ -34,7 +45,8 @@ def get_new_base_model(base_model_name):
             load_in_8bit=Global.load_8bit,
             torch_dtype=torch.float16,
             # device_map="auto",
-            device_map={'': 0},  # ? https://github.com/tloen/alpaca-lora/issues/21
+            # ? https://github.com/tloen/alpaca-lora/issues/21
+            device_map={'': 0},
         )
     elif device == "mps":
         model = LlamaForCausalLM.from_pretrained(
@@ -69,8 +81,8 @@ def get_tokenizer(base_model_name):
 
 
 def get_model(
-    base_model_name,
-    peft_model_name = None):
+        base_model_name,
+        peft_model_name=None):
     if Global.ui_dev_mode:
         return
 
@@ -88,7 +100,8 @@ def get_model(
     peft_model_name_or_path = peft_model_name
 
     lora_models_directory_path = os.path.join(Global.data_dir, "lora_models")
-    possible_lora_model_path = os.path.join(lora_models_directory_path, peft_model_name)
+    possible_lora_model_path = os.path.join(
+        lora_models_directory_path, peft_model_name)
     if os.path.isdir(possible_lora_model_path):
         peft_model_name_or_path = possible_lora_model_path
 
@@ -105,7 +118,8 @@ def get_model(
                 model,
                 peft_model_name_or_path,
                 torch_dtype=torch.float16,
-                device_map={'': 0},  # ? https://github.com/tloen/alpaca-lora/issues/21
+                # ? https://github.com/tloen/alpaca-lora/issues/21
+                device_map={'': 0},
             )
         elif device == "mps":
             model = PeftModel.from_pretrained(
@@ -136,6 +150,11 @@ def get_model(
     clear_cache()
 
     return model
+
+
+def prepare_base_model(base_model_name=Global.default_base_model_name):
+    Global.new_base_model_that_is_ready_to_be_used = get_new_base_model(base_model_name)
+    Global.name_of_new_base_model_that_is_ready_to_be_used = base_model_name
 
 
 def clear_cache():
