@@ -6,18 +6,17 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from numba import cuda
 import nvidia_smi
 
+from .utils.lru_cache import LRUCache
 from .lib.finetune import train
 
 
 class Global:
     version = None
 
-    base_model: str = ""
     data_dir: str = ""
     load_8bit: bool = False
 
-    loaded_tokenizer: Any = None
-    loaded_base_model: Any = None
+    default_base_model_name: str = ""
 
     # Functions
     train_fn: Any = train
@@ -25,8 +24,15 @@ class Global:
     # Training Control
     should_stop_training = False
 
+    # Generation Control
+    should_stop_generating = False
+    generation_force_stopped_at = None
+
     # Model related
-    model_has_been_used = False
+    loaded_models = LRUCache(1)
+    loaded_tokenizers = LRUCache(1)
+    new_base_model_that_is_ready_to_be_used = None
+    name_of_new_base_model_that_is_ready_to_be_used = None
 
     # GPU Info
     gpu_cc = None  # GPU compute capability
@@ -35,7 +41,7 @@ class Global:
     gpu_total_memory = None
 
     # UI related
-    ui_title: str = "LLaMA-LoRA"
+    ui_title: str = "LLaMA-LoRA Tuner"
     ui_emoji: str = "🦙🎛️"
     ui_subtitle: str = "Toolkit for evaluating and fine-tuning LLaMA models with low-rank adaptation (LoRA)."
     ui_show_sys_info: bool = True

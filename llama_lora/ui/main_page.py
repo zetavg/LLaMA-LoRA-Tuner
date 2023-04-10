@@ -1,7 +1,6 @@
 import gradio as gr
 
 from ..globals import Global
-from ..models import get_model_with_lora
 
 from .inference_ui import inference_ui
 from .finetune_ui import finetune_ui
@@ -30,8 +29,8 @@ def main_page():
                 tokenizer_ui()
             info = []
             if Global.version:
-                info.append(f"LLaMA-LoRA `{Global.version}`")
-            info.append(f"Base model: `{Global.base_model}`")
+                info.append(f"LLaMA-LoRA Tuner `{Global.version}`")
+            info.append(f"Base model: `{Global.default_base_model_name}`")
             if Global.ui_show_sys_info:
                 info.append(f"Data dir: `{Global.data_dir}`")
             gr.Markdown(f"""
@@ -134,6 +133,41 @@ def main_page_custom_css():
         /* text-transform: uppercase; */
     }
 
+    #inference_lora_model_group {
+        border-radius: var(--block-radius);
+        background: var(--block-background-fill);
+    }
+    #inference_lora_model_group #inference_lora_model {
+        background: transparent;
+    }
+    #inference_lora_model_prompt_template_message:not(.hidden) + #inference_lora_model {
+        padding-bottom: 28px;
+    }
+    #inference_lora_model_group > #inference_lora_model_prompt_template_message {
+        position: absolute;
+        bottom: 8px;
+        left: 20px;
+        z-index: 1;
+        font-size: 12px;
+        opacity: 0.7;
+    }
+    #inference_lora_model_group > #inference_lora_model_prompt_template_message p {
+        font-size: 12px;
+    }
+    #inference_lora_model_prompt_template_message > .wrap {
+        display: none;
+    }
+    #inference_lora_model > .wrap:first-child:not(.hide),
+    #inference_prompt_template > .wrap:first-child:not(.hide) {
+        opacity: 0.5;
+    }
+    #inference_lora_model_group, #inference_lora_model {
+        z-index: 60;
+    }
+    #inference_prompt_template {
+        z-index: 55;
+    }
+
     #inference_prompt_box > *:first-child {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
@@ -193,6 +227,8 @@ def main_page_custom_css():
     #inference_raw_output > .wrap:first-child {
         /* allow users to select text while generation is still in progress */
         pointer-events: none;
+
+        padding: 12px !important;
     }
 
     /* position sticky */
@@ -266,11 +302,15 @@ def main_page_custom_css():
     }
 
     @media screen and (min-width: 640px) {
-        #inference_lora_model, #finetune_template {
+        #inference_lora_model, #inference_lora_model_group,
+        #finetune_template {
             border-top-right-radius: 0;
             border-bottom-right-radius: 0;
             border-right: 0;
             margin-right: -16px;
+        }
+        #inference_lora_model_group #inference_lora_model {
+            box-shadow: var(--block-shadow);
         }
 
         #inference_prompt_template {
@@ -301,7 +341,7 @@ def main_page_custom_css():
             height: 42px !important;
             min-width: 42px !important;
             width: 42px !important;
-            z-index: 1;
+            z-index: 61;
         }
     }
 
@@ -388,6 +428,9 @@ def main_page_custom_css():
         white-space: pre-wrap;
     }
 
+    #finetune_max_seq_length {
+        flex: 2;
+    }
 
     @media screen and (max-width: 392px) {
         #inference_lora_model, #finetune_template {

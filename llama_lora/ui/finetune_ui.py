@@ -10,8 +10,8 @@ from transformers import TrainerCallback
 
 from ..globals import Global
 from ..models import (
-    get_base_model, get_tokenizer,
-    clear_cache, unload_models_if_already_used)
+    get_new_base_model, get_tokenizer,
+    clear_cache, unload_models)
 from ..utils.data import (
     get_available_template_names,
     get_available_dataset_names,
@@ -258,22 +258,30 @@ def do_train(
     dataset_plain_text_data_separator,
     # Training Options
     max_seq_length,
+    evaluate_data_percentage,
     micro_batch_size,
     gradient_accumulation_steps,
     epochs,
     learning_rate,
+    train_on_inputs,
     lora_r,
     lora_alpha,
     lora_dropout,
+    lora_target_modules,
     model_name,
     progress=gr.Progress(track_tqdm=should_training_progress_track_tqdm),
 ):
     try:
-        clear_cache()
-        # If model has been used in inference, we need to unload it first.
-        # Otherwise, we'll get a 'Function MmBackward0 returned an invalid
-        # gradient at index 1 - expected device meta but got cuda:0' error.
-        unload_models_if_already_used()
+        base_model_name = Global.default_base_model_name
+        output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
+        if os.path.exists(output_dir):
+            if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
+                raise ValueError(f"The output directory already exists and is not empty. ({output_dir})")
+
+        if not should_training_progress_track_tqdm:
+            progress(0, desc="Preparing train data...")
+
+        unload_models()  # Need RAM for training
 
         prompter = Prompter(template)
         variable_names = prompter.get_variable_names()
@@ -319,6 +327,7 @@ def do_train(
             data = process_json_dataset(data)
 
         data_count = len(data)
+        evaluate_data_count = math.ceil(data_count * evaluate_data_percentage)
 
         train_data = [
             {
@@ -356,13 +365,16 @@ def do_train(
 
 Train options: {json.dumps({
     'max_seq_length': max_seq_length,
+    'val_set_size': evaluate_data_count,
     'micro_batch_size': micro_batch_size,
     'gradient_accumulation_steps': gradient_accumulation_steps,
     'epochs': epochs,
     'learning_rate': learning_rate,
+    'train_on_inputs': train_on_inputs,
     'lora_r': lora_r,
     'lora_alpha': lora_alpha,
     'lora_dropout': lora_dropout,
+    'lora_target_modules': lora_target_modules,
     'model_name': model_name,
 }, indent=2)}
 
@@ -372,6 +384,9 @@ Train data (first 10):
             print(message)
             time.sleep(2)
             return message
+
+        if not should_training_progress_track_tqdm:
+            progress(0, desc="Preparing model for training...")
 
         log_history = []
 
@@ -409,21 +424,51 @@ Train data (first 10):
 
         Global.should_stop_training = False
 
-        # Do this again right before training to make sure the model is not used in inference.
-        unload_models_if_already_used()
-        clear_cache()
-
-        base_model = get_base_model()
-        tokenizer = get_tokenizer()
+        base_model = get_new_base_model(base_model_name)
+        tokenizer = get_tokenizer(base_model_name)
 
         # Do not let other tqdm iterations interfere the progress reporting after training starts.
         # progress.track_tqdm = False  # setting this dynamically is not working, determining if track_tqdm should be enabled based on GPU cores at start instead.
 
-        results = Global.train_fn(
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        with open(os.path.join(output_dir, "info.json"), 'w') as info_json_file:
+            dataset_name = "N/A (from text input)"
+            if load_dataset_from == "Data Dir":
+                dataset_name = dataset_from_data_dir
+
+            info = {
+                'base_model': base_model_name,
+                'prompt_template': template,
+                'dataset_name': dataset_name,
+                'dataset_rows': len(train_data),
+                'timestamp': time.time(),
+
+                'max_seq_length': max_seq_length,
+                'train_on_inputs': train_on_inputs,
+
+                'micro_batch_size': micro_batch_size,
+                'gradient_accumulation_steps': gradient_accumulation_steps,
+                'epochs': epochs,
+                'learning_rate': learning_rate,
+
+                'evaluate_data_percentage': evaluate_data_percentage,
+
+                'lora_r': lora_r,
+                'lora_alpha': lora_alpha,
+                'lora_dropout': lora_dropout,
+                'lora_target_modules': lora_target_modules,
+            }
+            json.dump(info, info_json_file, indent=2)
+
+        if not should_training_progress_track_tqdm:
+            progress(0, desc="Train starting...")
+
+        train_output = Global.train_fn(
             base_model,  # base_model
             tokenizer,  # tokenizer
-            os.path.join(Global.data_dir, "lora_models",
-                         model_name),  # output_dir
+            output_dir,  # output_dir
             train_data,
             # 128,  # batch_size (is not used, use gradient_accumulation_steps instead)
             micro_batch_size,    # micro_batch_size
@@ -431,12 +476,12 @@ Train data (first 10):
             epochs,   # num_epochs
             learning_rate,   # learning_rate
             max_seq_length,  # cutoff_len
-            0,  # val_set_size
+            evaluate_data_count,  # val_set_size
             lora_r,  # lora_r
             lora_alpha,  # lora_alpha
             lora_dropout,  # lora_dropout
-            ["q_proj", "v_proj"],  # lora_target_modules
-            True,  # train_on_inputs
+            lora_target_modules,  # lora_target_modules
+            train_on_inputs,  # train_on_inputs
             False,  # group_by_length
             None,  # resume_from_checkpoint
             training_callbacks  # callbacks
@@ -445,12 +490,17 @@ Train data (first 10):
         logs_str = "\n".join([json.dumps(log)
                              for log in log_history]) or "None"
 
-        result_message = f"Training ended:\n{str(results)}\n\nLogs:\n{logs_str}"
+        result_message = f"Training ended:\n{str(train_output)}\n\nLogs:\n{logs_str}"
         print(result_message)
+
+        del base_model
+        del tokenizer
+        clear_cache()
+
         return result_message
 
     except Exception as e:
-        raise gr.Error(e)
+        raise gr.Error(f"{e} (To dismiss this error, click the 'Abort' button)")
 
 
 def do_abort_training():
@@ -595,11 +645,20 @@ def finetune_ui():
             )
             )
 
-            max_seq_length = gr.Slider(
-                minimum=1, maximum=4096, value=512,
-                label="Max Sequence Length",
-                info="The maximum length of each sample text sequence. Sequences longer than this will be truncated."
-            )
+            with gr.Row():
+                max_seq_length = gr.Slider(
+                    minimum=1, maximum=4096, value=512,
+                    label="Max Sequence Length",
+                    info="The maximum length of each sample text sequence. Sequences longer than this will be truncated.",
+                    elem_id="finetune_max_seq_length"
+                )
+
+                train_on_inputs = gr.Checkbox(
+                    label="Train on Inputs",
+                    value=True,
+                    info="If not enabled, inputs will be masked out in loss.",
+                    elem_id="finetune_train_on_inputs"
+                )
 
         with gr.Row():
             micro_batch_size_default_value = 1
@@ -625,7 +684,7 @@ def finetune_ui():
                 )
 
                 epochs = gr.Slider(
-                    minimum=1, maximum=100, step=1, value=3,
+                    minimum=1, maximum=100, step=1, value=10,
                     label="Epochs",
                     info="The number of times to iterate over the entire training dataset. A larger number of epochs may improve model performance but also increase the risk of overfitting.")
 
@@ -633,6 +692,12 @@ def finetune_ui():
                     minimum=0.00001, maximum=0.01, value=3e-4,
                     label="Learning Rate",
                     info="The initial learning rate for the optimizer. A higher learning rate may speed up convergence but also cause instability or divergence. A lower learning rate may require more steps to reach optimal performance but also avoid overshooting or oscillating around local minima."
+                )
+
+                evaluate_data_percentage = gr.Slider(
+                    minimum=0, maximum=0.5, step=0.001, value=0.03,
+                    label="Evaluation Data Percentage",
+                    info="The percentage of data to be used for evaluation. This percentage of data will not be used for training and will be used to assess the performance of the model during the process."
                 )
 
             with gr.Column():
@@ -652,6 +717,12 @@ def finetune_ui():
                     minimum=0, maximum=1, value=0.05,
                     label="LoRA Dropout",
                     info="The dropout probability for LoRA, which controls the fraction of LoRA parameters that are set to zero during training. A larger lora_dropout increases the regularization effect of LoRA but also increases the risk of underfitting."
+                )
+
+                lora_target_modules = gr.CheckboxGroup(
+                    label="LoRA Target Modules",
+                    choices=["q_proj", "k_proj", "v_proj", "o_proj"],
+                    value=["q_proj", "v_proj"],
                 )
 
                 with gr.Column():
@@ -675,25 +746,28 @@ def finetune_ui():
                             elem_id="finetune_confirm_stop_btn"
                         )
 
-        training_status = gr.Text(
-            "Training status will be shown here.",
-            label="Training Status/Results",
+        train_output = gr.Text(
+            "Training results will be shown here.",
+            label="Train Output",
             elem_id="finetune_training_status")
 
         train_progress = train_btn.click(
             fn=do_train,
             inputs=(dataset_inputs + [
                 max_seq_length,
+                evaluate_data_percentage,
                 micro_batch_size,
                 gradient_accumulation_steps,
                 epochs,
                 learning_rate,
+                train_on_inputs,
                 lora_r,
                 lora_alpha,
                 lora_dropout,
+                lora_target_modules,
                 model_name
             ]),
-            outputs=training_status
+            outputs=train_output
         )
 
         # controlled by JS, shows the confirm_abort_button
@@ -811,6 +885,12 @@ def finetune_ui():
                 document.getElementById('finetune_confirm_stop_btn').style.display =
                   'none';
               }, 5000);
+              document.getElementById('finetune_confirm_stop_btn').style['pointer-events'] =
+                'none';
+              setTimeout(function () {
+                document.getElementById('finetune_confirm_stop_btn').style['pointer-events'] =
+                  'inherit';
+              }, 300);
               document.getElementById('finetune_stop_btn').style.display = 'none';
               document.getElementById('finetune_confirm_stop_btn').style.display =
                 'block';

@@ -16,6 +16,7 @@ def main(
     # Allows to listen on all interfaces by providing '0.0.0.0'.
     server_name: str = "127.0.0.1",
     share: bool = False,
+    skip_loading_base_model: bool = False,
     ui_show_sys_info: bool = True,
     ui_dev_mode: bool = False,
 ):
@@ -29,7 +30,7 @@ def main(
         data_dir
     ), "Please specify a --data_dir, e.g. --data_dir='./data'"
 
-    Global.base_model = base_model
+    Global.default_base_model_name = base_model
     Global.data_dir = os.path.abspath(data_dir)
     Global.load_8bit = load_8bit
 
