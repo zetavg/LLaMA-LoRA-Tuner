@@ -11,7 +11,6 @@ def init_data_dir():
     parent_directory_path = os.path.dirname(current_file_path)
     project_dir_path = os.path.abspath(
         os.path.join(parent_directory_path, "..", ".."))
-    os.makedirs(os.path.join(Global.data_dir, "lora_models"), exist_ok=True)
     copy_sample_data_if_not_exists(os.path.join(project_dir_path, "templates"),
                                    os.path.join(Global.data_dir, "templates"))
     copy_sample_data_if_not_exists(os.path.join(project_dir_path, "datasets"),
