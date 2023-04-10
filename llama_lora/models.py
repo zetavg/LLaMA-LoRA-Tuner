@@ -113,7 +113,7 @@ def get_model(
                     with open(possible_model_info_json_path, "r") as file:
                         json_data = json.load(file)
                         possible_hf_model_name = json_data.get("hf_model_name")
-                        if possible_hf_model_name:
+                        if possible_hf_model_name and json_data.get("load_from_hf"):
                             peft_model_name_or_path = possible_hf_model_name
                 except Exception as e:
                     raise ValueError("Error reading model info from {possible_model_info_json_path}: {e}")

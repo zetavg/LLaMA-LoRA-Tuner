@@ -1,5 +1,6 @@
 {
   "hf_model_name": "zetavg/llama-lora-unhelpful-ai-v01",
+  "load_from_hf": true,
   "base_model": "decapoda-research/llama-7b-hf",
   "prompt_template": "user_and_ai",
   "dataset_name": "unhelpful_ai.json",
