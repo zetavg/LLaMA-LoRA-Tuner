@@ -428,6 +428,18 @@ def main_page_custom_css():
         white-space: pre-wrap;
     }
 
+    /*
+    #finetune_dataset_preview {
+        max-height: 100vh;
+        overflow: auto;
+        border: var(--block-border-width) solid var(--border-color-primary);
+        border-radius: var(--radius-lg);
+    }
+    #finetune_dataset_preview .table-wrap {
+        border: 0 !important;
+    }
+    */
+
     #finetune_max_seq_length {
         flex: 2;
     }
