@@ -99,11 +99,12 @@ def get_model(
 
     peft_model_name_or_path = peft_model_name
 
-    lora_models_directory_path = os.path.join(Global.data_dir, "lora_models")
-    possible_lora_model_path = os.path.join(
-        lora_models_directory_path, peft_model_name)
-    if os.path.isdir(possible_lora_model_path):
-        peft_model_name_or_path = possible_lora_model_path
+    if peft_model_name:
+        lora_models_directory_path = os.path.join(Global.data_dir, "lora_models")
+        possible_lora_model_path = os.path.join(
+            lora_models_directory_path, peft_model_name)
+        if os.path.isdir(possible_lora_model_path):
+            peft_model_name_or_path = possible_lora_model_path
 
     Global.loaded_models.prepare_to_set()
     clear_cache()
