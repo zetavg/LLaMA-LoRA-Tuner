@@ -432,6 +432,24 @@ def main_page_custom_css():
         flex: 2;
     }
 
+    #finetune_save_total_limit,
+    #finetune_save_steps,
+    #finetune_logging_steps {
+        min-width: min(120px,100%) !important;
+        padding-top: 4px;
+    }
+    #finetune_save_total_limit span,
+    #finetune_save_steps span,
+    #finetune_logging_steps span {
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+    #finetune_save_total_limit input,
+    #finetune_save_steps input,
+    #finetune_logging_steps input {
+        padding: 4px 8px;
+    }
+
     @media screen and (max-width: 392px) {
         #inference_lora_model, #finetune_template {
             border-bottom-left-radius: 0;

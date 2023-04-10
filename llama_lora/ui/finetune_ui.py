@@ -269,6 +269,9 @@ def do_train(
     lora_dropout,
     lora_target_modules,
     model_name,
+    save_steps,
+    save_total_limit,
+    logging_steps,
     progress=gr.Progress(track_tqdm=should_training_progress_track_tqdm),
 ):
     try:
@@ -276,7 +279,8 @@ def do_train(
         output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
         if os.path.exists(output_dir):
             if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
-                raise ValueError(f"The output directory already exists and is not empty. ({output_dir})")
+                raise ValueError(
+                    f"The output directory already exists and is not empty. ({output_dir})")
 
         if not should_training_progress_track_tqdm:
             progress(0, desc="Preparing train data...")
@@ -484,6 +488,9 @@ Train data (first 10):
             train_on_inputs,  # train_on_inputs
             False,  # group_by_length
             None,  # resume_from_checkpoint
+            save_steps,  # save_steps
+            save_total_limit,  # save_total_limit
+            logging_steps,  # logging_steps
             training_callbacks  # callbacks
         )
 
@@ -500,7 +507,8 @@ Train data (first 10):
         return result_message
 
     except Exception as e:
-        raise gr.Error(f"{e} (To dismiss this error, click the 'Abort' button)")
+        raise gr.Error(
+            f"{e} (To dismiss this error, click the 'Abort' button)")
 
 
 def do_abort_training():
@@ -661,6 +669,8 @@ def finetune_ui():
                 )
 
         with gr.Row():
+            # https://huggingface.co/docs/transformers/main/main_classes/trainer
+
             micro_batch_size_default_value = 1
 
             if Global.gpu_total_cores is not None and Global.gpu_total_memory is not None:
@@ -695,7 +705,7 @@ def finetune_ui():
                 )
 
                 evaluate_data_percentage = gr.Slider(
-                    minimum=0, maximum=0.5, step=0.001, value=0.03,
+                    minimum=0, maximum=0.5, step=0.001, value=0,
                     label="Evaluation Data Percentage",
                     info="The percentage of data to be used for evaluation. This percentage of data will not be used for training and will be used to assess the performance of the model during the process."
                 )
@@ -725,6 +735,26 @@ def finetune_ui():
                     value=["q_proj", "v_proj"],
                     info="Modules to replace with LoRA."
                 )
+
+                with gr.Row():
+                    logging_steps = gr.Number(
+                        label="Logging Steps",
+                        precision=0,
+                        value=10,
+                        elem_id="finetune_logging_steps"
+                    )
+                    save_steps = gr.Number(
+                        label="Steps Per Save",
+                        precision=0,
+                        value=500,
+                        elem_id="finetune_save_steps"
+                    )
+                    save_total_limit = gr.Number(
+                        label="Saved Checkpoints Limit",
+                        precision=0,
+                        value=5,
+                        elem_id="finetune_save_total_limit"
+                    )
 
                 with gr.Column():
                     model_name = gr.Textbox(
@@ -767,7 +797,10 @@ def finetune_ui():
                 lora_alpha,
                 lora_dropout,
                 lora_target_modules,
-                model_name
+                model_name,
+                save_steps,
+                save_total_limit,
+                logging_steps,
             ]),
             outputs=train_output
         )
@@ -858,6 +891,28 @@ def finetune_ui():
           animation: 'scale-subtle',
           content:
             'Press to load a sample dataset of the current selected format into the textbox.',
+        });
+
+        tippy('#finetune_save_total_limit', {
+          placement: 'bottom',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content:
+            'Total amount of checkpoints to preserve. Older checkpoints will be deleted.',
+        });
+        tippy('#finetune_save_steps', {
+          placement: 'bottom',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content:
+            'Number of updates steps before two checkpoint saves.',
+        });
+        tippy('#finetune_logging_steps', {
+          placement: 'bottom',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content:
+            'Number of update steps between two logs.',
         });
 
         tippy('#finetune_model_name', {

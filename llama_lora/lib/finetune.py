@@ -29,10 +29,10 @@ def train(
     # training hyperparams
     micro_batch_size: int = 4,
     gradient_accumulation_steps: int = 32,
-    num_epochs: int = 3,
+    num_train_epochs: int = 3,
     learning_rate: float = 3e-4,
     cutoff_len: int = 256,
-    val_set_size: int = 2000,
+    val_set_size: int = 2000,  # TODO: use percentage
     # lora hyperparams
     lora_r: int = 8,
     lora_alpha: int = 16,
@@ -46,12 +46,16 @@ def train(
     group_by_length: bool = False,  # faster, but produces an odd training loss curve
     # either training checkpoint or final adapter
     resume_from_checkpoint: str = None,
+    save_steps: int = 200,
+    save_total_limit: int = 3,
+    logging_steps: int = 10,
     # logging
     callbacks: List[Any] = []
 ):
     if os.path.exists(output_dir):
         if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
-            raise ValueError(f"The output directory already exists and is not empty. ({output_dir})")
+            raise ValueError(
+                f"The output directory already exists and is not empty. ({output_dir})")
 
     device_map = "auto"
     world_size = int(os.environ.get("WORLD_SIZE", 1))
@@ -186,17 +190,17 @@ def train(
             per_device_train_batch_size=micro_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
             warmup_steps=100,
-            num_train_epochs=num_epochs,
+            num_train_epochs=num_train_epochs,
             learning_rate=learning_rate,
             fp16=True,
-            logging_steps=10,
+            logging_steps=logging_steps,
             optim="adamw_torch",
             evaluation_strategy="steps" if val_set_size > 0 else "no",
             save_strategy="steps",
             eval_steps=200 if val_set_size > 0 else None,
-            save_steps=200,
+            save_steps=save_steps,
             output_dir=output_dir,
-            save_total_limit=3,
+            save_total_limit=save_total_limit,
             load_best_model_at_end=True if val_set_size > 0 else False,
             ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
@@ -213,6 +217,24 @@ def train(
         os.makedirs(output_dir)
     with open(os.path.join(output_dir, "trainer_args.json"), 'w') as trainer_args_json_file:
         json.dump(trainer.args.to_dict(), trainer_args_json_file, indent=2)
+    with open(os.path.join(output_dir, "finetune_params.json"), 'w') as finetune_params_json_file:
+        finetune_params = {
+            'micro_batch_size': micro_batch_size,
+            'gradient_accumulation_steps': gradient_accumulation_steps,
+            'num_train_epochs': num_train_epochs,
+            'learning_rate': learning_rate,
+            'cutoff_len': cutoff_len,
+            'lora_r': lora_r,
+            'lora_alpha': lora_alpha,
+            'lora_dropout': lora_dropout,
+            'lora_target_modules': lora_target_modules,
+            'train_on_inputs': train_on_inputs,
+            'group_by_length': group_by_length,
+            'save_steps': save_steps,
+            'save_total_limit': save_total_limit,
+            'logging_steps': logging_steps,
+        }
+        json.dump(finetune_params, finetune_params_json_file, indent=2)
 
     model.config.use_cache = False
 
@@ -232,7 +254,8 @@ def train(
     print(f"Model saved to {output_dir}.")
 
     with open(os.path.join(output_dir, "trainer_log_history.jsonl"), 'w') as trainer_log_history_jsonl_file:
-        trainer_log_history = "\n".join([json.dumps(line) for line in trainer.state.log_history])
+        trainer_log_history = "\n".join(
+            [json.dumps(line) for line in trainer.state.log_history])
         trainer_log_history_jsonl_file.write(trainer_log_history)
 
     with open(os.path.join(output_dir, "train_output.json"), 'w') as train_output_json_file:
