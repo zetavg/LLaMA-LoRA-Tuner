@@ -723,11 +723,13 @@ def finetune_ui():
                     label="LoRA Target Modules",
                     choices=["q_proj", "k_proj", "v_proj", "o_proj"],
                     value=["q_proj", "v_proj"],
+                    info="Modules to replace with LoRA."
                 )
 
                 with gr.Column():
                     model_name = gr.Textbox(
                         lines=1, label="LoRA Model Name", value=random_name,
+                        info="The name of the new LoRA model.",
                         elem_id="finetune_model_name",
                     )
 
