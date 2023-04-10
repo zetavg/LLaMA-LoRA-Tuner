@@ -1,6 +1,7 @@
 import os
 import sys
 import gc
+import json
 
 import torch
 from transformers import LlamaForCausalLM, LlamaTokenizer
@@ -99,11 +100,23 @@ def get_model(
 
     peft_model_name_or_path = peft_model_name
 
-    lora_models_directory_path = os.path.join(Global.data_dir, "lora_models")
-    possible_lora_model_path = os.path.join(
-        lora_models_directory_path, peft_model_name)
-    if os.path.isdir(possible_lora_model_path):
-        peft_model_name_or_path = possible_lora_model_path
+    if peft_model_name:
+        lora_models_directory_path = os.path.join(Global.data_dir, "lora_models")
+        possible_lora_model_path = os.path.join(
+            lora_models_directory_path, peft_model_name)
+        if os.path.isdir(possible_lora_model_path):
+            peft_model_name_or_path = possible_lora_model_path
+
+            possible_model_info_json_path = os.path.join(possible_lora_model_path, "info.json")
+            if os.path.isfile(possible_model_info_json_path):
+                try:
+                    with open(possible_model_info_json_path, "r") as file:
+                        json_data = json.load(file)
+                        possible_hf_model_name = json_data.get("hf_model_name")
+                        if possible_hf_model_name and json_data.get("load_from_hf"):
+                            peft_model_name_or_path = possible_hf_model_name
+                except Exception as e:
+                    raise ValueError("Error reading model info from {possible_model_info_json_path}: {e}")
 
     Global.loaded_models.prepare_to_set()
     clear_cache()

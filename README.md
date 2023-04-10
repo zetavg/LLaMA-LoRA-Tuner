@@ -38,6 +38,7 @@ Making evaluating and fine-tuning LLaMA models with low-rank adaptation (LoRA) e
 * Fine-tune LLaMA models with different prompt templates and training dataset format.<br /><a href="https://youtu.be/5Db9U8PsaUk"><img width="640px" src="https://user-images.githubusercontent.com/3784687/230277315-9a91d983-1690-4594-9d54-912eda8963ee.gif" /></a>
   * Load JSON and JSONL datasets from your folder, or even paste plain text directly into the UI.
   * Supports Stanford Alpaca [seed_tasks](https://github.com/tatsu-lab/stanford_alpaca/blob/main/seed_tasks.jsonl), [alpaca_data](https://github.com/tatsu-lab/stanford_alpaca/blob/main/alpaca_data.json) and [OpenAI "prompt"-"completion"](https://platform.openai.com/docs/guides/fine-tuning/data-formatting) format.
+  * Use prompt templates to keep your dataset DRY.
 
 
 ## How to Start

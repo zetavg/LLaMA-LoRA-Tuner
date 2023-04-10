@@ -1,0 +1,24 @@
+{
+  "hf_model_name": "zetavg/llama-lora-unhelpful-ai-v01",
+  "load_from_hf": true,
+  "base_model": "decapoda-research/llama-7b-hf",
+  "prompt_template": "user_and_ai",
+  "dataset_name": "unhelpful_ai.json",
+  "dataset_rows": 95,
+  "max_seq_length": 512,
+  "train_on_inputs": false,
+  "micro_batch_size": 1,
+  "gradient_accumulation_steps": 1,
+  "epochs": 16,
+  "learning_rate": 0.00016,
+  "evaluate_data_percentage": 0,
+  "lora_r": 16,
+  "lora_alpha": 32,
+  "lora_dropout": 0.05,
+  "lora_target_modules": [
+    "q_proj",
+    "v_proj",
+    "k_proj",
+    "o_proj"
+  ]
+}
