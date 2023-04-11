@@ -8,19 +8,7 @@ from transformers import LlamaForCausalLM, LlamaTokenizer
 from peft import PeftModel
 
 from .globals import Global
-
-
-def get_device():
-    if torch.cuda.is_available():
-        return "cuda"
-    else:
-        return "cpu"
-
-    try:
-        if torch.backends.mps.is_available():
-            return "mps"
-    except:  # noqa: E722
-        pass
+from .lib.get_device import get_device
 
 
 def get_new_base_model(base_model_name):

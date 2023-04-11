@@ -1,6 +1,7 @@
 import torch
 import transformers
 
+from .get_device import get_device
 from .streaming_generation_utils import Iteratorize, Stream
 
 
@@ -62,16 +63,3 @@ def generate(
     decoded_output = tokenizer.decode(output, skip_special_tokens=True)
     yield decoded_output, output
     return
-
-
-def get_device():
-    if torch.cuda.is_available():
-        return "cuda"
-    else:
-        return "cpu"
-
-    try:
-        if torch.backends.mps.is_available():
-            return "mps"
-    except:  # noqa: E722
-        pass
