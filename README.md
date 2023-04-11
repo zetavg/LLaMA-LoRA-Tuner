@@ -60,13 +60,14 @@ file_mounts:
 setup: |
   git clone https://github.com/zetavg/LLaMA-LoRA-Tuner.git llama_lora_tuner
   cd llama_lora_tuner && pip install -r requirements.lock.txt
+  pip install wandb
   cd ..
   echo 'Dependencies installed.'
 
 # Start the app.
 run: |
   echo 'Starting...'
-  python llama_lora_tuner/app.py --data_dir='/data' --base_model='decapoda-research/llama-7b-hf' --share
+  python llama_lora_tuner/app.py --data_dir='/data' --wandb_api_key "$([ -f /data/secrets/wandb_api_key ] && cat /data/secrets/wandb_api_key | tr -d '\n')" --base_model='decapoda-research/llama-7b-hf' --share
 ```
 
 Then launch a cluster to run the task:

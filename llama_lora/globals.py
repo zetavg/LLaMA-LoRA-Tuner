@@ -40,6 +40,11 @@ class Global:
     gpu_total_cores = None  # GPU total cores
     gpu_total_memory = None
 
+    # WandB
+    enable_wandb = False
+    wandb_api_key = None
+    default_wandb_project = "llama-lora-tuner"
+
     # UI related
     ui_title: str = "LLaMA-LoRA Tuner"
     ui_emoji: str = "🦙🎛️"

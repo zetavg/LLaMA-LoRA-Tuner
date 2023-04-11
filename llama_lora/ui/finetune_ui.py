@@ -491,7 +491,10 @@ Train data (first 10):
             save_steps,  # save_steps
             save_total_limit,  # save_total_limit
             logging_steps,  # logging_steps
-            training_callbacks  # callbacks
+            training_callbacks,  # callbacks
+            Global.wandb_api_key,  # wandb_api_key
+            Global.default_wandb_project if Global.enable_wandb else None,  # wandb_project
+            model_name  # wandb_run_name
         )
 
         logs_str = "\n".join([json.dumps(log)

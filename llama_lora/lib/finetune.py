@@ -50,8 +50,32 @@ def train(
     save_total_limit: int = 3,
     logging_steps: int = 10,
     # logging
-    callbacks: List[Any] = []
+    callbacks: List[Any] = [],
+    # wandb params
+    wandb_api_key = None,
+    wandb_project: str = "",
+    wandb_run_name: str = "",
+    wandb_watch: str = "false",  # options: false | gradients | all
+    wandb_log_model: str = "true",  # options: false | true
 ):
+    if wandb_api_key:
+        os.environ["WANDB_API_KEY"] = wandb_api_key
+    if wandb_project:
+        os.environ["WANDB_PROJECT"] = wandb_project
+    if wandb_run_name:
+        os.environ["WANDB_RUN_NAME"] = wandb_run_name
+    if wandb_watch:
+        os.environ["WANDB_WATCH"] = wandb_watch
+    if wandb_log_model:
+        os.environ["WANDB_LOG_MODEL"] = wandb_log_model
+    use_wandb = (wandb_project and len(wandb_project) > 0) or (
+            "WANDB_PROJECT" in os.environ and len(os.environ["WANDB_PROJECT"]) > 0
+        )
+    if use_wandb:
+        os.environ['WANDB_MODE'] = "online"
+    else:
+        os.environ['WANDB_MODE'] = "disabled"
+
     if os.path.exists(output_dir):
         if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
             raise ValueError(
@@ -204,8 +228,8 @@ def train(
             load_best_model_at_end=True if val_set_size > 0 else False,
             ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
-            # report_to="wandb" if use_wandb else None,
-            # run_name=wandb_run_name if use_wandb else None,
+            report_to="wandb" if use_wandb else None,
+            run_name=wandb_run_name if use_wandb else None,
         ),
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
