@@ -8,12 +8,12 @@ from transformers import GenerationConfig
 
 from ..globals import Global
 from ..models import get_model, get_tokenizer, get_device
+from ..lib.inference import generate
 from ..utils.data import (
     get_available_template_names,
     get_available_lora_model_names,
     get_info_of_available_lora_model)
 from ..utils.prompter import Prompter
-from ..utils.callbacks import Iteratorize, Stream
 
 device = get_device()
 
@@ -103,8 +103,6 @@ def do_inference(
         tokenizer = get_tokenizer(base_model_name)
         model = get_model(base_model_name, lora_model_name)
 
-        inputs = tokenizer(prompt, return_tensors="pt")
-        input_ids = inputs["input_ids"].to(device)
         generation_config = GenerationConfig(
             temperature=temperature,
             top_p=top_p,
@@ -113,26 +111,56 @@ def do_inference(
             num_beams=num_beams,
         )
 
-        generate_params = {
-            "input_ids": input_ids,
-            "generation_config": generation_config,
-            "return_dict_in_generate": True,
-            "output_scores": True,
-            "max_new_tokens": max_new_tokens,
-        }
-
         def ui_generation_stopping_criteria(input_ids, score, **kwargs):
             if Global.should_stop_generating:
                 return True
             return False
 
         Global.should_stop_generating = False
-        generate_params.setdefault(
-            "stopping_criteria", transformers.StoppingCriteriaList()
-        )
-        generate_params["stopping_criteria"].append(
-            ui_generation_stopping_criteria
-        )
+
+        generation_args = {
+            'model': model,
+            'tokenizer': tokenizer,
+            'prompt': prompt,
+            'generation_config': generation_config,
+            'max_new_tokens': max_new_tokens,
+            'stopping_criteria': [ui_generation_stopping_criteria],
+            'stream_output': stream_output
+        }
+
+        for (decoded_output, output) in generate(**generation_args):
+            raw_output_str = None
+            if show_raw:
+                raw_output_str = str(output)
+            response = prompter.get_response(decoded_output)
+
+            if Global.should_stop_generating:
+                return
+
+            yield (
+                gr.Textbox.update(
+                    value=response, lines=inference_output_lines),
+                raw_output_str)
+
+            if Global.should_stop_generating:
+                # If the user stops the generation, and then clicks the
+                # generation button again, they may mysteriously landed
+                # here, in the previous, should-be-stopped generation
+                # function call, with the new generation function not be
+                # called at all. To workaround this, we yield a message
+                # and setting lines=1, and if the front-end JS detects
+                # that lines has been set to 1 (rows="1" in HTML),
+                # it will automatically click the generate button again
+                # (gr.Textbox.update() does not support updating
+                # elem_classes or elem_id).
+                # [WORKAROUND-UI01]
+                yield (
+                    gr.Textbox.update(
+                        value="Please retry", lines=1),
+                    None)
+
+        return
+
 
         if stream_output:
             # Stream the reply 1 token at a time.

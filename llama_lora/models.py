@@ -60,9 +60,10 @@ def get_new_base_model(base_model_name):
             base_model_name, device_map={"": device}, low_cpu_mem_usage=True
         )
 
-    model.config.pad_token_id = get_tokenizer(base_model_name).pad_token_id = 0
-    model.config.bos_token_id = 1
-    model.config.eos_token_id = 2
+    tokenizer = get_tokenizer(base_model_name)
+    model.config.pad_token_id = tokenizer.pad_token_id = 0
+    model.config.bos_token_id = tokenizer.bos_token_id = 1
+    model.config.eos_token_id = tokenizer.eos_token_id = 2
 
     return model
 
