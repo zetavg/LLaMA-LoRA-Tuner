@@ -415,6 +415,12 @@ Train data (first 10):
         if not should_training_progress_track_tqdm:
             progress(0, desc="Train starting...")
 
+        wandb_group = template
+        wandb_tags = [f"template:{template}"]
+        if load_dataset_from == "Data Dir" and dataset_from_data_dir:
+            wandb_group += f"/{dataset_from_data_dir}"
+            wandb_tags.append(f"dataset:{dataset_from_data_dir}")
+
         train_output = Global.train_fn(
             base_model,  # base_model
             tokenizer,  # tokenizer
@@ -440,7 +446,9 @@ Train data (first 10):
             training_callbacks,  # callbacks
             Global.wandb_api_key,  # wandb_api_key
             Global.default_wandb_project if Global.enable_wandb else None,  # wandb_project
-            model_name  # wandb_run_name
+            wandb_group,  # wandb_group
+            model_name,  # wandb_run_name
+            wandb_tags  # wandb_tags
         )
 
         logs_str = "\n".join([json.dumps(log)

@@ -1,5 +1,6 @@
 import os
 import sys
+import importlib
 from typing import Any, List
 
 import json
@@ -54,16 +55,38 @@ def train(
     # wandb params
     wandb_api_key = None,
     wandb_project: str = "",
+    wandb_group = None,
     wandb_run_name: str = "",
+    wandb_tags: List[str] = [],
     wandb_watch: str = "false",  # options: false | gradients | all
     wandb_log_model: str = "true",  # options: false | true
 ):
+    # for logging
+    finetune_args = {
+        'micro_batch_size': micro_batch_size,
+        'gradient_accumulation_steps': gradient_accumulation_steps,
+        'num_train_epochs': num_train_epochs,
+        'learning_rate': learning_rate,
+        'cutoff_len': cutoff_len,
+        'lora_r': lora_r,
+        'lora_alpha': lora_alpha,
+        'lora_dropout': lora_dropout,
+        'lora_target_modules': lora_target_modules,
+        'train_on_inputs': train_on_inputs,
+        'group_by_length': group_by_length,
+        'save_steps': save_steps,
+        'save_total_limit': save_total_limit,
+        'logging_steps': logging_steps,
+    }
+
     if wandb_api_key:
         os.environ["WANDB_API_KEY"] = wandb_api_key
-    if wandb_project:
-        os.environ["WANDB_PROJECT"] = wandb_project
-    if wandb_run_name:
-        os.environ["WANDB_RUN_NAME"] = wandb_run_name
+
+    # wandb: WARNING Changes to your `wandb` environment variables will be ignored because your `wandb` session has already started. For more information on how to modify your settings with `wandb.init()` arguments, please refer to https://wandb.me/wandb-init.
+    # if wandb_project:
+    #     os.environ["WANDB_PROJECT"] = wandb_project
+    # if wandb_run_name:
+    #     os.environ["WANDB_RUN_NAME"] = wandb_run_name
     if wandb_watch:
         os.environ["WANDB_WATCH"] = wandb_watch
     if wandb_log_model:
@@ -73,6 +96,18 @@ def train(
         )
     if use_wandb:
         os.environ['WANDB_MODE'] = "online"
+        wandb = importlib.import_module("wandb")
+        wandb.init(
+            project=wandb_project,
+            resume="auto",
+            group=wandb_group,
+            name=wandb_run_name,
+            tags=wandb_tags,
+            reinit=True,
+            magic=True,
+            config={'finetune_args': finetune_args},
+            # id=None  # used for resuming
+            )
     else:
         os.environ['WANDB_MODE'] = "disabled"
 
@@ -243,24 +278,8 @@ def train(
         os.makedirs(output_dir)
     with open(os.path.join(output_dir, "trainer_args.json"), 'w') as trainer_args_json_file:
         json.dump(trainer.args.to_dict(), trainer_args_json_file, indent=2)
-    with open(os.path.join(output_dir, "finetune_params.json"), 'w') as finetune_params_json_file:
-        finetune_params = {
-            'micro_batch_size': micro_batch_size,
-            'gradient_accumulation_steps': gradient_accumulation_steps,
-            'num_train_epochs': num_train_epochs,
-            'learning_rate': learning_rate,
-            'cutoff_len': cutoff_len,
-            'lora_r': lora_r,
-            'lora_alpha': lora_alpha,
-            'lora_dropout': lora_dropout,
-            'lora_target_modules': lora_target_modules,
-            'train_on_inputs': train_on_inputs,
-            'group_by_length': group_by_length,
-            'save_steps': save_steps,
-            'save_total_limit': save_total_limit,
-            'logging_steps': logging_steps,
-        }
-        json.dump(finetune_params, finetune_params_json_file, indent=2)
+    with open(os.path.join(output_dir, "finetune_args.json"), 'w') as finetune_args_json_file:
+        json.dump(finetune_args, finetune_args_json_file, indent=2)
 
     # Not working, will only give us ["prompt", "completion", "input_ids", "attention_mask", "labels"]
     # if train_data:
