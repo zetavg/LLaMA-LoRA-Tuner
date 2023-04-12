@@ -30,7 +30,7 @@ def copy_sample_data_if_not_exists(source, destination):
 def get_available_template_names():
     templates_directory_path = os.path.join(Global.data_dir, "templates")
     all_files = os.listdir(templates_directory_path)
-    return [os.path.splitext(filename)[0] for filename in all_files if fnmatch.fnmatch(filename, "*.json")]
+    return [filename.rstrip(".json") for filename in all_files if fnmatch.fnmatch(filename, "*.json") or fnmatch.fnmatch(filename, "*.py")]
 
 
 def get_available_dataset_names():

@@ -162,6 +162,8 @@ def train(
 
     # If train_dataset_data is a list, convert it to datasets.Dataset
     if isinstance(train_dataset_data, list):
+        with open(os.path.join(output_dir, "train_data_samples.json"), 'w') as file:
+            json.dump(list(train_dataset_data[:100]), file, indent=2)
         train_dataset_data = Dataset.from_list(train_dataset_data)
 
     if resume_from_checkpoint:
@@ -221,7 +223,7 @@ def train(
             optim="adamw_torch",
             evaluation_strategy="steps" if val_set_size > 0 else "no",
             save_strategy="steps",
-            eval_steps=200 if val_set_size > 0 else None,
+            eval_steps=save_steps if val_set_size > 0 else None,
             save_steps=save_steps,
             output_dir=output_dir,
             save_total_limit=save_total_limit,
@@ -259,6 +261,14 @@ def train(
             'logging_steps': logging_steps,
         }
         json.dump(finetune_params, finetune_params_json_file, indent=2)
+
+    # Not working, will only give us ["prompt", "completion", "input_ids", "attention_mask", "labels"]
+    # if train_data:
+    #     with open(os.path.join(output_dir, "train_dataset_samples.json"), 'w') as file:
+    #         json.dump(list(train_data[:100]), file, indent=2)
+    # if val_data:
+    #     with open(os.path.join(output_dir, "eval_dataset_samples.json"), 'w') as file:
+    #         json.dump(list(val_data[:100]), file, indent=2)
 
     model.config.use_cache = False
 
