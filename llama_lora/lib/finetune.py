@@ -3,11 +3,14 @@ import sys
 import importlib
 from typing import Any, List
 
+import pdb
+
 import json
 
 import fire
 import torch
 import transformers
+from transformers import TrainerCallback
 from datasets import Dataset, load_dataset
 
 
@@ -273,6 +276,21 @@ def train(
         ),
         callbacks=callbacks,
     )
+
+    class FinetuneTrainerCallback(TrainerCallback):
+        def on_evaluate(self, args, state, control, **kwargs):
+            nonlocal trainer
+            nonlocal tokenizer
+            tooo = tokenizer
+            aaa = args
+            ttt = trainer
+            model = kwargs['model']
+            eval_dataloader = kwargs['eval_dataloader']
+            eval_inputs = [i for i in kwargs['eval_dataloader']]
+            output = trainer.evaluation_loop(eval_dataloader, description="Evaluation", prediction_loss_only=False)
+            pdb.set_trace()
+
+    trainer.add_callback(FinetuneTrainerCallback)
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
