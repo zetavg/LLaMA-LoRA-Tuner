@@ -115,6 +115,11 @@ For more options, see `python app.py --help`.
 </details>
 
 
+## Usage
+
+See [video on YouTube](https://youtu.be/IoEMgouZ5xU).
+
+
 ## Acknowledgements
 
 * https://github.com/tloen/alpaca-lora
