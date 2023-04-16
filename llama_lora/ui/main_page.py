@@ -212,6 +212,10 @@ def main_page_custom_css():
         background: var(--background-fill-primary);
         opacity: 0.8;
     }
+    #global_base_model_select ul {
+        z-index: 9999;
+        background: var(--block-background-fill);
+    }
 
     #current_base_model_hint  {
         display: none;
