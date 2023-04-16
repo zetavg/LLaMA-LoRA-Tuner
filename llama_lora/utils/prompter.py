@@ -131,8 +131,13 @@ class Prompter(object):
     def get_response(self, output: str) -> str:
         if self.template_name == "None":
             return output
+
+        splitted_output = output.split(self.template["response_split"])
+        # if len(splitted_output) <= 1:
+        #     return output.strip()
+
         return self.template["response_split"].join(
-            output.split(self.template["response_split"])[1:]
+            splitted_output[1:]
         ).strip()
 
     def get_variable_names(self) -> List[str]:
