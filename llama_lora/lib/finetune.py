@@ -33,7 +33,7 @@ def train(
     num_train_epochs: int = 3,
     learning_rate: float = 3e-4,
     cutoff_len: int = 256,
-    val_set_size: int = 2000,  # TODO: use percentage
+    val_set_size: int = 2000,
     # lora hyperparams
     lora_r: int = 8,
     lora_alpha: int = 16,
@@ -46,7 +46,7 @@ def train(
     train_on_inputs: bool = True,  # if False, masks out inputs in loss
     group_by_length: bool = False,  # faster, but produces an odd training loss curve
     # either training checkpoint or final adapter
-    resume_from_checkpoint: str = None,
+    resume_from_checkpoint = None,
     save_steps: int = 200,
     save_total_limit: int = 3,
     logging_steps: int = 10,
@@ -68,6 +68,7 @@ def train(
         'num_train_epochs': num_train_epochs,
         'learning_rate': learning_rate,
         'cutoff_len': cutoff_len,
+        'val_set_size': val_set_size,
         'lora_r': lora_r,
         'lora_alpha': lora_alpha,
         'lora_dropout': lora_dropout,
@@ -78,7 +79,12 @@ def train(
         'save_total_limit': save_total_limit,
         'logging_steps': logging_steps,
     }
+    if val_set_size and val_set_size > 0:
+        finetune_args['val_set_size'] = val_set_size
+    if resume_from_checkpoint:
+        finetune_args['resume_from_checkpoint'] = resume_from_checkpoint
 
+    wandb = None
     if wandb_api_key:
         os.environ["WANDB_API_KEY"] = wandb_api_key
 
@@ -220,7 +226,7 @@ def train(
             adapters_weights = torch.load(checkpoint_name)
             model = set_peft_model_state_dict(model, adapters_weights)
         else:
-            print(f"Checkpoint {checkpoint_name} not found")
+            raise ValueError(f"Checkpoint {checkpoint_name} not found")
 
     # Be more transparent about the % of trainable params.
     model.print_trainable_parameters()
@@ -314,5 +320,8 @@ def train(
 
     with open(os.path.join(output_dir, "train_output.json"), 'w') as train_output_json_file:
         json.dump(train_output, train_output_json_file, indent=2)
+
+    if use_wandb and wandb:
+        wandb.finish()
 
     return train_output

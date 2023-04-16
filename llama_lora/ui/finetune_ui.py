@@ -306,6 +306,17 @@ def do_train(
 ):
     try:
         base_model_name = Global.base_model_name
+
+        resume_from_checkpoint = None
+        if continue_from_model == "-" or continue_from_model == "None":
+            continue_from_model = None
+        if continue_from_checkpoint == "-" or continue_from_checkpoint == "None":
+            continue_from_checkpoint = None
+        if continue_from_model:
+            resume_from_checkpoint = os.path.join(Global.data_dir, "lora_models", continue_from_model)
+            if continue_from_checkpoint:
+                resume_from_checkpoint = os.path.join(resume_from_checkpoint, continue_from_checkpoint)
+
         output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
         if os.path.exists(output_dir):
             if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
@@ -376,6 +387,8 @@ Train options: {json.dumps({
     'lora_dropout': lora_dropout,
     'lora_target_modules': lora_target_modules,
     'model_name': model_name,
+    'continue_from_model': continue_from_model,
+    'continue_from_checkpoint': continue_from_checkpoint,
 }, indent=2)}
 
 Train data (first 10):
@@ -386,7 +399,7 @@ Train data (first 10):
             return message
 
         if not should_training_progress_track_tqdm:
-            progress(0, desc="Preparing model for training...")
+            progress(0, desc=f"Preparing model {base_model_name} for training...")
 
         log_history = []
 
@@ -461,6 +474,10 @@ Train data (first 10):
                 # 'lora_dropout': lora_dropout,
                 # 'lora_target_modules': lora_target_modules,
             }
+            if continue_from_model:
+                info['continued_from_model'] = continue_from_model
+                if continue_from_checkpoint:
+                    info['continued_from_checkpoint'] = continue_from_checkpoint
             json.dump(info, info_json_file, indent=2)
 
         if not should_training_progress_track_tqdm:
@@ -490,7 +507,7 @@ Train data (first 10):
             lora_target_modules,  # lora_target_modules
             train_on_inputs,  # train_on_inputs
             False,  # group_by_length
-            None,  # resume_from_checkpoint
+            resume_from_checkpoint,  # resume_from_checkpoint
             save_steps,  # save_steps
             save_total_limit,  # save_total_limit
             logging_steps,  # logging_steps
@@ -582,6 +599,8 @@ def handle_load_params_from_model(
                 cutoff_len = value
             elif key == "evaluate_data_count":
                 evaluate_data_count = value
+            elif key == "val_set_size":
+                evaluate_data_count = value
             elif key == "micro_batch_size":
                 micro_batch_size = value
             elif key == "gradient_accumulation_steps":
@@ -609,6 +628,8 @@ def handle_load_params_from_model(
             elif key == "logging_steps":
                 logging_steps = value
             elif key == "group_by_length":
+                pass
+            elif key == "resume_from_checkpoint":
                 pass
             else:
                 unknown_keys.append(key)
