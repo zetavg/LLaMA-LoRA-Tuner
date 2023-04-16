@@ -515,6 +515,24 @@ def main_page_custom_css():
         margin: -32px -16px;
     }
 
+    #finetune_continue_from_model_box {
+        /* padding: 0; */
+    }
+    #finetune_continue_from_model_box .block {
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+    }
+    #finetune_continue_from_model_box > * {
+        /* gap: 0; */
+    }
+    #finetune_continue_from_model_box button {
+        margin-top: 16px;
+    }
+    #finetune_continue_from_model {
+        flex-grow: 2;
+    }
+
     .finetune_dataset_error_message {
         color: var(--error-text-color) !important;
     }

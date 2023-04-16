@@ -17,7 +17,8 @@ from ..models import (
 from ..utils.data import (
     get_available_template_names,
     get_available_dataset_names,
-    get_dataset_content
+    get_dataset_content,
+    get_available_lora_model_names
 )
 from ..utils.prompter import Prompter
 
@@ -49,13 +50,16 @@ def reload_selections(current_template, current_dataset):
     current_dataset = current_dataset or next(
         iter(available_dataset_names), None)
 
+    available_lora_models = ["-"] + get_available_lora_model_names()
+
     return (
         gr.Dropdown.update(
             choices=available_template_names_with_none,
             value=current_template),
         gr.Dropdown.update(
             choices=available_dataset_names,
-            value=current_dataset)
+            value=current_dataset),
+        gr.Dropdown.update(choices=available_lora_models)
     )
 
 
@@ -228,7 +232,7 @@ def refresh_dataset_items_count(
             info_message = "This dataset contains " + info_message
         update_message = gr.Markdown.update(info_message, visible=True)
 
-        return gr.Markdown.update(preview_info_message), update_message, update_message
+        return gr.Markdown.update(preview_info_message), update_message, update_message, gr.Slider.update(maximum=math.floor(data_count / 2))
     except Exception as e:
         update_message = gr.Markdown.update(
             f"<span class=\"finetune_dataset_error_message\">Error: {e}.</span>", visible=True)
@@ -236,13 +240,14 @@ def refresh_dataset_items_count(
         trace = traceback.format_exc()
         traces = [s.strip() for s in re.split("\n * File ", trace)]
         templates_path = os.path.join(Global.data_dir, "templates")
-        traces_to_show = [s for s in traces if os.path.join(Global.data_dir, "templates") in s]
+        traces_to_show = [s for s in traces if os.path.join(
+            Global.data_dir, "templates") in s]
         traces_to_show = [re.sub(" *\n *", ": ", s) for s in traces_to_show]
         if len(traces_to_show) > 0:
             update_message = gr.Markdown.update(
                 f"<span class=\"finetune_dataset_error_message\">Error: {e} ({','.join(traces_to_show)}).</span>", visible=True)
 
-        return gr.Markdown.update("Set the dataset in the \"Prepare\" tab, then preview it here."), update_message, update_message
+        return gr.Markdown.update("Set the dataset in the \"Prepare\" tab, then preview it here."), update_message, update_message, gr.Slider.update(maximum=1)
 
 
 def parse_plain_text_input(
@@ -281,7 +286,7 @@ def do_train(
     dataset_plain_text_data_separator,
     # Training Options
     max_seq_length,
-    evaluate_data_percentage,
+    evaluate_data_count,
     micro_batch_size,
     gradient_accumulation_steps,
     epochs,
@@ -291,10 +296,12 @@ def do_train(
     lora_alpha,
     lora_dropout,
     lora_target_modules,
-    model_name,
     save_steps,
     save_total_limit,
     logging_steps,
+    model_name,
+    continue_from_model,
+    continue_from_checkpoint,
     progress=gr.Progress(track_tqdm=should_training_progress_track_tqdm),
 ):
     try:
@@ -327,7 +334,6 @@ def do_train(
         train_data = prompter.get_train_data_from_dataset(data)
 
         data_count = len(train_data)
-        evaluate_data_count = math.ceil(data_count * evaluate_data_percentage)
 
         def get_progress_text(epoch, epochs, last_loss):
             progress_detail = f"Epoch {math.ceil(epoch)}/{epochs}"
@@ -448,7 +454,7 @@ Train data (first 10):
                 # 'epochs': epochs,
                 # 'learning_rate': learning_rate,
 
-                # 'evaluate_data_percentage': evaluate_data_percentage,
+                # 'evaluate_data_count': evaluate_data_count,
 
                 # 'lora_r': lora_r,
                 # 'lora_alpha': lora_alpha,
@@ -515,6 +521,127 @@ Train data (first 10):
 
 def do_abort_training():
     Global.should_stop_training = True
+
+
+def handle_continue_from_model_change(model_name):
+    try:
+        lora_models_directory_path = os.path.join(
+            Global.data_dir, "lora_models")
+        lora_model_directory_path = os.path.join(
+            lora_models_directory_path, model_name)
+        all_files = os.listdir(lora_model_directory_path)
+        checkpoints = [
+            file for file in all_files if file.startswith("checkpoint-")]
+        checkpoints = ["-"] + checkpoints
+        can_load_params = "finetune_params.json" in all_files or "finetune_args.json" in all_files
+        return gr.Dropdown.update(choices=checkpoints, value="-"), gr.Button.update(visible=can_load_params), gr.Markdown.update(value="", visible=False)
+    except Exception:
+        pass
+    return gr.Dropdown.update(choices=["-"], value="-"), gr.Button.update(visible=False), gr.Markdown.update(value="", visible=False)
+
+
+def handle_load_params_from_model(
+    model_name,
+    max_seq_length,
+    evaluate_data_count,
+    micro_batch_size,
+    gradient_accumulation_steps,
+    epochs,
+    learning_rate,
+    train_on_inputs,
+    lora_r,
+    lora_alpha,
+    lora_dropout,
+    lora_target_modules,
+    save_steps,
+    save_total_limit,
+    logging_steps,
+):
+    error_message = ""
+    notice_message = ""
+    unknown_keys = []
+    try:
+        lora_models_directory_path = os.path.join(
+            Global.data_dir, "lora_models")
+        lora_model_directory_path = os.path.join(
+            lora_models_directory_path, model_name)
+
+        data = {}
+        possible_files = ["finetune_params.json", "finetune_args.json"]
+        for file in possible_files:
+            try:
+                with open(os.path.join(lora_model_directory_path, file), "r") as f:
+                    data = json.load(f)
+            except FileNotFoundError:
+                pass
+
+        for key, value in data.items():
+            if key == "max_seq_length":
+                max_seq_length = value
+            if key == "cutoff_len":
+                cutoff_len = value
+            elif key == "evaluate_data_count":
+                evaluate_data_count = value
+            elif key == "micro_batch_size":
+                micro_batch_size = value
+            elif key == "gradient_accumulation_steps":
+                gradient_accumulation_steps = value
+            elif key == "epochs":
+                epochs = value
+            elif key == "num_train_epochs":
+                epochs = value
+            elif key == "learning_rate":
+                learning_rate = value
+            elif key == "train_on_inputs":
+                train_on_inputs = value
+            elif key == "lora_r":
+                lora_r = value
+            elif key == "lora_alpha":
+                lora_alpha = value
+            elif key == "lora_dropout":
+                lora_dropout = value
+            elif key == "lora_target_modules":
+                lora_target_modules = value
+            elif key == "save_steps":
+                save_steps = value
+            elif key == "save_total_limit":
+                save_total_limit = value
+            elif key == "logging_steps":
+                logging_steps = value
+            elif key == "group_by_length":
+                pass
+            else:
+                unknown_keys.append(key)
+    except Exception as e:
+        error_message = str(e)
+
+    if len(unknown_keys) > 0:
+        notice_message = f"Note: cannot restore unknown arg: {', '.join([f'`{x}`' for x in unknown_keys])}"
+
+    message = ". ".join([x for x in [error_message, notice_message] if x])
+
+    has_message = False
+    if message:
+        message += "."
+        has_message = True
+
+    return (
+        gr.Markdown.update(value=message, visible=has_message),
+        max_seq_length,
+        evaluate_data_count,
+        micro_batch_size,
+        gradient_accumulation_steps,
+        epochs,
+        learning_rate,
+        train_on_inputs,
+        lora_r,
+        lora_alpha,
+        lora_dropout,
+        lora_target_modules,
+        save_steps,
+        save_total_limit,
+        logging_steps,
+    )
 
 
 def finetune_ui():
@@ -640,33 +767,6 @@ def finetune_ui():
             ]
             dataset_preview_inputs = dataset_inputs + \
                 [finetune_dataset_preview_count]
-            for i in dataset_preview_inputs:
-                things_that_might_timeout.append(
-                    i.change(
-                        fn=refresh_preview,
-                        inputs=dataset_preview_inputs,
-                        outputs=[
-                            finetune_dataset_preview,
-                            finetune_dataset_preview_info_message,
-                            dataset_from_text_message,
-                            dataset_from_data_dir_message
-                        ]
-                    ).then(
-                        fn=refresh_dataset_items_count,
-                        inputs=dataset_preview_inputs,
-                        outputs=[
-                            finetune_dataset_preview_info_message,
-                            dataset_from_text_message,
-                            dataset_from_data_dir_message
-                        ]
-                    ))
-
-            things_that_might_timeout.append(reload_selections_button.click(
-                reload_selections,
-                inputs=[template, dataset_from_data_dir],
-                outputs=[template, dataset_from_data_dir],
-            )
-            )
 
             with gr.Row():
                 max_seq_length = gr.Slider(
@@ -719,11 +819,42 @@ def finetune_ui():
                     info="The initial learning rate for the optimizer. A higher learning rate may speed up convergence but also cause instability or divergence. A lower learning rate may require more steps to reach optimal performance but also avoid overshooting or oscillating around local minima."
                 )
 
-                evaluate_data_percentage = gr.Slider(
-                    minimum=0, maximum=0.5, step=0.001, value=0,
-                    label="Evaluation Data Percentage",
-                    info="The percentage of data to be used for evaluation. This percentage of data will not be used for training and will be used to assess the performance of the model during the process."
+                evaluate_data_count = gr.Slider(
+                    minimum=0, maximum=1, step=1, value=0,
+                    label="Evaluation Data Count",
+                    info="The number of data to be used for evaluation. This amount of data will not be used for training and will be used to assess the performance of the model during the process."
                 )
+
+                with gr.Box(elem_id="finetune_continue_from_model_box"):
+                    with gr.Row():
+                        continue_from_model = gr.Dropdown(
+                            value="-",
+                            label="Continue from Model",
+                            choices=["-"],
+                            elem_id="finetune_continue_from_model"
+                        )
+                        continue_from_checkpoint = gr.Dropdown(
+                            value="-", label="Checkpoint", choices=["-"])
+                    with gr.Column():
+                        load_params_from_model_btn = gr.Button(
+                            "Load training parameters from selected model", visible=False)
+                        load_params_from_model_btn.style(
+                            full_width=False,
+                            size="sm")
+                        load_params_from_model_message = gr.Markdown(
+                            "", visible=False)
+
+                    things_that_might_timeout.append(
+                        continue_from_model.change(
+                            fn=handle_continue_from_model_change,
+                            inputs=[continue_from_model],
+                            outputs=[
+                                continue_from_checkpoint,
+                                load_params_from_model_btn,
+                                load_params_from_model_message
+                            ]
+                        )
+                    )
 
             with gr.Column():
                 lora_r = gr.Slider(
@@ -793,6 +924,59 @@ def finetune_ui():
                             elem_id="finetune_confirm_stop_btn"
                         )
 
+        things_that_might_timeout.append(reload_selections_button.click(
+            reload_selections,
+            inputs=[template, dataset_from_data_dir],
+            outputs=[template, dataset_from_data_dir, continue_from_model],
+        ))
+
+        for i in dataset_preview_inputs:
+            things_that_might_timeout.append(
+                i.change(
+                    fn=refresh_preview,
+                    inputs=dataset_preview_inputs,
+                    outputs=[
+                        finetune_dataset_preview,
+                        finetune_dataset_preview_info_message,
+                        dataset_from_text_message,
+                        dataset_from_data_dir_message
+                    ]
+                ).then(
+                    fn=refresh_dataset_items_count,
+                    inputs=dataset_preview_inputs,
+                    outputs=[
+                        finetune_dataset_preview_info_message,
+                        dataset_from_text_message,
+                        dataset_from_data_dir_message,
+                        evaluate_data_count,
+                    ]
+                ))
+
+        finetune_args = [
+            max_seq_length,
+            evaluate_data_count,
+            micro_batch_size,
+            gradient_accumulation_steps,
+            epochs,
+            learning_rate,
+            train_on_inputs,
+            lora_r,
+            lora_alpha,
+            lora_dropout,
+            lora_target_modules,
+            save_steps,
+            save_total_limit,
+            logging_steps,
+        ]
+
+        things_that_might_timeout.append(
+            load_params_from_model_btn.click(
+                fn=handle_load_params_from_model,
+                inputs=[continue_from_model] + finetune_args,
+                outputs=[load_params_from_model_message] + finetune_args
+            )
+        )
+
         train_output = gr.Text(
             "Training results will be shown here.",
             label="Train Output",
@@ -800,22 +984,10 @@ def finetune_ui():
 
         train_progress = train_btn.click(
             fn=do_train,
-            inputs=(dataset_inputs + [
-                max_seq_length,
-                evaluate_data_percentage,
-                micro_batch_size,
-                gradient_accumulation_steps,
-                epochs,
-                learning_rate,
-                train_on_inputs,
-                lora_r,
-                lora_alpha,
-                lora_dropout,
-                lora_target_modules,
+            inputs=(dataset_inputs + finetune_args + [
                 model_name,
-                save_steps,
-                save_total_limit,
-                logging_steps,
+                continue_from_model,
+                continue_from_checkpoint,
             ]),
             outputs=train_output
         )
