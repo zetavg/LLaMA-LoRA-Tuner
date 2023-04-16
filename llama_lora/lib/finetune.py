@@ -87,6 +87,7 @@ def train(
     #     os.environ["WANDB_PROJECT"] = wandb_project
     # if wandb_run_name:
     #     os.environ["WANDB_RUN_NAME"] = wandb_run_name
+
     if wandb_watch:
         os.environ["WANDB_WATCH"] = wandb_watch
     if wandb_log_model:

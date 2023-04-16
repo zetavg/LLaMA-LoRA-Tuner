@@ -79,9 +79,6 @@ def load_sample_dataset_to_text_input(format):
         return gr.Code.update(value=sample_plain_text_value)
 
 
-
-
-
 def get_data_from_input(load_dataset_from, dataset_text, dataset_text_format,
                         dataset_plain_text_input_variables_separator,
                         dataset_plain_text_input_and_output_separator,
@@ -153,7 +150,8 @@ def refresh_preview(
             prompter=prompter
         )
 
-        train_data = prompter.get_train_data_from_dataset(data, max_preview_count)
+        train_data = prompter.get_train_data_from_dataset(
+            data, max_preview_count)
 
         data_count = len(data)
 
@@ -171,18 +169,6 @@ def refresh_preview(
                 for item in train_data
             ]
             preview_data = [d + v for d, v in zip(preview_data, variables)]
-
-
-        # if preview_show_actual_prompt:
-        #     headers = headers + ["Prompt (actual input)"]
-        #     rendered = [prompter.generate_prompt(
-        #         item['variables']) for item in data[:max_preview_count]]
-        #     preview_data = result = [d + [i]
-        #                              for d, i in zip(preview_data, rendered)]
-
-        # headers = headers + ["Completion (output)"]
-        # preview_data = result = [pd + [d['output']]
-        #                          for pd, d in zip(preview_data, data[:max_preview_count])]
 
         preview_info_message = f"The dataset has about {data_count} item(s)."
         if data_count > max_preview_count:

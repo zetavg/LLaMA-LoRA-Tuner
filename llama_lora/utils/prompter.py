@@ -139,18 +139,21 @@ class Prompter(object):
         if self.template_name == "None":
             return ["prompt"]
         elif "variables" in self.template:
-            return self.template.get("variables")
+            return self.template['variables']
         else:
             return ["instruction", "input"]
 
     def get_train_data_from_dataset(self, data, only_first_n_items=None):
         if self.template_module:
-            if hasattr(self.template_module, "get_train_data_list_from_dataset"):
+            if hasattr(self.template_module,
+                       "get_train_data_list_from_dataset"):
                 data = self.template_module.get_train_data_list_from_dataset(
                     data)
             if only_first_n_items:
                 data = data[:only_first_n_items]
-            return list(itertools.chain(*list(map(self.template_module.get_train_data, data))))
+            return list(itertools.chain(*list(
+                map(self.template_module.get_train_data, data)
+            )))
 
         if only_first_n_items:
             data = data[:only_first_n_items]
@@ -179,7 +182,11 @@ def get_prompt_name(variables, variable_names):
 
 
 def variables_to_dict(variables, variable_names):
-    return {key: (variables[i] if i < len(variables) and variables[i] is not None else '') for i, key in enumerate(variable_names)}
+    return {
+        key: (variables[i] if i < len(variables)
+              and variables[i] is not None else '')
+        for i, key in enumerate(variable_names)
+    }
 
 
 def process_json_dataset(data):
