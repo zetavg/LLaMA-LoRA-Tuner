@@ -125,9 +125,6 @@ def get_data_from_input(load_dataset_from, dataset_text, dataset_text_format,
     return data
 
 
-max_preview_count = 30
-
-
 def refresh_preview(
     template,
     load_dataset_from,
@@ -137,7 +134,7 @@ def refresh_preview(
     dataset_plain_text_input_variables_separator,
     dataset_plain_text_input_and_output_separator,
     dataset_plain_text_data_separator,
-    preview_show_actual_prompt,
+    max_preview_count,
 ):
     try:
         prompter = Prompter(template)
@@ -156,6 +153,8 @@ def refresh_preview(
 
         train_data = prompter.get_train_data_from_dataset(
             data, max_preview_count)
+
+        train_data = train_data[:max_preview_count]
 
         data_count = len(data)
 
@@ -199,7 +198,7 @@ def refresh_dataset_items_count(
     dataset_plain_text_input_variables_separator,
     dataset_plain_text_input_and_output_separator,
     dataset_plain_text_data_separator,
-    preview_show_actual_prompt,
+    max_preview_count,
 ):
     try:
         prompter = Prompter(template)
@@ -609,9 +608,13 @@ def finetune_ui():
                         "Set the dataset in the \"Prepare\" tab, then preview it here.",
                         elem_id="finetune_dataset_preview_info_message"
                     )
-                    finetune_dataset_preview_show_actual_prompt = gr.Checkbox(
-                        label="Show actual prompt",
-                        elem_id="finetune_dataset_preview_show_actual_prompt"
+                    finetune_dataset_preview_count = gr.Number(
+                        label="Preview items count",
+                        value=10,
+                        # minimum=1,
+                        # maximum=100,
+                        precision=0,
+                        elem_id="finetune_dataset_preview_count"
                     )
                 finetune_dataset_preview = gr.Dataframe(
                     wrap=True, elem_id="finetune_dataset_preview")
@@ -636,7 +639,7 @@ def finetune_ui():
                 dataset_plain_text_data_separator,
             ]
             dataset_preview_inputs = dataset_inputs + \
-                [finetune_dataset_preview_show_actual_prompt]
+                [finetune_dataset_preview_count]
             for i in dataset_preview_inputs:
                 things_that_might_timeout.append(
                     i.change(
