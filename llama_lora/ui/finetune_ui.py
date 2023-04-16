@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import traceback
+import re
 from datetime import datetime
 import gradio as gr
 import math
@@ -123,6 +125,9 @@ def get_data_from_input(load_dataset_from, dataset_text, dataset_text_format,
     return data
 
 
+max_preview_count = 30
+
+
 def refresh_preview(
     template,
     load_dataset_from,
@@ -135,7 +140,6 @@ def refresh_preview(
     preview_show_actual_prompt,
 ):
     try:
-        max_preview_count = 30
         prompter = Prompter(template)
         variable_names = prompter.get_variable_names()
 
@@ -174,7 +178,7 @@ def refresh_preview(
         if data_count > max_preview_count:
             preview_info_message += f" Previewing the first {max_preview_count}."
 
-        info_message = f"{data_count} item(s)."
+        info_message = f"about {data_count} item(s)."
         if load_dataset_from == "Data Dir":
             info_message = "This dataset contains about " + info_message
         update_message = gr.Markdown.update(info_message, visible=True)
@@ -184,6 +188,62 @@ def refresh_preview(
         update_message = gr.Markdown.update(
             f"<span class=\"finetune_dataset_error_message\">Error: {e}.</span>", visible=True)
         return gr.Dataframe.update(value={'data': [], 'headers': []}), gr.Markdown.update("Set the dataset in the \"Prepare\" tab, then preview it here."), update_message, update_message
+
+
+def refresh_dataset_items_count(
+    template,
+    load_dataset_from,
+    dataset_from_data_dir,
+    dataset_text,
+    dataset_text_format,
+    dataset_plain_text_input_variables_separator,
+    dataset_plain_text_input_and_output_separator,
+    dataset_plain_text_data_separator,
+    preview_show_actual_prompt,
+):
+    try:
+        prompter = Prompter(template)
+        variable_names = prompter.get_variable_names()
+
+        data = get_data_from_input(
+            load_dataset_from=load_dataset_from,
+            dataset_text=dataset_text,
+            dataset_text_format=dataset_text_format,
+            dataset_plain_text_input_variables_separator=dataset_plain_text_input_variables_separator,
+            dataset_plain_text_input_and_output_separator=dataset_plain_text_input_and_output_separator,
+            dataset_plain_text_data_separator=dataset_plain_text_data_separator,
+            dataset_from_data_dir=dataset_from_data_dir,
+            prompter=prompter
+        )
+
+        train_data = prompter.get_train_data_from_dataset(
+            data)
+        data_count = len(train_data)
+
+        preview_info_message = f"The dataset contains {data_count} item(s)."
+        if data_count > max_preview_count:
+            preview_info_message += f" Previewing the first {max_preview_count}."
+
+        info_message = f"{data_count} item(s)."
+        if load_dataset_from == "Data Dir":
+            info_message = "This dataset contains " + info_message
+        update_message = gr.Markdown.update(info_message, visible=True)
+
+        return gr.Markdown.update(preview_info_message), update_message, update_message
+    except Exception as e:
+        update_message = gr.Markdown.update(
+            f"<span class=\"finetune_dataset_error_message\">Error: {e}.</span>", visible=True)
+
+        trace = traceback.format_exc()
+        traces = [s.strip() for s in re.split("\n * File ", trace)]
+        templates_path = os.path.join(Global.data_dir, "templates")
+        traces_to_show = [s for s in traces if os.path.join(Global.data_dir, "templates") in s]
+        traces_to_show = [re.sub(" *\n *", ": ", s) for s in traces_to_show]
+        if len(traces_to_show) > 0:
+            update_message = gr.Markdown.update(
+                f"<span class=\"finetune_dataset_error_message\">Error: {e} ({','.join(traces_to_show)}).</span>", visible=True)
+
+        return gr.Markdown.update("Set the dataset in the \"Prepare\" tab, then preview it here."), update_message, update_message
 
 
 def parse_plain_text_input(
@@ -582,11 +642,20 @@ def finetune_ui():
                     i.change(
                         fn=refresh_preview,
                         inputs=dataset_preview_inputs,
-                        outputs=[finetune_dataset_preview,
-                                 finetune_dataset_preview_info_message,
-                                 dataset_from_text_message,
-                                 dataset_from_data_dir_message
-                                 ]
+                        outputs=[
+                            finetune_dataset_preview,
+                            finetune_dataset_preview_info_message,
+                            dataset_from_text_message,
+                            dataset_from_data_dir_message
+                        ]
+                    ).then(
+                        fn=refresh_dataset_items_count,
+                        inputs=dataset_preview_inputs,
+                        outputs=[
+                            finetune_dataset_preview_info_message,
+                            dataset_from_text_message,
+                            dataset_from_data_dir_message
+                        ]
                     ))
 
             things_that_might_timeout.append(reload_selections_button.click(
