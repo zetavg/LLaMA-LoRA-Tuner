@@ -7,7 +7,7 @@ from ..models import get_tokenizer
 
 
 def handle_decode(encoded_tokens_json):
-    base_model_name = Global.default_base_model_name
+    base_model_name = Global.base_model_name
     try:
         encoded_tokens = json.loads(encoded_tokens_json)
         if Global.ui_dev_mode:
@@ -20,7 +20,7 @@ def handle_decode(encoded_tokens_json):
 
 
 def handle_encode(decoded_tokens):
-    base_model_name = Global.default_base_model_name
+    base_model_name = Global.base_model_name
     try:
         if Global.ui_dev_mode:
             return f"[\"Not actually encoding tokens in UI dev mode.\"]", gr.Markdown.update("", visible=False)
