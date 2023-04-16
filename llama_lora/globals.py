@@ -17,6 +17,8 @@ class Global:
     load_8bit: bool = False
 
     default_base_model_name: str = ""
+    base_model_name: str = ""
+    base_model_choices: List[str] = []
 
     # Functions
     train_fn: Any = train

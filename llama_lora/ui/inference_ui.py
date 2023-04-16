@@ -22,7 +22,7 @@ inference_output_lines = 12
 
 
 def prepare_inference(lora_model_name, progress=gr.Progress(track_tqdm=True)):
-    base_model_name = Global.default_base_model_name
+    base_model_name = Global.base_model_name
 
     try:
         get_tokenizer(base_model_name)
@@ -48,7 +48,7 @@ def do_inference(
     show_raw=False,
     progress=gr.Progress(track_tqdm=True),
 ):
-    base_model_name = Global.default_base_model_name
+    base_model_name = Global.base_model_name
 
     try:
         if Global.generation_force_stopped_at is not None:
@@ -257,7 +257,7 @@ def reload_selections(current_lora_model, current_prompt_template):
     current_prompt_template = current_prompt_template or next(
         iter(available_template_names_with_none), None)
 
-    default_lora_models = ["tloen/alpaca-lora-7b"]
+    default_lora_models = []
     available_lora_models = default_lora_models + get_available_lora_model_names()
     available_lora_models = available_lora_models + ["None"]
 
@@ -283,8 +283,12 @@ def handle_prompt_template_change(prompt_template, lora_model):
         "", visible=False)
     lora_mode_info = get_info_of_available_lora_model(lora_model)
     if lora_mode_info and isinstance(lora_mode_info, dict):
+        model_base_model = lora_mode_info.get("base_model")
         model_prompt_template = lora_mode_info.get("prompt_template")
-        if model_prompt_template and model_prompt_template != prompt_template:
+        if model_base_model and model_base_model != Global.base_model_name:
+            model_prompt_template_message_update = gr.Markdown.update(
+                f"⚠️ This model was trained on top of base model `{model_base_model}`, it might not work properly with the selected base model `{Global.base_model_name}`.", visible=True)
+        elif model_prompt_template and model_prompt_template != prompt_template:
             model_prompt_template_message_update = gr.Markdown.update(
                 f"This model was trained with prompt template `{model_prompt_template}`.", visible=True)
 
@@ -331,7 +335,7 @@ def inference_ui():
                 lora_model = gr.Dropdown(
                     label="LoRA Model",
                     elem_id="inference_lora_model",
-                    value="tloen/alpaca-lora-7b",
+                    value="None",
                     allow_custom_value=True,
                 )
             prompt_template = gr.Dropdown(
@@ -461,6 +465,8 @@ def inference_ui():
                             interactive=False,
                             elem_id="inference_raw_output")
 
+        reload_selected_models_btn = gr.Button("", elem_id="inference_reload_selected_models_btn")
+
         show_raw_change_event = show_raw.change(
             fn=lambda show_raw: gr.Accordion.update(visible=show_raw),
             inputs=[show_raw],
@@ -481,6 +487,14 @@ def inference_ui():
                 model_prompt_template_message,
                 variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
         things_that_might_timeout.append(prompt_template_change_event)
+
+        reload_selected_models_btn_event = reload_selected_models_btn.click(
+            fn=handle_prompt_template_change,
+            inputs=[prompt_template, lora_model],
+            outputs=[
+                model_prompt_template_message,
+                variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
+        things_that_might_timeout.append(reload_selected_models_btn_event)
 
         lora_model_change_event = lora_model.change(
             fn=handle_lora_model_change,
@@ -538,7 +552,7 @@ def inference_ui():
 
         // Workaround default value not shown.
         document.querySelector('#inference_lora_model input').value =
-          'tloen/alpaca-lora-7b';
+          'None';
       }, 100);
 
       // Add tooltips
@@ -680,6 +694,30 @@ def inference_ui():
           });
           handle_output_wrap_element_class_change();
         }, 500);
+      }, 0);
+
+      // Reload model selection on possible base model change.
+      setTimeout(function () {
+        const elem = document.getElementById('main_page_tabs_container');
+        if (!elem) return;
+
+        let prevClassList = [];
+
+        new MutationObserver(function (mutationsList, observer) {
+          const currentPrevClassList = prevClassList;
+          const currentClassList = Array.from(elem.classList);
+          prevClassList = Array.from(elem.classList);
+
+          if (!currentPrevClassList.includes('hide')) return;
+          if (currentClassList.includes('hide')) return;
+
+          const inference_reload_selected_models_btn_elem = document.getElementById('inference_reload_selected_models_btn');
+
+          if (inference_reload_selected_models_btn_elem) inference_reload_selected_models_btn_elem.click();
+        }).observe(elem, {
+          attributes: true,
+          attributeFilter: ['class'],
+        });
       }, 0);
 
       // Debounced updating the prompt preview.

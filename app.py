@@ -14,6 +14,7 @@ from llama_lora.utils.data import init_data_dir
 def main(
     base_model: str = "",
     data_dir: str = "",
+    base_model_choices: str = "",
     # Allows to listen on all interfaces by providing '0.0.0.0'.
     server_name: str = "127.0.0.1",
     share: bool = False,
@@ -29,6 +30,9 @@ def main(
 
     :param base_model: (required) The name of the default base model to use.
     :param data_dir: (required) The path to the directory to store data.
+
+    :param base_model_choices: Base model selections to display on the UI, seperated by ",". For example: 'decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j'.
+
     :param server_name: Allows to listen on all interfaces by providing '0.0.0.0'.
     :param share: Create a public Gradio URL.
 
@@ -46,7 +50,16 @@ def main(
         data_dir
     ), "Please specify a --data_dir, e.g. --data_dir='./data'"
 
-    Global.default_base_model_name = base_model
+    Global.default_base_model_name = Global.base_model_name = base_model
+
+    if base_model_choices:
+        base_model_choices = base_model_choices.split(',')
+        base_model_choices = [name.strip() for name in base_model_choices]
+        Global.base_model_choices = base_model_choices
+
+    if base_model not in Global.base_model_choices:
+        Global.base_model_choices = [base_model] + Global.base_model_choices
+
     Global.data_dir = os.path.abspath(data_dir)
     Global.load_8bit = load_8bit
 

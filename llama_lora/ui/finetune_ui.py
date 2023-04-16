@@ -299,7 +299,7 @@ def do_train(
     progress=gr.Progress(track_tqdm=should_training_progress_track_tqdm),
 ):
     try:
-        base_model_name = Global.default_base_model_name
+        base_model_name = Global.base_model_name
         output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
         if os.path.exists(output_dir):
             if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
