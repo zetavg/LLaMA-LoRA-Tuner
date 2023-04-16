@@ -79,56 +79,50 @@ def load_sample_dataset_to_text_input(format):
         return gr.Code.update(value=sample_plain_text_value)
 
 
-def process_json_dataset(data, only_first_n_items=None):
-    if not isinstance(data, list):
-        raise ValueError("The dataset is not an array of objects.")
 
-    if only_first_n_items is not None:
-        data = data[:only_first_n_items]
 
-    first_item = get_val_from_arr(data, 0, None)
 
-    if first_item is None:
-        raise ValueError("The dataset is empty.")
-    if not isinstance(first_item, dict):
-        raise ValueError("The dataset is not an array of objects.")
+def get_data_from_input(load_dataset_from, dataset_text, dataset_text_format,
+                        dataset_plain_text_input_variables_separator,
+                        dataset_plain_text_input_and_output_separator,
+                        dataset_plain_text_data_separator,
+                        dataset_from_data_dir, prompter):
+    if load_dataset_from == "Text Input":
+        if dataset_text_format == "JSON":
+            data = json.loads(dataset_text)
 
-    # Convert OpenAI fine-tuning dataset to LLaMA LoRA style
-    if "completion" in first_item and "output" not in first_item:
-        data = [
-            {"output" if k == "completion" else k: v for k, v in d.items()}
-            for d in data]
-        first_item = get_val_from_arr(data, 0, None)
+        elif dataset_text_format == "JSON Lines":
+            lines = dataset_text.split('\n')
+            data = []
+            for i, line in enumerate(lines):
+                line_number = i + 1
+                try:
+                    data.append(json.loads(line))
+                except Exception as e:
+                    raise ValueError(
+                        f"Error parsing JSON on line {line_number}: {e}")
 
-    # Flatten Stanford Alpaca style instances
-    if "instances" in first_item and isinstance(first_item["instances"], list):
-        data = [
-            {"output" if k == "completion" else k: v for k, v in d.items()}
-            for d in data]
-        flattened_data = []
-        for item in data:
-            for instance in item["instances"]:
-                d = {k: v for k, v in item.items() if k != "instances"}
-                d.update(instance)
-                flattened_data.append(d)
-        data = flattened_data
-        first_item = get_val_from_arr(data, 0, None)
+        else:  # Plain Text
+            data = parse_plain_text_input(
+                dataset_text,
+                (
+                    dataset_plain_text_input_variables_separator or
+                    default_dataset_plain_text_input_variables_separator
+                ).replace("\\n", "\n"),
+                (
+                    dataset_plain_text_input_and_output_separator or
+                    default_dataset_plain_text_input_and_output_separator
+                ).replace("\\n", "\n"),
+                (
+                    dataset_plain_text_data_separator or
+                    default_dataset_plain_text_data_separator
+                ).replace("\\n", "\n"),
+                prompter.get_variable_names()
+            )
 
-    if "output" not in first_item:
-        raise ValueError(
-            "The data does not contains an \"output\" or \"completion\".")
+    else:  # Load dataset from data directory
+        data = get_dataset_content(dataset_from_data_dir)
 
-    # Put all variables under the "variables" key if it does not exists
-    if "variables" not in first_item:
-        data = [
-            {
-                "variables":
-                    {k: v for k, v in d.items() if k != "output"},
-                "output":
-                    d["output"]
-            }
-            for d in data
-        ]
     return data
 
 
@@ -144,75 +138,59 @@ def refresh_preview(
     preview_show_actual_prompt,
 ):
     try:
-        max_preview_count = 100
+        max_preview_count = 30
         prompter = Prompter(template)
         variable_names = prompter.get_variable_names()
 
-        if load_dataset_from == "Text Input":
-            if dataset_text_format == "JSON":
-                data = json.loads(dataset_text)
-                data = process_json_dataset(data)
+        data = get_data_from_input(
+            load_dataset_from=load_dataset_from,
+            dataset_text=dataset_text,
+            dataset_text_format=dataset_text_format,
+            dataset_plain_text_input_variables_separator=dataset_plain_text_input_variables_separator,
+            dataset_plain_text_input_and_output_separator=dataset_plain_text_input_and_output_separator,
+            dataset_plain_text_data_separator=dataset_plain_text_data_separator,
+            dataset_from_data_dir=dataset_from_data_dir,
+            prompter=prompter
+        )
 
-            elif dataset_text_format == "JSON Lines":
-                lines = dataset_text.split('\n')
-                data = []
-                for i, line in enumerate(lines):
-                    line_number = i + 1
-                    try:
-                        data.append(json.loads(line))
-                    except Exception as e:
-                        raise ValueError(
-                            f"Error parsing JSON on line {line_number}: {e}")
-
-                data = process_json_dataset(data)
-
-            else:  # Plain Text
-                data = parse_plain_text_input(
-                    dataset_text,
-                    (
-                        dataset_plain_text_input_variables_separator or
-                        default_dataset_plain_text_input_variables_separator
-                    ).replace("\\n", "\n"),
-                    (
-                        dataset_plain_text_input_and_output_separator or
-                        default_dataset_plain_text_input_and_output_separator
-                    ).replace("\\n", "\n"),
-                    (
-                        dataset_plain_text_data_separator or
-                        default_dataset_plain_text_data_separator
-                    ).replace("\\n", "\n"),
-                    variable_names
-                )
-
-        else:  # Load dataset from data directory
-            data = get_dataset_content(dataset_from_data_dir)
-            data = process_json_dataset(data)
+        train_data = prompter.get_train_data_from_dataset(data, max_preview_count)
 
         data_count = len(data)
-        headers = variable_names
+
+        headers = ['Prompt', 'Completion']
         preview_data = [
-            [item['variables'].get(name, "") for name in variable_names]
-            for item in data[:max_preview_count]
+            [item.get("prompt", ""), item.get("completion", "")]
+            for item in train_data
         ]
 
-        if preview_show_actual_prompt:
-            headers = headers + ["Prompt (actual input)"]
-            rendered = [prompter.generate_prompt(
-                item['variables']) for item in data[:max_preview_count]]
-            preview_data = result = [d + [i]
-                                     for d, i in zip(preview_data, rendered)]
+        if not prompter.template_module:
+            variable_names = prompter.get_variable_names()
+            headers += [f"Variable: {variable_name}" for variable_name in variable_names]
+            variables = [
+                [item.get(f"_var_{name}", "") for name in variable_names]
+                for item in train_data
+            ]
+            preview_data = [d + v for d, v in zip(preview_data, variables)]
 
-        headers = headers + ["Completion (output)"]
-        preview_data = result = [pd + [d['output']]
-                                 for pd, d in zip(preview_data, data[:max_preview_count])]
 
-        preview_info_message = f"The dataset has a total of {data_count} item(s)."
+        # if preview_show_actual_prompt:
+        #     headers = headers + ["Prompt (actual input)"]
+        #     rendered = [prompter.generate_prompt(
+        #         item['variables']) for item in data[:max_preview_count]]
+        #     preview_data = result = [d + [i]
+        #                              for d, i in zip(preview_data, rendered)]
+
+        # headers = headers + ["Completion (output)"]
+        # preview_data = result = [pd + [d['output']]
+        #                          for pd, d in zip(preview_data, data[:max_preview_count])]
+
+        preview_info_message = f"The dataset has about {data_count} item(s)."
         if data_count > max_preview_count:
             preview_info_message += f" Previewing the first {max_preview_count}."
 
         info_message = f"{data_count} item(s)."
         if load_dataset_from == "Data Dir":
-            info_message = "This dataset contains " + info_message
+            info_message = "This dataset contains about " + info_message
         update_message = gr.Markdown.update(info_message, visible=True)
 
         return gr.Dataframe.update(value={'data': preview_data, 'headers': headers}), gr.Markdown.update(preview_info_message), update_message, update_message
@@ -288,56 +266,23 @@ def do_train(
         unload_models()  # Need RAM for training
 
         prompter = Prompter(template)
-        variable_names = prompter.get_variable_names()
+        # variable_names = prompter.get_variable_names()
 
-        if load_dataset_from == "Text Input":
-            if dataset_text_format == "JSON":
-                data = json.loads(dataset_text)
-                data = process_json_dataset(data)
+        data = get_data_from_input(
+            load_dataset_from=load_dataset_from,
+            dataset_text=dataset_text,
+            dataset_text_format=dataset_text_format,
+            dataset_plain_text_input_variables_separator=dataset_plain_text_input_variables_separator,
+            dataset_plain_text_input_and_output_separator=dataset_plain_text_input_and_output_separator,
+            dataset_plain_text_data_separator=dataset_plain_text_data_separator,
+            dataset_from_data_dir=dataset_from_data_dir,
+            prompter=prompter
+        )
 
-            elif dataset_text_format == "JSON Lines":
-                lines = dataset_text.split('\n')
-                data = []
-                for i, line in enumerate(lines):
-                    line_number = i + 1
-                    try:
-                        data.append(json.loads(line))
-                    except Exception as e:
-                        raise ValueError(
-                            f"Error parsing JSON on line {line_number}: {e}")
+        train_data = prompter.get_train_data_from_dataset(data)
 
-                data = process_json_dataset(data)
-
-            else:  # Plain Text
-                data = parse_plain_text_input(
-                    dataset_text,
-                    (
-                        dataset_plain_text_input_variables_separator or
-                        default_dataset_plain_text_input_variables_separator
-                    ).replace("\\n", "\n"),
-                    (
-                        dataset_plain_text_input_and_output_separator or
-                        default_dataset_plain_text_input_and_output_separator
-                    ).replace("\\n", "\n"),
-                    (
-                        dataset_plain_text_data_separator or
-                        default_dataset_plain_text_data_separator
-                    ).replace("\\n", "\n"),
-                    variable_names
-                )
-
-        else:  # Load dataset from data directory
-            data = get_dataset_content(dataset_from_data_dir)
-            data = process_json_dataset(data)
-
-        data_count = len(data)
+        data_count = len(train_data)
         evaluate_data_count = math.ceil(data_count * evaluate_data_percentage)
-
-        train_data = [
-            {
-                'prompt': prompter.generate_prompt(d['variables']),
-                'completion': d['output']}
-            for d in data]
 
         def get_progress_text(epoch, epochs, last_loss):
             progress_detail = f"Epoch {math.ceil(epoch)}/{epochs}"
@@ -449,25 +394,32 @@ Train data (first 10):
                 'dataset_rows': len(train_data),
                 'timestamp': time.time(),
 
-                'max_seq_length': max_seq_length,
-                'train_on_inputs': train_on_inputs,
+                # These will be saved in another JSON file by the train function
+                # 'max_seq_length': max_seq_length,
+                # 'train_on_inputs': train_on_inputs,
 
-                'micro_batch_size': micro_batch_size,
-                'gradient_accumulation_steps': gradient_accumulation_steps,
-                'epochs': epochs,
-                'learning_rate': learning_rate,
+                # 'micro_batch_size': micro_batch_size,
+                # 'gradient_accumulation_steps': gradient_accumulation_steps,
+                # 'epochs': epochs,
+                # 'learning_rate': learning_rate,
 
-                'evaluate_data_percentage': evaluate_data_percentage,
+                # 'evaluate_data_percentage': evaluate_data_percentage,
 
-                'lora_r': lora_r,
-                'lora_alpha': lora_alpha,
-                'lora_dropout': lora_dropout,
-                'lora_target_modules': lora_target_modules,
+                # 'lora_r': lora_r,
+                # 'lora_alpha': lora_alpha,
+                # 'lora_dropout': lora_dropout,
+                # 'lora_target_modules': lora_target_modules,
             }
             json.dump(info, info_json_file, indent=2)
 
         if not should_training_progress_track_tqdm:
             progress(0, desc="Train starting...")
+
+        wandb_group = template
+        wandb_tags = [f"template:{template}"]
+        if load_dataset_from == "Data Dir" and dataset_from_data_dir:
+            wandb_group += f"/{dataset_from_data_dir}"
+            wandb_tags.append(f"dataset:{dataset_from_data_dir}")
 
         train_output = Global.train_fn(
             base_model,  # base_model
@@ -491,7 +443,12 @@ Train data (first 10):
             save_steps,  # save_steps
             save_total_limit,  # save_total_limit
             logging_steps,  # logging_steps
-            training_callbacks  # callbacks
+            training_callbacks,  # callbacks
+            Global.wandb_api_key,  # wandb_api_key
+            Global.default_wandb_project if Global.enable_wandb else None,  # wandb_project
+            wandb_group,  # wandb_group
+            model_name,  # wandb_run_name
+            wandb_tags  # wandb_tags
         )
 
         logs_str = "\n".join([json.dumps(log)

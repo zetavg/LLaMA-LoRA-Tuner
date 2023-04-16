@@ -8,19 +8,7 @@ from transformers import LlamaForCausalLM, LlamaTokenizer
 from peft import PeftModel
 
 from .globals import Global
-
-
-def get_device():
-    if torch.cuda.is_available():
-        return "cuda"
-    else:
-        return "cpu"
-
-    try:
-        if torch.backends.mps.is_available():
-            return "mps"
-    except:  # noqa: E722
-        pass
+from .lib.get_device import get_device
 
 
 def get_new_base_model(base_model_name):
@@ -60,9 +48,10 @@ def get_new_base_model(base_model_name):
             base_model_name, device_map={"": device}, low_cpu_mem_usage=True
         )
 
-    model.config.pad_token_id = get_tokenizer(base_model_name).pad_token_id = 0
-    model.config.bos_token_id = 1
-    model.config.eos_token_id = 2
+    tokenizer = get_tokenizer(base_model_name)
+    model.config.pad_token_id = tokenizer.pad_token_id = 0
+    model.config.bos_token_id = tokenizer.bos_token_id = 1
+    model.config.eos_token_id = tokenizer.eos_token_id = 2
 
     return model
 
