@@ -11,7 +11,8 @@ from llama_lora.utils.data import init_data_dir
 
 def main():
     data_dir = os.path.abspath("./data")
-    Global.default_base_model_name = "decapoda-research/llama-7b-hf"
+    Global.default_base_model_name = Global.base_model_name = "decapoda-research/llama-7b-hf"
+    Global.base_model_choices = ["decapoda-research/llama-7b-hf", "nomic-ai/gpt4all-j"]
     Global.data_dir = data_dir
     Global.load_8bit = False
 
