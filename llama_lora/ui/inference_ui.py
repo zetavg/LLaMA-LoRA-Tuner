@@ -104,11 +104,12 @@ def do_inference(
         model = get_model(base_model_name, lora_model_name)
 
         generation_config = GenerationConfig(
-            temperature=temperature,
+            temperature=float(temperature),  # to avoid ValueError('`temperature` has to be a strictly positive float, but is 2')
             top_p=top_p,
             top_k=top_k,
             repetition_penalty=repetition_penalty,
             num_beams=num_beams,
+            do_sample=temperature > 0,  # https://github.com/huggingface/transformers/issues/22405#issuecomment-1485527953
         )
 
         def ui_generation_stopping_criteria(input_ids, score, **kwargs):
@@ -190,6 +191,23 @@ def reload_selections(current_lora_model, current_prompt_template):
             gr.Dropdown.update(choices=available_template_names_with_none, value=current_prompt_template))
 
 
+def get_warning_message_for_lora_model_and_prompt_template(lora_model, prompt_template):
+    messages = []
+
+    lora_mode_info = get_info_of_available_lora_model(lora_model)
+
+    if lora_mode_info and isinstance(lora_mode_info, dict):
+        model_base_model = lora_mode_info.get("base_model")
+        if model_base_model and model_base_model != Global.base_model_name:
+            messages.append(f"⚠️ This model was trained on top of base model `{model_base_model}`, it might not work properly with the selected base model `{Global.base_model_name}`.")
+
+        model_prompt_template = lora_mode_info.get("prompt_template")
+        if model_prompt_template and model_prompt_template != prompt_template:
+            messages.append(f"This model was trained with prompt template `{model_prompt_template}`.")
+
+    return " ".join(messages)
+
+
 def handle_prompt_template_change(prompt_template, lora_model):
     prompter = Prompter(prompt_template)
     var_names = prompter.get_variable_names()
@@ -203,37 +221,32 @@ def handle_prompt_template_change(prompt_template, lora_model):
 
     model_prompt_template_message_update = gr.Markdown.update(
         "", visible=False)
-    lora_mode_info = get_info_of_available_lora_model(lora_model)
-    if lora_mode_info and isinstance(lora_mode_info, dict):
-        model_base_model = lora_mode_info.get("base_model")
-        model_prompt_template = lora_mode_info.get("prompt_template")
-        if model_base_model and model_base_model != Global.base_model_name:
-            model_prompt_template_message_update = gr.Markdown.update(
-                f"⚠️ This model was trained on top of base model `{model_base_model}`, it might not work properly with the selected base model `{Global.base_model_name}`.", visible=True)
-        elif model_prompt_template and model_prompt_template != prompt_template:
-            model_prompt_template_message_update = gr.Markdown.update(
-                f"This model was trained with prompt template `{model_prompt_template}`.", visible=True)
+    warning_message = get_warning_message_for_lora_model_and_prompt_template(lora_model, prompt_template)
+    if warning_message:
+        model_prompt_template_message_update = gr.Markdown.update(
+            warning_message, visible=True)
 
     return [model_prompt_template_message_update] + gr_updates
 
 
 def handle_lora_model_change(lora_model, prompt_template):
     lora_mode_info = get_info_of_available_lora_model(lora_model)
-    if not lora_mode_info:
-        return gr.Markdown.update("", visible=False), prompt_template
 
-    if not isinstance(lora_mode_info, dict):
-        return gr.Markdown.update("", visible=False), prompt_template
+    if lora_mode_info and isinstance(lora_mode_info, dict):
+        model_prompt_template = lora_mode_info.get("prompt_template")
+        if model_prompt_template:
+            available_template_names = get_available_template_names()
+            if model_prompt_template in available_template_names:
+                prompt_template = model_prompt_template
 
-    model_prompt_template = lora_mode_info.get("prompt_template")
-    if not model_prompt_template:
-        return gr.Markdown.update("", visible=False), prompt_template
+    model_prompt_template_message_update = gr.Markdown.update(
+        "", visible=False)
+    warning_message = get_warning_message_for_lora_model_and_prompt_template(lora_model, prompt_template)
+    if warning_message:
+        model_prompt_template_message_update = gr.Markdown.update(
+            warning_message, visible=True)
 
-    available_template_names = get_available_template_names()
-    if model_prompt_template in available_template_names:
-        return gr.Markdown.update("", visible=False), model_prompt_template
-
-    return gr.Markdown.update(f"Trained with prompt template `{model_prompt_template}`", visible=True), prompt_template
+    return model_prompt_template_message_update, prompt_template
 
 
 def update_prompt_preview(prompt_template,
@@ -313,7 +326,7 @@ def inference_ui():
                 # with gr.Column():
                 with gr.Accordion("Options", open=True, elem_id="inference_options_accordion"):
                     temperature = gr.Slider(
-                        minimum=0, maximum=1, value=0.1, step=0.01,
+                        minimum=0, maximum=2, value=0, step=0.01,
                         label="Temperature",
                         elem_id="inference_temperature"
                     )
@@ -525,7 +538,8 @@ def inference_ui():
             delay: [500, 0],
             animation: 'scale-subtle',
             content:
-              'Controls randomness: Lowering results in less random completions. Higher values (e.g., 1.0) make the model generate more diverse and random outputs. As the temperature approaches zero, the model will become deterministic and repetitive.',
+              '<strong>Controls randomness</strong>: Higher values (e.g., <code>1.0</code>) make the model generate more diverse and random outputs. As the temperature approaches zero, the model will become deterministic and repetitive.<br /><i>Setting a value larger then <code>0</code> will enable sampling.</i>',
+            allowHTML: true,
           });
 
           tippy('#inference_top_p', {
@@ -533,7 +547,8 @@ def inference_ui():
             delay: [500, 0],
             animation: 'scale-subtle',
             content:
-              'Controls diversity via nucleus sampling: only the tokens whose cumulative probability exceeds "top_p" are considered. 0.5 means half of all likelihood-weighted options are considered.',
+              'Controls diversity via nucleus sampling: only the tokens whose cumulative probability exceeds <code>top_p</code> are considered. <code>0.5</code> means half of all likelihood-weighted options are considered.<br />Will only take effect if Temperature is set to > 0.',
+            allowHTML: true,
           });
 
           tippy('#inference_top_k', {
@@ -541,7 +556,8 @@ def inference_ui():
             delay: [500, 0],
             animation: 'scale-subtle',
             content:
-              'Controls diversity of the generated text by only considering the "top_k" tokens with the highest probabilities. This method can lead to more focused and coherent outputs by reducing the impact of low probability tokens.',
+              'Controls diversity of the generated text by only considering the <code>top_k</code> tokens with the highest probabilities. This method can lead to more focused and coherent outputs by reducing the impact of low probability tokens.<br />Will only take effect if Temperature is set to > 0.',
+            allowHTML: true,
           });
 
           tippy('#inference_beams', {
