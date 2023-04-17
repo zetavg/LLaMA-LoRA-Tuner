@@ -190,6 +190,23 @@ def reload_selections(current_lora_model, current_prompt_template):
             gr.Dropdown.update(choices=available_template_names_with_none, value=current_prompt_template))
 
 
+def get_warning_message_for_lora_model_and_prompt_template(lora_model, prompt_template):
+    messages = []
+
+    lora_mode_info = get_info_of_available_lora_model(lora_model)
+
+    if lora_mode_info and isinstance(lora_mode_info, dict):
+        model_base_model = lora_mode_info.get("base_model")
+        if model_base_model and model_base_model != Global.base_model_name:
+            messages.append(f"⚠️ This model was trained on top of base model `{model_base_model}`, it might not work properly with the selected base model `{Global.base_model_name}`.")
+
+        model_prompt_template = lora_mode_info.get("prompt_template")
+        if model_prompt_template and model_prompt_template != prompt_template:
+            messages.append(f"This model was trained with prompt template `{model_prompt_template}`.")
+
+    return " ".join(messages)
+
+
 def handle_prompt_template_change(prompt_template, lora_model):
     prompter = Prompter(prompt_template)
     var_names = prompter.get_variable_names()
@@ -203,37 +220,32 @@ def handle_prompt_template_change(prompt_template, lora_model):
 
     model_prompt_template_message_update = gr.Markdown.update(
         "", visible=False)
-    lora_mode_info = get_info_of_available_lora_model(lora_model)
-    if lora_mode_info and isinstance(lora_mode_info, dict):
-        model_base_model = lora_mode_info.get("base_model")
-        model_prompt_template = lora_mode_info.get("prompt_template")
-        if model_base_model and model_base_model != Global.base_model_name:
-            model_prompt_template_message_update = gr.Markdown.update(
-                f"⚠️ This model was trained on top of base model `{model_base_model}`, it might not work properly with the selected base model `{Global.base_model_name}`.", visible=True)
-        elif model_prompt_template and model_prompt_template != prompt_template:
-            model_prompt_template_message_update = gr.Markdown.update(
-                f"This model was trained with prompt template `{model_prompt_template}`.", visible=True)
+    warning_message = get_warning_message_for_lora_model_and_prompt_template(lora_model, prompt_template)
+    if warning_message:
+        model_prompt_template_message_update = gr.Markdown.update(
+            warning_message, visible=True)
 
     return [model_prompt_template_message_update] + gr_updates
 
 
 def handle_lora_model_change(lora_model, prompt_template):
     lora_mode_info = get_info_of_available_lora_model(lora_model)
-    if not lora_mode_info:
-        return gr.Markdown.update("", visible=False), prompt_template
 
-    if not isinstance(lora_mode_info, dict):
-        return gr.Markdown.update("", visible=False), prompt_template
+    if lora_mode_info and isinstance(lora_mode_info, dict):
+        model_prompt_template = lora_mode_info.get("prompt_template")
+        if model_prompt_template:
+            available_template_names = get_available_template_names()
+            if model_prompt_template in available_template_names:
+                prompt_template = model_prompt_template
 
-    model_prompt_template = lora_mode_info.get("prompt_template")
-    if not model_prompt_template:
-        return gr.Markdown.update("", visible=False), prompt_template
+    model_prompt_template_message_update = gr.Markdown.update(
+        "", visible=False)
+    warning_message = get_warning_message_for_lora_model_and_prompt_template(lora_model, prompt_template)
+    if warning_message:
+        model_prompt_template_message_update = gr.Markdown.update(
+            warning_message, visible=True)
 
-    available_template_names = get_available_template_names()
-    if model_prompt_template in available_template_names:
-        return gr.Markdown.update("", visible=False), model_prompt_template
-
-    return gr.Markdown.update(f"Trained with prompt template `{model_prompt_template}`", visible=True), prompt_template
+    return model_prompt_template_message_update, prompt_template
 
 
 def update_prompt_preview(prompt_template,

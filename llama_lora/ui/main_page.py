@@ -248,12 +248,18 @@ def main_page_custom_css():
     #inference_lora_model_prompt_template_message:not(.hidden) + #inference_lora_model {
         padding-bottom: 28px;
     }
+    #inference_lora_model_group {
+        flex-direction: column-reverse;
+        border-width: var(--block-border-width);
+        border-color: var(--block-border-color);
+    }
+    #inference_lora_model_group #inference_lora_model {
+        border: 0;
+    }
     #inference_lora_model_group > #inference_lora_model_prompt_template_message {
-        position: absolute;
-        bottom: 8px;
-        left: 20px;
-        z-index: 61;
-        width: 999px;
+        padding: var(--block-padding) !important;
+        margin-top: -50px !important;
+        margin-left: 4px !important;
         font-size: 12px;
         opacity: 0.7;
     }
@@ -608,7 +614,7 @@ def main_page_custom_css():
     }
 
     @media screen and (max-width: 392px) {
-        #inference_lora_model, #finetune_template {
+        #inference_lora_model, #inference_lora_model_group, #finetune_template {
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 0;
         }
