@@ -316,6 +316,13 @@ def do_train(
             resume_from_checkpoint = os.path.join(Global.data_dir, "lora_models", continue_from_model)
             if continue_from_checkpoint:
                 resume_from_checkpoint = os.path.join(resume_from_checkpoint, continue_from_checkpoint)
+                will_be_resume_from_checkpoint_file = os.path.join(resume_from_checkpoint, "pytorch_model.bin")
+                if not os.path.exists(will_be_resume_from_checkpoint_file):
+                    raise ValueError(f"Unable to resume from checkpoint {continue_from_model}/{continue_from_checkpoint}. Resuming is only possible from checkpoints stored locally in the data directory. Please ensure that the file '{will_be_resume_from_checkpoint_file}' exists.")
+            else:
+                will_be_resume_from_checkpoint_file = os.path.join(resume_from_checkpoint, "adapter_model.bin")
+                if not os.path.exists(will_be_resume_from_checkpoint_file):
+                    raise ValueError(f"Unable to continue from model {continue_from_model}. Continuation is only possible from models stored locally in the data directory. Please ensure that the file '{will_be_resume_from_checkpoint_file}' exists.")
 
         output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
         if os.path.exists(output_dir):
