@@ -301,6 +301,7 @@ def main_page_custom_css():
     }
     #inference_lora_model_group > #inference_lora_model_prompt_template_message {
         padding: var(--block-padding) !important;
+        padding-bottom: 5px !important;
         margin-top: -50px !important;
         margin-left: 4px !important;
         font-size: 12px;
