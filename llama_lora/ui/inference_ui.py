@@ -104,7 +104,7 @@ def do_inference(
         model = get_model(base_model_name, lora_model_name)
 
         generation_config = GenerationConfig(
-            temperature=temperature,
+            temperature=float(temperature),  # to avoid ValueError('`temperature` has to be a strictly positive float, but is 2')
             top_p=top_p,
             top_k=top_k,
             repetition_penalty=repetition_penalty,
