@@ -1198,7 +1198,7 @@ def finetune_ui():
           delay: [500, 0],
           animation: 'scale-subtle',
           content:
-            'If a checkpoint is selected, training will resume from that specific checkpoint, bypassing any previously completed steps up to the checkpoint\\'s moment. <br /><br />💡 Use this option to resume an unfinished training session. Remember to click the <code>Load training parameters from selected model</code> button to load the training parameters of the selected model.',
+            'If a checkpoint is selected, training will resume from that specific checkpoint, bypassing any previously completed steps up to the checkpoint\\'s moment. <br /><br />💡 Use this option to resume an unfinished training session. Remember to click the <code>Load training parameters from selected model</code> button and select the same dataset for training.',
           allowHTML: true,
         });
       }, 100);
