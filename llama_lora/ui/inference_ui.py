@@ -8,12 +8,12 @@ from transformers import GenerationConfig
 
 from ..globals import Global
 from ..models import get_model, get_tokenizer, get_device
+from ..lib.inference import generate
 from ..utils.data import (
     get_available_template_names,
     get_available_lora_model_names,
     get_info_of_available_lora_model)
 from ..utils.prompter import Prompter
-from ..utils.callbacks import Iteratorize, Stream
 
 device = get_device()
 
@@ -22,7 +22,7 @@ inference_output_lines = 12
 
 
 def prepare_inference(lora_model_name, progress=gr.Progress(track_tqdm=True)):
-    base_model_name = Global.default_base_model_name
+    base_model_name = Global.base_model_name
 
     try:
         get_tokenizer(base_model_name)
@@ -48,7 +48,7 @@ def do_inference(
     show_raw=False,
     progress=gr.Progress(track_tqdm=True),
 ):
-    base_model_name = Global.default_base_model_name
+    base_model_name = Global.base_model_name
 
     try:
         if Global.generation_force_stopped_at is not None:
@@ -103,8 +103,6 @@ def do_inference(
         tokenizer = get_tokenizer(base_model_name)
         model = get_model(base_model_name, lora_model_name)
 
-        inputs = tokenizer(prompt, return_tensors="pt")
-        input_ids = inputs["input_ids"].to(device)
         generation_config = GenerationConfig(
             temperature=temperature,
             top_p=top_p,
@@ -113,103 +111,55 @@ def do_inference(
             num_beams=num_beams,
         )
 
-        generate_params = {
-            "input_ids": input_ids,
-            "generation_config": generation_config,
-            "return_dict_in_generate": True,
-            "output_scores": True,
-            "max_new_tokens": max_new_tokens,
-        }
-
         def ui_generation_stopping_criteria(input_ids, score, **kwargs):
             if Global.should_stop_generating:
                 return True
             return False
 
         Global.should_stop_generating = False
-        generate_params.setdefault(
-            "stopping_criteria", transformers.StoppingCriteriaList()
-        )
-        generate_params["stopping_criteria"].append(
-            ui_generation_stopping_criteria
-        )
 
-        if stream_output:
-            # Stream the reply 1 token at a time.
-            # This is based on the trick of using 'stopping_criteria' to create an iterator,
-            # from https://github.com/oobabooga/text-generation-webui/blob/ad37f396fc8bcbab90e11ecf17c56c97bfbd4a9c/modules/text_generation.py#L216-L243.
+        generation_args = {
+            'model': model,
+            'tokenizer': tokenizer,
+            'prompt': prompt,
+            'generation_config': generation_config,
+            'max_new_tokens': max_new_tokens,
+            'stopping_criteria': [ui_generation_stopping_criteria],
+            'stream_output': stream_output
+        }
 
-            def generate_with_callback(callback=None, **kwargs):
-                kwargs.setdefault(
-                    "stopping_criteria", transformers.StoppingCriteriaList()
-                )
-                kwargs["stopping_criteria"].append(
-                    Stream(callback_func=callback)
-                )
-                with torch.no_grad():
-                    model.generate(**kwargs)
+        for (decoded_output, output) in generate(**generation_args):
+            raw_output_str = None
+            if show_raw:
+                raw_output_str = str(output)
+            response = prompter.get_response(decoded_output)
 
-            def generate_with_streaming(**kwargs):
-                return Iteratorize(
-                    generate_with_callback, kwargs, callback=None
-                )
+            if Global.should_stop_generating:
+                return
 
-            with generate_with_streaming(**generate_params) as generator:
-                for output in generator:
-                    # new_tokens = len(output) - len(input_ids[0])
-                    decoded_output = tokenizer.decode(output)
+            yield (
+                gr.Textbox.update(
+                    value=response, lines=inference_output_lines),
+                raw_output_str)
 
-                    if output[-1] in [tokenizer.eos_token_id]:
-                        break
+            if Global.should_stop_generating:
+                # If the user stops the generation, and then clicks the
+                # generation button again, they may mysteriously landed
+                # here, in the previous, should-be-stopped generation
+                # function call, with the new generation function not be
+                # called at all. To workaround this, we yield a message
+                # and setting lines=1, and if the front-end JS detects
+                # that lines has been set to 1 (rows="1" in HTML),
+                # it will automatically click the generate button again
+                # (gr.Textbox.update() does not support updating
+                # elem_classes or elem_id).
+                # [WORKAROUND-UI01]
+                yield (
+                    gr.Textbox.update(
+                        value="Please retry", lines=1),
+                    None)
 
-                    raw_output = None
-                    if show_raw:
-                        raw_output = str(output)
-                    response = prompter.get_response(decoded_output)
-
-                    if Global.should_stop_generating:
-                        return
-
-                    yield (
-                        gr.Textbox.update(
-                            value=response, lines=inference_output_lines),
-                        raw_output)
-
-                    if Global.should_stop_generating:
-                        # If the user stops the generation, and then clicks the
-                        # generation button again, they may mysteriously landed
-                        # here, in the previous, should-be-stopped generation
-                        # function call, with the new generation function not be
-                        # called at all. To workaround this, we yield a message
-                        # and setting lines=1, and if the front-end JS detects
-                        # that lines has been set to 1 (rows="1" in HTML),
-                        # it will automatically click the generate button again
-                        # (gr.Textbox.update() does not support updating
-                        # elem_classes or elem_id).
-                        # [WORKAROUND-UI01]
-                        yield (
-                            gr.Textbox.update(
-                                value="Please retry", lines=1),
-                            None)
-            return  # early return for stream_output
-
-        # Without streaming
-        with torch.no_grad():
-            generation_output = model.generate(**generate_params)
-        s = generation_output.sequences[0]
-        output = tokenizer.decode(s)
-        raw_output = None
-        if show_raw:
-            raw_output = str(s)
-
-        response = prompter.get_response(output)
-        if Global.should_stop_generating:
-            return
-
-        yield (
-            gr.Textbox.update(value=response, lines=inference_output_lines),
-            raw_output)
-
+        return
     except Exception as e:
         raise gr.Error(e)
 
@@ -229,7 +179,7 @@ def reload_selections(current_lora_model, current_prompt_template):
     current_prompt_template = current_prompt_template or next(
         iter(available_template_names_with_none), None)
 
-    default_lora_models = ["tloen/alpaca-lora-7b"]
+    default_lora_models = []
     available_lora_models = default_lora_models + get_available_lora_model_names()
     available_lora_models = available_lora_models + ["None"]
 
@@ -255,8 +205,12 @@ def handle_prompt_template_change(prompt_template, lora_model):
         "", visible=False)
     lora_mode_info = get_info_of_available_lora_model(lora_model)
     if lora_mode_info and isinstance(lora_mode_info, dict):
+        model_base_model = lora_mode_info.get("base_model")
         model_prompt_template = lora_mode_info.get("prompt_template")
-        if model_prompt_template and model_prompt_template != prompt_template:
+        if model_base_model and model_base_model != Global.base_model_name:
+            model_prompt_template_message_update = gr.Markdown.update(
+                f"⚠️ This model was trained on top of base model `{model_base_model}`, it might not work properly with the selected base model `{Global.base_model_name}`.", visible=True)
+        elif model_prompt_template and model_prompt_template != prompt_template:
             model_prompt_template_message_update = gr.Markdown.update(
                 f"This model was trained with prompt template `{model_prompt_template}`.", visible=True)
 
@@ -303,7 +257,7 @@ def inference_ui():
                 lora_model = gr.Dropdown(
                     label="LoRA Model",
                     elem_id="inference_lora_model",
-                    value="tloen/alpaca-lora-7b",
+                    value="None",
                     allow_custom_value=True,
                 )
             prompt_template = gr.Dropdown(
@@ -433,6 +387,8 @@ def inference_ui():
                             interactive=False,
                             elem_id="inference_raw_output")
 
+        reload_selected_models_btn = gr.Button("", elem_id="inference_reload_selected_models_btn")
+
         show_raw_change_event = show_raw.change(
             fn=lambda show_raw: gr.Accordion.update(visible=show_raw),
             inputs=[show_raw],
@@ -453,6 +409,14 @@ def inference_ui():
                 model_prompt_template_message,
                 variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
         things_that_might_timeout.append(prompt_template_change_event)
+
+        reload_selected_models_btn_event = reload_selected_models_btn.click(
+            fn=handle_prompt_template_change,
+            inputs=[prompt_template, lora_model],
+            outputs=[
+                model_prompt_template_message,
+                variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
+        things_that_might_timeout.append(reload_selected_models_btn_event)
 
         lora_model_change_event = lora_model.change(
             fn=handle_lora_model_change,
@@ -510,7 +474,7 @@ def inference_ui():
 
         // Workaround default value not shown.
         document.querySelector('#inference_lora_model input').value =
-          'tloen/alpaca-lora-7b';
+          'None';
       }, 100);
 
       // Add tooltips
@@ -652,6 +616,30 @@ def inference_ui():
           });
           handle_output_wrap_element_class_change();
         }, 500);
+      }, 0);
+
+      // Reload model selection on possible base model change.
+      setTimeout(function () {
+        const elem = document.getElementById('main_page_tabs_container');
+        if (!elem) return;
+
+        let prevClassList = [];
+
+        new MutationObserver(function (mutationsList, observer) {
+          const currentPrevClassList = prevClassList;
+          const currentClassList = Array.from(elem.classList);
+          prevClassList = Array.from(elem.classList);
+
+          if (!currentPrevClassList.includes('hide')) return;
+          if (currentClassList.includes('hide')) return;
+
+          const inference_reload_selected_models_btn_elem = document.getElementById('inference_reload_selected_models_btn');
+
+          if (inference_reload_selected_models_btn_elem) inference_reload_selected_models_btn_elem.click();
+        }).observe(elem, {
+          attributes: true,
+          attributeFilter: ['class'],
+        });
       }, 0);
 
       // Debounced updating the prompt preview.

@@ -1,5 +1,6 @@
 import os
 import sys
+import importlib
 from typing import Any, List
 
 import json
@@ -32,7 +33,7 @@ def train(
     num_train_epochs: int = 3,
     learning_rate: float = 3e-4,
     cutoff_len: int = 256,
-    val_set_size: int = 2000,  # TODO: use percentage
+    val_set_size: int = 2000,
     # lora hyperparams
     lora_r: int = 8,
     lora_alpha: int = 16,
@@ -45,13 +46,78 @@ def train(
     train_on_inputs: bool = True,  # if False, masks out inputs in loss
     group_by_length: bool = False,  # faster, but produces an odd training loss curve
     # either training checkpoint or final adapter
-    resume_from_checkpoint: str = None,
+    resume_from_checkpoint = None,
     save_steps: int = 200,
     save_total_limit: int = 3,
     logging_steps: int = 10,
     # logging
-    callbacks: List[Any] = []
+    callbacks: List[Any] = [],
+    # wandb params
+    wandb_api_key = None,
+    wandb_project: str = "",
+    wandb_group = None,
+    wandb_run_name: str = "",
+    wandb_tags: List[str] = [],
+    wandb_watch: str = "false",  # options: false | gradients | all
+    wandb_log_model: str = "true",  # options: false | true
 ):
+    # for logging
+    finetune_args = {
+        'micro_batch_size': micro_batch_size,
+        'gradient_accumulation_steps': gradient_accumulation_steps,
+        'num_train_epochs': num_train_epochs,
+        'learning_rate': learning_rate,
+        'cutoff_len': cutoff_len,
+        'val_set_size': val_set_size,
+        'lora_r': lora_r,
+        'lora_alpha': lora_alpha,
+        'lora_dropout': lora_dropout,
+        'lora_target_modules': lora_target_modules,
+        'train_on_inputs': train_on_inputs,
+        'group_by_length': group_by_length,
+        'save_steps': save_steps,
+        'save_total_limit': save_total_limit,
+        'logging_steps': logging_steps,
+    }
+    if val_set_size and val_set_size > 0:
+        finetune_args['val_set_size'] = val_set_size
+    if resume_from_checkpoint:
+        finetune_args['resume_from_checkpoint'] = resume_from_checkpoint
+
+    wandb = None
+    if wandb_api_key:
+        os.environ["WANDB_API_KEY"] = wandb_api_key
+
+    # wandb: WARNING Changes to your `wandb` environment variables will be ignored because your `wandb` session has already started. For more information on how to modify your settings with `wandb.init()` arguments, please refer to https://wandb.me/wandb-init.
+    # if wandb_project:
+    #     os.environ["WANDB_PROJECT"] = wandb_project
+    # if wandb_run_name:
+    #     os.environ["WANDB_RUN_NAME"] = wandb_run_name
+
+    if wandb_watch:
+        os.environ["WANDB_WATCH"] = wandb_watch
+    if wandb_log_model:
+        os.environ["WANDB_LOG_MODEL"] = wandb_log_model
+    use_wandb = (wandb_project and len(wandb_project) > 0) or (
+            "WANDB_PROJECT" in os.environ and len(os.environ["WANDB_PROJECT"]) > 0
+        )
+    if use_wandb:
+        os.environ['WANDB_MODE'] = "online"
+        wandb = importlib.import_module("wandb")
+        wandb.init(
+            project=wandb_project,
+            resume="auto",
+            group=wandb_group,
+            name=wandb_run_name,
+            tags=wandb_tags,
+            reinit=True,
+            magic=True,
+            config={'finetune_args': finetune_args},
+            # id=None  # used for resuming
+            )
+    else:
+        os.environ['WANDB_MODE'] = "disabled"
+
     if os.path.exists(output_dir):
         if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
             raise ValueError(
@@ -138,6 +204,8 @@ def train(
 
     # If train_dataset_data is a list, convert it to datasets.Dataset
     if isinstance(train_dataset_data, list):
+        with open(os.path.join(output_dir, "train_data_samples.json"), 'w') as file:
+            json.dump(list(train_dataset_data[:100]), file, indent=2)
         train_dataset_data = Dataset.from_list(train_dataset_data)
 
     if resume_from_checkpoint:
@@ -158,7 +226,7 @@ def train(
             adapters_weights = torch.load(checkpoint_name)
             model = set_peft_model_state_dict(model, adapters_weights)
         else:
-            print(f"Checkpoint {checkpoint_name} not found")
+            raise ValueError(f"Checkpoint {checkpoint_name} not found")
 
     # Be more transparent about the % of trainable params.
     model.print_trainable_parameters()
@@ -197,15 +265,15 @@ def train(
             optim="adamw_torch",
             evaluation_strategy="steps" if val_set_size > 0 else "no",
             save_strategy="steps",
-            eval_steps=200 if val_set_size > 0 else None,
+            eval_steps=save_steps if val_set_size > 0 else None,
             save_steps=save_steps,
             output_dir=output_dir,
             save_total_limit=save_total_limit,
             load_best_model_at_end=True if val_set_size > 0 else False,
             ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
-            # report_to="wandb" if use_wandb else None,
-            # run_name=wandb_run_name if use_wandb else None,
+            report_to="wandb" if use_wandb else None,
+            run_name=wandb_run_name if use_wandb else None,
         ),
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
@@ -217,24 +285,16 @@ def train(
         os.makedirs(output_dir)
     with open(os.path.join(output_dir, "trainer_args.json"), 'w') as trainer_args_json_file:
         json.dump(trainer.args.to_dict(), trainer_args_json_file, indent=2)
-    with open(os.path.join(output_dir, "finetune_params.json"), 'w') as finetune_params_json_file:
-        finetune_params = {
-            'micro_batch_size': micro_batch_size,
-            'gradient_accumulation_steps': gradient_accumulation_steps,
-            'num_train_epochs': num_train_epochs,
-            'learning_rate': learning_rate,
-            'cutoff_len': cutoff_len,
-            'lora_r': lora_r,
-            'lora_alpha': lora_alpha,
-            'lora_dropout': lora_dropout,
-            'lora_target_modules': lora_target_modules,
-            'train_on_inputs': train_on_inputs,
-            'group_by_length': group_by_length,
-            'save_steps': save_steps,
-            'save_total_limit': save_total_limit,
-            'logging_steps': logging_steps,
-        }
-        json.dump(finetune_params, finetune_params_json_file, indent=2)
+    with open(os.path.join(output_dir, "finetune_args.json"), 'w') as finetune_args_json_file:
+        json.dump(finetune_args, finetune_args_json_file, indent=2)
+
+    # Not working, will only give us ["prompt", "completion", "input_ids", "attention_mask", "labels"]
+    # if train_data:
+    #     with open(os.path.join(output_dir, "train_dataset_samples.json"), 'w') as file:
+    #         json.dump(list(train_data[:100]), file, indent=2)
+    # if val_data:
+    #     with open(os.path.join(output_dir, "eval_dataset_samples.json"), 'w') as file:
+    #         json.dump(list(val_data[:100]), file, indent=2)
 
     model.config.use_cache = False
 
@@ -260,5 +320,8 @@ def train(
 
     with open(os.path.join(output_dir, "train_output.json"), 'w') as train_output_json_file:
         json.dump(train_output, train_output_json_file, indent=2)
+
+    if use_wandb and wandb:
+        wandb.finish()
 
     return train_output

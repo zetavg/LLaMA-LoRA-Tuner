@@ -34,8 +34,8 @@ Making evaluating and fine-tuning LLaMA models with low-rank adaptation (LoRA) e
 
 * **[1-click up and running in Google Colab](#run-on-google-colab)** with a standard GPU runtime.
   * Loads and stores data in Google Drive.
-* Evaluate various LLaMA LoRA models stored in your folder or from Hugging Face.<br /><a href="https://youtu.be/A3kb4VkDWyY"><img width="640px" src="https://user-images.githubusercontent.com/3784687/230272844-09f7a35b-46bf-4101-b15d-4ddf243b8bef.gif" /></a>
-* Fine-tune LLaMA models with different prompt templates and training dataset format.<br /><a href="https://youtu.be/5Db9U8PsaUk"><img width="640px" src="https://user-images.githubusercontent.com/3784687/230277315-9a91d983-1690-4594-9d54-912eda8963ee.gif" /></a>
+* Evaluate various LLaMA LoRA models stored in your folder or from Hugging Face.<br /><a href="https://youtu.be/IoEMgouZ5xU"><img width="640px" src="https://user-images.githubusercontent.com/3784687/231023326-f28c84e2-df74-4179-b0ac-c25c4e8ca001.gif" /></a>
+* Fine-tune LLaMA models with different prompt templates and training dataset format.<br /><a href="https://youtu.be/IoEMgouZ5xU?t=60"><img width="640px" src="https://user-images.githubusercontent.com/3784687/231026640-b5cf5c79-9fe9-430b-8d4e-7346eb9567ad.gif" /></a>
   * Load JSON and JSONL datasets from your folder, or even paste plain text directly into the UI.
   * Supports Stanford Alpaca [seed_tasks](https://github.com/tatsu-lab/stanford_alpaca/blob/main/seed_tasks.jsonl), [alpaca_data](https://github.com/tatsu-lab/stanford_alpaca/blob/main/alpaca_data.json) and [OpenAI "prompt"-"completion"](https://platform.openai.com/docs/guides/fine-tuning/data-formatting) format.
   * Use prompt templates to keep your dataset DRY.
@@ -50,6 +50,8 @@ There are various ways to run this app:
 * **[Run locally](#run-locally)**: Depends on the hardware you have.
 
 ### Run On Google Colab
+
+*See [video](https://youtu.be/lByYOMdy9h4) for step-by-step instructions.*
 
 Open [this Colab Notebook](https://colab.research.google.com/github/zetavg/LLaMA-LoRA-Tuner/blob/main/LLaMA_LoRA.ipynb) and select **Runtime > Run All** (`⌘/Ctrl+F9`).
 
@@ -81,13 +83,14 @@ file_mounts:
 setup: |
   git clone https://github.com/zetavg/LLaMA-LoRA-Tuner.git llama_lora_tuner
   cd llama_lora_tuner && pip install -r requirements.lock.txt
+  pip install wandb
   cd ..
   echo 'Dependencies installed.'
 
 # Start the app.
 run: |
   echo 'Starting...'
-  python llama_lora_tuner/app.py --data_dir='/data' --base_model='decapoda-research/llama-7b-hf' --share
+  python llama_lora_tuner/app.py --data_dir='/data' --wandb_api_key "$([ -f /data/secrets/wandb_api_key ] && cat /data/secrets/wandb_api_key | tr -d '\n')" --base_model='decapoda-research/llama-7b-hf' --share
 ```
 
 Then launch a cluster to run the task:
@@ -133,6 +136,11 @@ For more options, see `python app.py --help`.
   python app.py --data_dir='./data' --base_model='decapoda-research/llama-7b-hf' --share --ui_dev_mode
   ```
 </details>
+
+
+## Usage
+
+See [video on YouTube](https://youtu.be/IoEMgouZ5xU).
 
 
 ## Acknowledgements

@@ -1,0 +1,19 @@
+{
+  "num_train_epochs": 10,
+  "learning_rate": 0.0003,
+  "cutoff_len": 512,
+  "lora_r": 16,
+  "lora_alpha": 16,
+  "lora_dropout": 0.05,
+  "lora_target_modules": [
+    "q_proj",
+    "v_proj",
+    "k_proj",
+    "o_proj"
+  ],
+  "train_on_inputs": true,
+  "group_by_length": false,
+  "save_steps": 2000,
+  "save_total_limit": 10,
+  "logging_steps": 10
+}

@@ -17,25 +17,50 @@ def main_page():
             css=main_page_custom_css(),
     ) as main_page_blocks:
         with gr.Column(elem_id="main_page_content"):
-            gr.Markdown(f"""
-                <h1 class="app_title_text">{title}</h1> <wbr />
-                <h2 class="app_subtitle_text">{Global.ui_subtitle}</h2>
-                """)
-            with gr.Tab("Inference"):
-                inference_ui()
-            with gr.Tab("Fine-tuning"):
-                finetune_ui()
-            with gr.Tab("Tokenizer"):
-                tokenizer_ui()
-            info = []
-            if Global.version:
-                info.append(f"LLaMA-LoRA Tuner `{Global.version}`")
-            info.append(f"Base model: `{Global.default_base_model_name}`")
-            if Global.ui_show_sys_info:
-                info.append(f"Data dir: `{Global.data_dir}`")
-            gr.Markdown(f"""
-                <small>{"&nbsp;&nbsp;·&nbsp;&nbsp;".join(info)}</small>
-                """)
+            with gr.Row():
+                gr.Markdown(
+                    f"""
+                    <h1 class="app_title_text">{title}</h1> <wbr />
+                    <h2 class="app_subtitle_text">{Global.ui_subtitle}</h2>
+                    """,
+                    elem_id="page_title",
+                )
+                global_base_model_select = gr.Dropdown(
+                    label="Base Model",
+                    elem_id="global_base_model_select",
+                    choices=Global.base_model_choices,
+                    value=lambda: Global.base_model_name,
+                    allow_custom_value=True,
+                )
+            # global_base_model_select_loading_status = gr.Markdown("", elem_id="global_base_model_select_loading_status")
+
+            with gr.Column(elem_id="main_page_tabs_container") as main_page_tabs_container:
+                with gr.Tab("Inference"):
+                    inference_ui()
+                with gr.Tab("Fine-tuning"):
+                    finetune_ui()
+                with gr.Tab("Tokenizer"):
+                    tokenizer_ui()
+            please_select_a_base_model_message = gr.Markdown("Please select a base model.", visible=False)
+            current_base_model_hint = gr.Markdown(lambda: Global.base_model_name, elem_id="current_base_model_hint")
+            foot_info = gr.Markdown(get_foot_info)
+
+    global_base_model_select.change(
+        fn=pre_handle_change_base_model,
+        inputs=[],
+        outputs=[main_page_tabs_container]
+    ).then(
+        fn=handle_change_base_model,
+        inputs=[global_base_model_select],
+        outputs=[
+            main_page_tabs_container,
+            please_select_a_base_model_message,
+            current_base_model_hint,
+            # global_base_model_select_loading_status,
+            foot_info
+        ]
+    )
+
     main_page_blocks.load(_js=f"""
     function () {{
         {popperjs_core_code()}
@@ -61,6 +86,17 @@ def main_page():
           });
           handle_gradio_container_element_class_change();
         }, 500);
+    """ + """
+        setTimeout(function () {
+          // Workaround default value not shown.
+          const current_base_model_hint_elem = document.querySelector('#current_base_model_hint > p');
+          if (!current_base_model_hint_elem) return;
+
+          const base_model_name = current_base_model_hint_elem.innerText;
+          document.querySelector('#global_base_model_select input').value = base_model_name;
+          document.querySelector('#global_base_model_select').classList.add('show');
+        }, 3200);
+    """ + """
     }
     """)
 
@@ -127,10 +163,79 @@ def main_page_custom_css():
         display: none;
     }
 
+    #page_title {
+        flex-grow: 3;
+    }
+    #global_base_model_select {
+        position: relative;
+        align-self: center;
+        min-width: 250px;
+        padding: 2px 2px;
+        border: 0;
+        box-shadow: none;
+        opacity: 0;
+        pointer-events: none;
+    }
+    #global_base_model_select.show {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    #global_base_model_select label .wrap-inner {
+        padding: 2px 8px;
+    }
+    #global_base_model_select label span {
+        margin-bottom: 2px;
+        font-size: 80%;
+        position: absolute;
+        top: -14px;
+        left: 8px;
+        opacity: 0;
+    }
+    #global_base_model_select:hover label span {
+        opacity: 1;
+    }
+
+    #global_base_model_select_loading_status {
+        position: absolute;
+        pointer-events: none;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+    #global_base_model_select_loading_status > .wrap:not(.hide) {
+        z-index: 9999;
+        position: absolute;
+        top: 112px !important;
+        bottom: 0 !important;
+        max-height: none;
+        background: var(--background-fill-primary);
+        opacity: 0.8;
+    }
+    #global_base_model_select ul {
+        z-index: 9999;
+        background: var(--block-background-fill);
+    }
+
+    #current_base_model_hint  {
+        display: none;
+    }
+
     #main_page_content > .tabs > .tab-nav * {
         font-size: 1rem;
         font-weight: 700;
         /* text-transform: uppercase; */
+    }
+
+    #inference_reload_selected_models_btn {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 0;
+        padding: 0;
+        opacity: 0;
+        pointer-events: none;
     }
 
     #inference_lora_model_group {
@@ -147,7 +252,8 @@ def main_page_custom_css():
         position: absolute;
         bottom: 8px;
         left: 20px;
-        z-index: 1;
+        z-index: 61;
+        width: 999px;
         font-size: 12px;
         opacity: 0.7;
     }
@@ -413,6 +519,24 @@ def main_page_custom_css():
         margin: -32px -16px;
     }
 
+    #finetune_continue_from_model_box {
+        /* padding: 0; */
+    }
+    #finetune_continue_from_model_box .block {
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+    }
+    #finetune_continue_from_model_box > * {
+        /* gap: 0; */
+    }
+    #finetune_continue_from_model_box button {
+        margin-top: 16px;
+    }
+    #finetune_continue_from_model {
+        flex-grow: 2;
+    }
+
     .finetune_dataset_error_message {
         color: var(--error-text-color) !important;
     }
@@ -428,8 +552,41 @@ def main_page_custom_css():
         white-space: pre-wrap;
     }
 
+    /*
+    #finetune_dataset_preview {
+        max-height: 100vh;
+        overflow: auto;
+        border: var(--block-border-width) solid var(--border-color-primary);
+        border-radius: var(--radius-lg);
+    }
+    #finetune_dataset_preview .table-wrap {
+        border: 0 !important;
+    }
+    */
+
     #finetune_max_seq_length {
         flex: 2;
+    }
+
+    #finetune_lora_target_modules_add_box {
+        margin-top: -24px;
+        padding-top: 8px;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        border-top: 0;
+    }
+    #finetune_lora_target_modules_add_box > * > .form {
+        border: 0;
+        box-shadow: none;
+    }
+    #finetune_lora_target_modules_add {
+        padding: 0;
+    }
+    #finetune_lora_target_modules_add input {
+        padding: 4px 8px;
+    }
+    #finetune_lora_target_modules_add_btn {
+        min-width: 60px;
     }
 
     #finetune_save_total_limit,
@@ -503,3 +660,28 @@ def main_page_custom_css():
     .tippy-box[data-animation=scale-subtle][data-placement^=top]{transform-origin:bottom}.tippy-box[data-animation=scale-subtle][data-placement^=bottom]{transform-origin:top}.tippy-box[data-animation=scale-subtle][data-placement^=left]{transform-origin:right}.tippy-box[data-animation=scale-subtle][data-placement^=right]{transform-origin:left}.tippy-box[data-animation=scale-subtle][data-state=hidden]{transform:scale(.8);opacity:0}
     """
     return css
+
+
+def pre_handle_change_base_model():
+    return gr.Column.update(visible=False)
+
+
+def handle_change_base_model(selected_base_model_name):
+    Global.base_model_name = selected_base_model_name
+
+    if Global.base_model_name:
+        return gr.Column.update(visible=True), gr.Markdown.update(visible=False), Global.base_model_name, get_foot_info()
+
+    return gr.Column.update(visible=False), gr.Markdown.update(visible=True), Global.base_model_name, get_foot_info()
+
+
+def get_foot_info():
+    info = []
+    if Global.version:
+        info.append(f"LLaMA-LoRA Tuner `{Global.version}`")
+    info.append(f"Base model: `{Global.base_model_name}`")
+    if Global.ui_show_sys_info:
+        info.append(f"Data dir: `{Global.data_dir}`")
+    return f"""\
+        <small>{"&nbsp;&nbsp;·&nbsp;&nbsp;".join(info)}</small>
+        """

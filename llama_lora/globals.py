@@ -17,6 +17,8 @@ class Global:
     load_8bit: bool = False
 
     default_base_model_name: str = ""
+    base_model_name: str = ""
+    base_model_choices: List[str] = []
 
     # Functions
     train_fn: Any = train
@@ -39,6 +41,11 @@ class Global:
     gpu_sms = None  # GPU total number of SMs
     gpu_total_cores = None  # GPU total cores
     gpu_total_memory = None
+
+    # WandB
+    enable_wandb = False
+    wandb_api_key = None
+    default_wandb_project = "llama-lora-tuner"
 
     # UI related
     ui_title: str = "LLaMA-LoRA Tuner"

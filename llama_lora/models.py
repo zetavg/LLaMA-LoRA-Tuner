@@ -2,25 +2,14 @@ import os
 import sys
 import gc
 import json
+import re
 
 import torch
-from transformers import LlamaForCausalLM, LlamaTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, LlamaTokenizer
 from peft import PeftModel
 
 from .globals import Global
-
-
-def get_device():
-    if torch.cuda.is_available():
-        return "cuda"
-    else:
-        return "cpu"
-
-    try:
-        if torch.backends.mps.is_available():
-            return "mps"
-    except:  # noqa: E722
-        pass
+from .lib.get_device import get_device
 
 
 def get_new_base_model(base_model_name):
@@ -41,7 +30,7 @@ def get_new_base_model(base_model_name):
     device = get_device()
 
     if device == "cuda":
-        model = LlamaForCausalLM.from_pretrained(
+        model = AutoModelForCausalLM.from_pretrained(
             base_model_name,
             load_in_8bit=Global.load_8bit,
             torch_dtype=torch.float16,
@@ -50,19 +39,22 @@ def get_new_base_model(base_model_name):
             device_map={'': 0},
         )
     elif device == "mps":
-        model = LlamaForCausalLM.from_pretrained(
+        model = AutoModelForCausalLM.from_pretrained(
             base_model_name,
             device_map={"": device},
             torch_dtype=torch.float16,
         )
     else:
-        model = LlamaForCausalLM.from_pretrained(
+        model = AutoModelForCausalLM.from_pretrained(
             base_model_name, device_map={"": device}, low_cpu_mem_usage=True
         )
 
-    model.config.pad_token_id = get_tokenizer(base_model_name).pad_token_id = 0
-    model.config.bos_token_id = 1
-    model.config.eos_token_id = 2
+    tokenizer = get_tokenizer(base_model_name)
+
+    if re.match("[^/]+/llama", base_model_name):
+        model.config.pad_token_id = tokenizer.pad_token_id = 0
+        model.config.bos_token_id = tokenizer.bos_token_id = 1
+        model.config.eos_token_id = tokenizer.eos_token_id = 2
 
     return model
 
@@ -75,7 +67,14 @@ def get_tokenizer(base_model_name):
     if loaded_tokenizer:
         return loaded_tokenizer
 
-    tokenizer = LlamaTokenizer.from_pretrained(base_model_name)
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+    except Exception as e:
+        if 'LLaMATokenizer' in str(e):
+            tokenizer = LlamaTokenizer.from_pretrained(base_model_name)
+        else:
+            raise e
+
     Global.loaded_tokenizers.set(base_model_name, tokenizer)
 
     return tokenizer
@@ -148,9 +147,10 @@ def get_model(
                 device_map={"": device},
             )
 
-    model.config.pad_token_id = get_tokenizer(base_model_name).pad_token_id = 0
-    model.config.bos_token_id = 1
-    model.config.eos_token_id = 2
+    if re.match("[^/]+/llama", base_model_name):
+        model.config.pad_token_id = get_tokenizer(base_model_name).pad_token_id = 0
+        model.config.bos_token_id = 1
+        model.config.eos_token_id = 2
 
     if not Global.load_8bit:
         model.half()  # seems to fix bugs for some users.

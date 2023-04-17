@@ -1,0 +1,6 @@
+{
+  "hf_model_name": "tloen/alpaca-lora-7b",
+  "load_from_hf": true,
+  "base_model": "decapoda-research/llama-7b-hf",
+  "prompt_template": "alpaca"
+}

@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import traceback
+import re
 from datetime import datetime
 import gradio as gr
 import math
@@ -15,7 +17,8 @@ from ..models import (
 from ..utils.data import (
     get_available_template_names,
     get_available_dataset_names,
-    get_dataset_content
+    get_dataset_content,
+    get_available_lora_model_names
 )
 from ..utils.prompter import Prompter
 
@@ -47,13 +50,16 @@ def reload_selections(current_template, current_dataset):
     current_dataset = current_dataset or next(
         iter(available_dataset_names), None)
 
+    available_lora_models = ["-"] + get_available_lora_model_names()
+
     return (
         gr.Dropdown.update(
             choices=available_template_names_with_none,
             value=current_template),
         gr.Dropdown.update(
             choices=available_dataset_names,
-            value=current_dataset)
+            value=current_dataset),
+        gr.Dropdown.update(choices=available_lora_models)
     )
 
 
@@ -79,56 +85,47 @@ def load_sample_dataset_to_text_input(format):
         return gr.Code.update(value=sample_plain_text_value)
 
 
-def process_json_dataset(data, only_first_n_items=None):
-    if not isinstance(data, list):
-        raise ValueError("The dataset is not an array of objects.")
+def get_data_from_input(load_dataset_from, dataset_text, dataset_text_format,
+                        dataset_plain_text_input_variables_separator,
+                        dataset_plain_text_input_and_output_separator,
+                        dataset_plain_text_data_separator,
+                        dataset_from_data_dir, prompter):
+    if load_dataset_from == "Text Input":
+        if dataset_text_format == "JSON":
+            data = json.loads(dataset_text)
 
-    if only_first_n_items is not None:
-        data = data[:only_first_n_items]
+        elif dataset_text_format == "JSON Lines":
+            lines = dataset_text.split('\n')
+            data = []
+            for i, line in enumerate(lines):
+                line_number = i + 1
+                try:
+                    data.append(json.loads(line))
+                except Exception as e:
+                    raise ValueError(
+                        f"Error parsing JSON on line {line_number}: {e}")
 
-    first_item = get_val_from_arr(data, 0, None)
+        else:  # Plain Text
+            data = parse_plain_text_input(
+                dataset_text,
+                (
+                    dataset_plain_text_input_variables_separator or
+                    default_dataset_plain_text_input_variables_separator
+                ).replace("\\n", "\n"),
+                (
+                    dataset_plain_text_input_and_output_separator or
+                    default_dataset_plain_text_input_and_output_separator
+                ).replace("\\n", "\n"),
+                (
+                    dataset_plain_text_data_separator or
+                    default_dataset_plain_text_data_separator
+                ).replace("\\n", "\n"),
+                prompter.get_variable_names()
+            )
 
-    if first_item is None:
-        raise ValueError("The dataset is empty.")
-    if not isinstance(first_item, dict):
-        raise ValueError("The dataset is not an array of objects.")
+    else:  # Load dataset from data directory
+        data = get_dataset_content(dataset_from_data_dir)
 
-    # Convert OpenAI fine-tuning dataset to LLaMA LoRA style
-    if "completion" in first_item and "output" not in first_item:
-        data = [
-            {"output" if k == "completion" else k: v for k, v in d.items()}
-            for d in data]
-        first_item = get_val_from_arr(data, 0, None)
-
-    # Flatten Stanford Alpaca style instances
-    if "instances" in first_item and isinstance(first_item["instances"], list):
-        data = [
-            {"output" if k == "completion" else k: v for k, v in d.items()}
-            for d in data]
-        flattened_data = []
-        for item in data:
-            for instance in item["instances"]:
-                d = {k: v for k, v in item.items() if k != "instances"}
-                d.update(instance)
-                flattened_data.append(d)
-        data = flattened_data
-        first_item = get_val_from_arr(data, 0, None)
-
-    if "output" not in first_item:
-        raise ValueError(
-            "The data does not contains an \"output\" or \"completion\".")
-
-    # Put all variables under the "variables" key if it does not exists
-    if "variables" not in first_item:
-        data = [
-            {
-                "variables":
-                    {k: v for k, v in d.items() if k != "output"},
-                "output":
-                    d["output"]
-            }
-            for d in data
-        ]
     return data
 
 
@@ -141,72 +138,92 @@ def refresh_preview(
     dataset_plain_text_input_variables_separator,
     dataset_plain_text_input_and_output_separator,
     dataset_plain_text_data_separator,
-    preview_show_actual_prompt,
+    max_preview_count,
 ):
     try:
-        max_preview_count = 100
         prompter = Prompter(template)
         variable_names = prompter.get_variable_names()
 
-        if load_dataset_from == "Text Input":
-            if dataset_text_format == "JSON":
-                data = json.loads(dataset_text)
-                data = process_json_dataset(data)
+        data = get_data_from_input(
+            load_dataset_from=load_dataset_from,
+            dataset_text=dataset_text,
+            dataset_text_format=dataset_text_format,
+            dataset_plain_text_input_variables_separator=dataset_plain_text_input_variables_separator,
+            dataset_plain_text_input_and_output_separator=dataset_plain_text_input_and_output_separator,
+            dataset_plain_text_data_separator=dataset_plain_text_data_separator,
+            dataset_from_data_dir=dataset_from_data_dir,
+            prompter=prompter
+        )
 
-            elif dataset_text_format == "JSON Lines":
-                lines = dataset_text.split('\n')
-                data = []
-                for i, line in enumerate(lines):
-                    line_number = i + 1
-                    try:
-                        data.append(json.loads(line))
-                    except Exception as e:
-                        raise ValueError(
-                            f"Error parsing JSON on line {line_number}: {e}")
+        train_data = prompter.get_train_data_from_dataset(
+            data, max_preview_count)
 
-                data = process_json_dataset(data)
-
-            else:  # Plain Text
-                data = parse_plain_text_input(
-                    dataset_text,
-                    (
-                        dataset_plain_text_input_variables_separator or
-                        default_dataset_plain_text_input_variables_separator
-                    ).replace("\\n", "\n"),
-                    (
-                        dataset_plain_text_input_and_output_separator or
-                        default_dataset_plain_text_input_and_output_separator
-                    ).replace("\\n", "\n"),
-                    (
-                        dataset_plain_text_data_separator or
-                        default_dataset_plain_text_data_separator
-                    ).replace("\\n", "\n"),
-                    variable_names
-                )
-
-        else:  # Load dataset from data directory
-            data = get_dataset_content(dataset_from_data_dir)
-            data = process_json_dataset(data)
+        train_data = train_data[:max_preview_count]
 
         data_count = len(data)
-        headers = variable_names
+
+        headers = ['Prompt', 'Completion']
         preview_data = [
-            [item['variables'].get(name, "") for name in variable_names]
-            for item in data[:max_preview_count]
+            [item.get("prompt", ""), item.get("completion", "")]
+            for item in train_data
         ]
 
-        if preview_show_actual_prompt:
-            headers = headers + ["Prompt (actual input)"]
-            rendered = [prompter.generate_prompt(
-                item['variables']) for item in data[:max_preview_count]]
-            preview_data = result = [d + [i]
-                                     for d, i in zip(preview_data, rendered)]
+        if not prompter.template_module:
+            variable_names = prompter.get_variable_names()
+            headers += [f"Variable: {variable_name}" for variable_name in variable_names]
+            variables = [
+                [item.get(f"_var_{name}", "") for name in variable_names]
+                for item in train_data
+            ]
+            preview_data = [d + v for d, v in zip(preview_data, variables)]
 
-        headers = headers + ["Completion (output)"]
-        preview_data = result = [pd + [d['output']]
-                                 for pd, d in zip(preview_data, data[:max_preview_count])]
+        preview_info_message = f"The dataset has about {data_count} item(s)."
+        if data_count > max_preview_count:
+            preview_info_message += f" Previewing the first {max_preview_count}."
 
-        preview_info_message = f"The dataset has a total of {data_count} item(s)."
+        info_message = f"about {data_count} item(s)."
+        if load_dataset_from == "Data Dir":
+            info_message = "This dataset contains about " + info_message
+        update_message = gr.Markdown.update(info_message, visible=True)
+
+        return gr.Dataframe.update(value={'data': preview_data, 'headers': headers}), gr.Markdown.update(preview_info_message), update_message, update_message
+    except Exception as e:
+        update_message = gr.Markdown.update(
+            f"<span class=\"finetune_dataset_error_message\">Error: {e}.</span>", visible=True)
+        return gr.Dataframe.update(value={'data': [], 'headers': []}), gr.Markdown.update("Set the dataset in the \"Prepare\" tab, then preview it here."), update_message, update_message
+
+
+def refresh_dataset_items_count(
+    template,
+    load_dataset_from,
+    dataset_from_data_dir,
+    dataset_text,
+    dataset_text_format,
+    dataset_plain_text_input_variables_separator,
+    dataset_plain_text_input_and_output_separator,
+    dataset_plain_text_data_separator,
+    max_preview_count,
+):
+    try:
+        prompter = Prompter(template)
+        variable_names = prompter.get_variable_names()
+
+        data = get_data_from_input(
+            load_dataset_from=load_dataset_from,
+            dataset_text=dataset_text,
+            dataset_text_format=dataset_text_format,
+            dataset_plain_text_input_variables_separator=dataset_plain_text_input_variables_separator,
+            dataset_plain_text_input_and_output_separator=dataset_plain_text_input_and_output_separator,
+            dataset_plain_text_data_separator=dataset_plain_text_data_separator,
+            dataset_from_data_dir=dataset_from_data_dir,
+            prompter=prompter
+        )
+
+        train_data = prompter.get_train_data_from_dataset(
+            data)
+        data_count = len(train_data)
+
+        preview_info_message = f"The dataset contains {data_count} item(s)."
         if data_count > max_preview_count:
             preview_info_message += f" Previewing the first {max_preview_count}."
 
@@ -215,11 +232,22 @@ def refresh_preview(
             info_message = "This dataset contains " + info_message
         update_message = gr.Markdown.update(info_message, visible=True)
 
-        return gr.Dataframe.update(value={'data': preview_data, 'headers': headers}), gr.Markdown.update(preview_info_message), update_message, update_message
+        return gr.Markdown.update(preview_info_message), update_message, update_message, gr.Slider.update(maximum=math.floor(data_count / 2))
     except Exception as e:
         update_message = gr.Markdown.update(
             f"<span class=\"finetune_dataset_error_message\">Error: {e}.</span>", visible=True)
-        return gr.Dataframe.update(value={'data': [], 'headers': []}), gr.Markdown.update("Set the dataset in the \"Prepare\" tab, then preview it here."), update_message, update_message
+
+        trace = traceback.format_exc()
+        traces = [s.strip() for s in re.split("\n * File ", trace)]
+        templates_path = os.path.join(Global.data_dir, "templates")
+        traces_to_show = [s for s in traces if os.path.join(
+            Global.data_dir, "templates") in s]
+        traces_to_show = [re.sub(" *\n *", ": ", s) for s in traces_to_show]
+        if len(traces_to_show) > 0:
+            update_message = gr.Markdown.update(
+                f"<span class=\"finetune_dataset_error_message\">Error: {e} ({','.join(traces_to_show)}).</span>", visible=True)
+
+        return gr.Markdown.update("Set the dataset in the \"Prepare\" tab, then preview it here."), update_message, update_message, gr.Slider.update(maximum=1)
 
 
 def parse_plain_text_input(
@@ -258,7 +286,7 @@ def do_train(
     dataset_plain_text_data_separator,
     # Training Options
     max_seq_length,
-    evaluate_data_percentage,
+    evaluate_data_count,
     micro_batch_size,
     gradient_accumulation_steps,
     epochs,
@@ -268,14 +296,27 @@ def do_train(
     lora_alpha,
     lora_dropout,
     lora_target_modules,
-    model_name,
     save_steps,
     save_total_limit,
     logging_steps,
+    model_name,
+    continue_from_model,
+    continue_from_checkpoint,
     progress=gr.Progress(track_tqdm=should_training_progress_track_tqdm),
 ):
     try:
-        base_model_name = Global.default_base_model_name
+        base_model_name = Global.base_model_name
+
+        resume_from_checkpoint = None
+        if continue_from_model == "-" or continue_from_model == "None":
+            continue_from_model = None
+        if continue_from_checkpoint == "-" or continue_from_checkpoint == "None":
+            continue_from_checkpoint = None
+        if continue_from_model:
+            resume_from_checkpoint = os.path.join(Global.data_dir, "lora_models", continue_from_model)
+            if continue_from_checkpoint:
+                resume_from_checkpoint = os.path.join(resume_from_checkpoint, continue_from_checkpoint)
+
         output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
         if os.path.exists(output_dir):
             if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
@@ -288,56 +329,22 @@ def do_train(
         unload_models()  # Need RAM for training
 
         prompter = Prompter(template)
-        variable_names = prompter.get_variable_names()
+        # variable_names = prompter.get_variable_names()
 
-        if load_dataset_from == "Text Input":
-            if dataset_text_format == "JSON":
-                data = json.loads(dataset_text)
-                data = process_json_dataset(data)
+        data = get_data_from_input(
+            load_dataset_from=load_dataset_from,
+            dataset_text=dataset_text,
+            dataset_text_format=dataset_text_format,
+            dataset_plain_text_input_variables_separator=dataset_plain_text_input_variables_separator,
+            dataset_plain_text_input_and_output_separator=dataset_plain_text_input_and_output_separator,
+            dataset_plain_text_data_separator=dataset_plain_text_data_separator,
+            dataset_from_data_dir=dataset_from_data_dir,
+            prompter=prompter
+        )
 
-            elif dataset_text_format == "JSON Lines":
-                lines = dataset_text.split('\n')
-                data = []
-                for i, line in enumerate(lines):
-                    line_number = i + 1
-                    try:
-                        data.append(json.loads(line))
-                    except Exception as e:
-                        raise ValueError(
-                            f"Error parsing JSON on line {line_number}: {e}")
+        train_data = prompter.get_train_data_from_dataset(data)
 
-                data = process_json_dataset(data)
-
-            else:  # Plain Text
-                data = parse_plain_text_input(
-                    dataset_text,
-                    (
-                        dataset_plain_text_input_variables_separator or
-                        default_dataset_plain_text_input_variables_separator
-                    ).replace("\\n", "\n"),
-                    (
-                        dataset_plain_text_input_and_output_separator or
-                        default_dataset_plain_text_input_and_output_separator
-                    ).replace("\\n", "\n"),
-                    (
-                        dataset_plain_text_data_separator or
-                        default_dataset_plain_text_data_separator
-                    ).replace("\\n", "\n"),
-                    variable_names
-                )
-
-        else:  # Load dataset from data directory
-            data = get_dataset_content(dataset_from_data_dir)
-            data = process_json_dataset(data)
-
-        data_count = len(data)
-        evaluate_data_count = math.ceil(data_count * evaluate_data_percentage)
-
-        train_data = [
-            {
-                'prompt': prompter.generate_prompt(d['variables']),
-                'completion': d['output']}
-            for d in data]
+        data_count = len(train_data)
 
         def get_progress_text(epoch, epochs, last_loss):
             progress_detail = f"Epoch {math.ceil(epoch)}/{epochs}"
@@ -380,6 +387,8 @@ Train options: {json.dumps({
     'lora_dropout': lora_dropout,
     'lora_target_modules': lora_target_modules,
     'model_name': model_name,
+    'continue_from_model': continue_from_model,
+    'continue_from_checkpoint': continue_from_checkpoint,
 }, indent=2)}
 
 Train data (first 10):
@@ -390,7 +399,7 @@ Train data (first 10):
             return message
 
         if not should_training_progress_track_tqdm:
-            progress(0, desc="Preparing model for training...")
+            progress(0, desc=f"Preparing model {base_model_name} for training...")
 
         log_history = []
 
@@ -449,25 +458,36 @@ Train data (first 10):
                 'dataset_rows': len(train_data),
                 'timestamp': time.time(),
 
-                'max_seq_length': max_seq_length,
-                'train_on_inputs': train_on_inputs,
+                # These will be saved in another JSON file by the train function
+                # 'max_seq_length': max_seq_length,
+                # 'train_on_inputs': train_on_inputs,
 
-                'micro_batch_size': micro_batch_size,
-                'gradient_accumulation_steps': gradient_accumulation_steps,
-                'epochs': epochs,
-                'learning_rate': learning_rate,
+                # 'micro_batch_size': micro_batch_size,
+                # 'gradient_accumulation_steps': gradient_accumulation_steps,
+                # 'epochs': epochs,
+                # 'learning_rate': learning_rate,
 
-                'evaluate_data_percentage': evaluate_data_percentage,
+                # 'evaluate_data_count': evaluate_data_count,
 
-                'lora_r': lora_r,
-                'lora_alpha': lora_alpha,
-                'lora_dropout': lora_dropout,
-                'lora_target_modules': lora_target_modules,
+                # 'lora_r': lora_r,
+                # 'lora_alpha': lora_alpha,
+                # 'lora_dropout': lora_dropout,
+                # 'lora_target_modules': lora_target_modules,
             }
+            if continue_from_model:
+                info['continued_from_model'] = continue_from_model
+                if continue_from_checkpoint:
+                    info['continued_from_checkpoint'] = continue_from_checkpoint
             json.dump(info, info_json_file, indent=2)
 
         if not should_training_progress_track_tqdm:
             progress(0, desc="Train starting...")
+
+        wandb_group = template
+        wandb_tags = [f"template:{template}"]
+        if load_dataset_from == "Data Dir" and dataset_from_data_dir:
+            wandb_group += f"/{dataset_from_data_dir}"
+            wandb_tags.append(f"dataset:{dataset_from_data_dir}")
 
         train_output = Global.train_fn(
             base_model,  # base_model
@@ -487,11 +507,16 @@ Train data (first 10):
             lora_target_modules,  # lora_target_modules
             train_on_inputs,  # train_on_inputs
             False,  # group_by_length
-            None,  # resume_from_checkpoint
+            resume_from_checkpoint,  # resume_from_checkpoint
             save_steps,  # save_steps
             save_total_limit,  # save_total_limit
             logging_steps,  # logging_steps
-            training_callbacks  # callbacks
+            training_callbacks,  # callbacks
+            Global.wandb_api_key,  # wandb_api_key
+            Global.default_wandb_project if Global.enable_wandb else None,  # wandb_project
+            wandb_group,  # wandb_group
+            model_name,  # wandb_run_name
+            wandb_tags  # wandb_tags
         )
 
         logs_str = "\n".join([json.dumps(log)
@@ -513,6 +538,146 @@ Train data (first 10):
 
 def do_abort_training():
     Global.should_stop_training = True
+
+
+def handle_continue_from_model_change(model_name):
+    try:
+        lora_models_directory_path = os.path.join(
+            Global.data_dir, "lora_models")
+        lora_model_directory_path = os.path.join(
+            lora_models_directory_path, model_name)
+        all_files = os.listdir(lora_model_directory_path)
+        checkpoints = [
+            file for file in all_files if file.startswith("checkpoint-")]
+        checkpoints = ["-"] + checkpoints
+        can_load_params = "finetune_params.json" in all_files or "finetune_args.json" in all_files
+        return gr.Dropdown.update(choices=checkpoints, value="-"), gr.Button.update(visible=can_load_params), gr.Markdown.update(value="", visible=False)
+    except Exception:
+        pass
+    return gr.Dropdown.update(choices=["-"], value="-"), gr.Button.update(visible=False), gr.Markdown.update(value="", visible=False)
+
+
+def handle_load_params_from_model(
+    model_name,
+    max_seq_length,
+    evaluate_data_count,
+    micro_batch_size,
+    gradient_accumulation_steps,
+    epochs,
+    learning_rate,
+    train_on_inputs,
+    lora_r,
+    lora_alpha,
+    lora_dropout,
+    lora_target_modules,
+    save_steps,
+    save_total_limit,
+    logging_steps,
+    lora_target_module_choices,
+):
+    error_message = ""
+    notice_message = ""
+    unknown_keys = []
+    try:
+        lora_models_directory_path = os.path.join(
+            Global.data_dir, "lora_models")
+        lora_model_directory_path = os.path.join(
+            lora_models_directory_path, model_name)
+
+        data = {}
+        possible_files = ["finetune_params.json", "finetune_args.json"]
+        for file in possible_files:
+            try:
+                with open(os.path.join(lora_model_directory_path, file), "r") as f:
+                    data = json.load(f)
+            except FileNotFoundError:
+                pass
+
+        for key, value in data.items():
+            if key == "max_seq_length":
+                max_seq_length = value
+            if key == "cutoff_len":
+                cutoff_len = value
+            elif key == "evaluate_data_count":
+                evaluate_data_count = value
+            elif key == "val_set_size":
+                evaluate_data_count = value
+            elif key == "micro_batch_size":
+                micro_batch_size = value
+            elif key == "gradient_accumulation_steps":
+                gradient_accumulation_steps = value
+            elif key == "epochs":
+                epochs = value
+            elif key == "num_train_epochs":
+                epochs = value
+            elif key == "learning_rate":
+                learning_rate = value
+            elif key == "train_on_inputs":
+                train_on_inputs = value
+            elif key == "lora_r":
+                lora_r = value
+            elif key == "lora_alpha":
+                lora_alpha = value
+            elif key == "lora_dropout":
+                lora_dropout = value
+            elif key == "lora_target_modules":
+                lora_target_modules = value
+                for element in value:
+                    if element not in lora_target_module_choices:
+                        lora_target_module_choices.append(element)
+            elif key == "save_steps":
+                save_steps = value
+            elif key == "save_total_limit":
+                save_total_limit = value
+            elif key == "logging_steps":
+                logging_steps = value
+            elif key == "group_by_length":
+                pass
+            elif key == "resume_from_checkpoint":
+                pass
+            else:
+                unknown_keys.append(key)
+    except Exception as e:
+        error_message = str(e)
+
+    if len(unknown_keys) > 0:
+        notice_message = f"Note: cannot restore unknown arg: {', '.join([f'`{x}`' for x in unknown_keys])}"
+
+    message = ". ".join([x for x in [error_message, notice_message] if x])
+
+    has_message = False
+    if message:
+        message += "."
+        has_message = True
+
+    return (
+        gr.Markdown.update(value=message, visible=has_message),
+        max_seq_length,
+        evaluate_data_count,
+        micro_batch_size,
+        gradient_accumulation_steps,
+        epochs,
+        learning_rate,
+        train_on_inputs,
+        lora_r,
+        lora_alpha,
+        lora_dropout,
+        gr.CheckboxGroup.update(value=lora_target_modules, choices=lora_target_module_choices),
+        save_steps,
+        save_total_limit,
+        logging_steps,
+        lora_target_module_choices,
+    )
+
+
+default_lora_target_module_choices = ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+
+def handle_lora_target_modules_add(choices, new_module, selected_modules):
+    choices.append(new_module)
+    selected_modules.append(new_module)
+
+    return (choices, "", gr.CheckboxGroup.update(value=selected_modules, choices=choices))
 
 
 def finetune_ui():
@@ -606,9 +771,13 @@ def finetune_ui():
                         "Set the dataset in the \"Prepare\" tab, then preview it here.",
                         elem_id="finetune_dataset_preview_info_message"
                     )
-                    finetune_dataset_preview_show_actual_prompt = gr.Checkbox(
-                        label="Show actual prompt",
-                        elem_id="finetune_dataset_preview_show_actual_prompt"
+                    finetune_dataset_preview_count = gr.Number(
+                        label="Preview items count",
+                        value=10,
+                        # minimum=1,
+                        # maximum=100,
+                        precision=0,
+                        elem_id="finetune_dataset_preview_count"
                     )
                 finetune_dataset_preview = gr.Dataframe(
                     wrap=True, elem_id="finetune_dataset_preview")
@@ -633,25 +802,7 @@ def finetune_ui():
                 dataset_plain_text_data_separator,
             ]
             dataset_preview_inputs = dataset_inputs + \
-                [finetune_dataset_preview_show_actual_prompt]
-            for i in dataset_preview_inputs:
-                things_that_might_timeout.append(
-                    i.change(
-                        fn=refresh_preview,
-                        inputs=dataset_preview_inputs,
-                        outputs=[finetune_dataset_preview,
-                                 finetune_dataset_preview_info_message,
-                                 dataset_from_text_message,
-                                 dataset_from_data_dir_message
-                                 ]
-                    ))
-
-            things_that_might_timeout.append(reload_selections_button.click(
-                reload_selections,
-                inputs=[template, dataset_from_data_dir],
-                outputs=[template, dataset_from_data_dir],
-            )
-            )
+                [finetune_dataset_preview_count]
 
             with gr.Row():
                 max_seq_length = gr.Slider(
@@ -704,11 +855,42 @@ def finetune_ui():
                     info="The initial learning rate for the optimizer. A higher learning rate may speed up convergence but also cause instability or divergence. A lower learning rate may require more steps to reach optimal performance but also avoid overshooting or oscillating around local minima."
                 )
 
-                evaluate_data_percentage = gr.Slider(
-                    minimum=0, maximum=0.5, step=0.001, value=0,
-                    label="Evaluation Data Percentage",
-                    info="The percentage of data to be used for evaluation. This percentage of data will not be used for training and will be used to assess the performance of the model during the process."
+                evaluate_data_count = gr.Slider(
+                    minimum=0, maximum=1, step=1, value=0,
+                    label="Evaluation Data Count",
+                    info="The number of data to be used for evaluation. This amount of data will not be used for training and will be used to assess the performance of the model during the process."
                 )
+
+                with gr.Box(elem_id="finetune_continue_from_model_box"):
+                    with gr.Row():
+                        continue_from_model = gr.Dropdown(
+                            value="-",
+                            label="Continue from Model",
+                            choices=["-"],
+                            elem_id="finetune_continue_from_model"
+                        )
+                        continue_from_checkpoint = gr.Dropdown(
+                            value="-", label="Checkpoint", choices=["-"])
+                    with gr.Column():
+                        load_params_from_model_btn = gr.Button(
+                            "Load training parameters from selected model", visible=False)
+                        load_params_from_model_btn.style(
+                            full_width=False,
+                            size="sm")
+                        load_params_from_model_message = gr.Markdown(
+                            "", visible=False)
+
+                    things_that_might_timeout.append(
+                        continue_from_model.change(
+                            fn=handle_continue_from_model_change,
+                            inputs=[continue_from_model],
+                            outputs=[
+                                continue_from_checkpoint,
+                                load_params_from_model_btn,
+                                load_params_from_model_message
+                            ]
+                        )
+                    )
 
             with gr.Column():
                 lora_r = gr.Slider(
@@ -729,12 +911,31 @@ def finetune_ui():
                     info="The dropout probability for LoRA, which controls the fraction of LoRA parameters that are set to zero during training. A larger lora_dropout increases the regularization effect of LoRA but also increases the risk of underfitting."
                 )
 
+                lora_target_module_choices = gr.State(value=default_lora_target_module_choices)
+
                 lora_target_modules = gr.CheckboxGroup(
                     label="LoRA Target Modules",
-                    choices=["q_proj", "k_proj", "v_proj", "o_proj"],
+                    choices=default_lora_target_module_choices,
                     value=["q_proj", "v_proj"],
-                    info="Modules to replace with LoRA."
+                    info="Modules to replace with LoRA.",
+                    elem_id="finetune_lora_target_modules"
                 )
+                with gr.Box(elem_id="finetune_lora_target_modules_add_box"):
+                    with gr.Row():
+                        lora_target_modules_add = gr.Textbox(
+                            lines=1, max_lines=1, show_label=False,
+                            elem_id="finetune_lora_target_modules_add"
+                        )
+                        lora_target_modules_add_btn = gr.Button(
+                            "Add",
+                            elem_id="finetune_lora_target_modules_add_btn"
+                        )
+                        lora_target_modules_add_btn.style(full_width=False, size="sm")
+                things_that_might_timeout.append(lora_target_modules_add_btn.click(
+                    handle_lora_target_modules_add,
+                    inputs=[lora_target_module_choices, lora_target_modules_add, lora_target_modules],
+                    outputs=[lora_target_module_choices, lora_target_modules_add, lora_target_modules],
+                ))
 
                 with gr.Row():
                     logging_steps = gr.Number(
@@ -759,6 +960,7 @@ def finetune_ui():
                 with gr.Column():
                     model_name = gr.Textbox(
                         lines=1, label="LoRA Model Name", value=random_name,
+                        max_lines=1,
                         info="The name of the new LoRA model.",
                         elem_id="finetune_model_name",
                     )
@@ -778,6 +980,59 @@ def finetune_ui():
                             elem_id="finetune_confirm_stop_btn"
                         )
 
+        things_that_might_timeout.append(reload_selections_button.click(
+            reload_selections,
+            inputs=[template, dataset_from_data_dir],
+            outputs=[template, dataset_from_data_dir, continue_from_model],
+        ))
+
+        for i in dataset_preview_inputs:
+            things_that_might_timeout.append(
+                i.change(
+                    fn=refresh_preview,
+                    inputs=dataset_preview_inputs,
+                    outputs=[
+                        finetune_dataset_preview,
+                        finetune_dataset_preview_info_message,
+                        dataset_from_text_message,
+                        dataset_from_data_dir_message
+                    ]
+                ).then(
+                    fn=refresh_dataset_items_count,
+                    inputs=dataset_preview_inputs,
+                    outputs=[
+                        finetune_dataset_preview_info_message,
+                        dataset_from_text_message,
+                        dataset_from_data_dir_message,
+                        evaluate_data_count,
+                    ]
+                ))
+
+        finetune_args = [
+            max_seq_length,
+            evaluate_data_count,
+            micro_batch_size,
+            gradient_accumulation_steps,
+            epochs,
+            learning_rate,
+            train_on_inputs,
+            lora_r,
+            lora_alpha,
+            lora_dropout,
+            lora_target_modules,
+            save_steps,
+            save_total_limit,
+            logging_steps,
+        ]
+
+        things_that_might_timeout.append(
+            load_params_from_model_btn.click(
+                fn=handle_load_params_from_model,
+                inputs=[continue_from_model] + finetune_args + [lora_target_module_choices],
+                outputs=[load_params_from_model_message] + finetune_args + [lora_target_module_choices]
+            )
+        )
+
         train_output = gr.Text(
             "Training results will be shown here.",
             label="Train Output",
@@ -785,22 +1040,10 @@ def finetune_ui():
 
         train_progress = train_btn.click(
             fn=do_train,
-            inputs=(dataset_inputs + [
-                max_seq_length,
-                evaluate_data_percentage,
-                micro_batch_size,
-                gradient_accumulation_steps,
-                epochs,
-                learning_rate,
-                train_on_inputs,
-                lora_r,
-                lora_alpha,
-                lora_dropout,
-                lora_target_modules,
+            inputs=(dataset_inputs + finetune_args + [
                 model_name,
-                save_steps,
-                save_total_limit,
-                logging_steps,
+                continue_from_model,
+                continue_from_checkpoint,
             ]),
             outputs=train_output
         )

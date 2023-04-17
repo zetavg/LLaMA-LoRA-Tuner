@@ -30,19 +30,22 @@ def copy_sample_data_if_not_exists(source, destination):
 def get_available_template_names():
     templates_directory_path = os.path.join(Global.data_dir, "templates")
     all_files = os.listdir(templates_directory_path)
-    return [os.path.splitext(filename)[0] for filename in all_files if fnmatch.fnmatch(filename, "*.json")]
+    names = [filename.rstrip(".json") for filename in all_files if fnmatch.fnmatch(filename, "*.json") or fnmatch.fnmatch(filename, "*.py")]
+    return sorted(names)
 
 
 def get_available_dataset_names():
     datasets_directory_path = os.path.join(Global.data_dir, "datasets")
     all_files = os.listdir(datasets_directory_path)
-    return [filename for filename in all_files if fnmatch.fnmatch(filename, "*.json") or fnmatch.fnmatch(filename, "*.jsonl")]
+    names = [filename for filename in all_files if fnmatch.fnmatch(filename, "*.json") or fnmatch.fnmatch(filename, "*.jsonl")]
+    return sorted(names)
 
 
 def get_available_lora_model_names():
-    datasets_directory_path = os.path.join(Global.data_dir, "lora_models")
-    all_items = os.listdir(datasets_directory_path)
-    return [item for item in all_items if os.path.isdir(os.path.join(datasets_directory_path, item))]
+    lora_models_directory_path = os.path.join(Global.data_dir, "lora_models")
+    all_items = os.listdir(lora_models_directory_path)
+    names = [item for item in all_items if os.path.isdir(os.path.join(lora_models_directory_path, item))]
+    return sorted(names)
 
 
 def get_path_of_available_lora_model(name):
