@@ -573,6 +573,7 @@ def handle_load_params_from_model(
     save_steps,
     save_total_limit,
     logging_steps,
+    lora_target_module_choices,
 ):
     error_message = ""
     notice_message = ""
@@ -621,6 +622,9 @@ def handle_load_params_from_model(
                 lora_dropout = value
             elif key == "lora_target_modules":
                 lora_target_modules = value
+                for element in value:
+                    if element not in lora_target_module_choices:
+                        lora_target_module_choices.append(element)
             elif key == "save_steps":
                 save_steps = value
             elif key == "save_total_limit":
@@ -658,11 +662,22 @@ def handle_load_params_from_model(
         lora_r,
         lora_alpha,
         lora_dropout,
-        lora_target_modules,
+        gr.CheckboxGroup.update(value=lora_target_modules, choices=lora_target_module_choices),
         save_steps,
         save_total_limit,
         logging_steps,
+        lora_target_module_choices,
     )
+
+
+default_lora_target_module_choices = ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+
+def handle_lora_target_modules_add(choices, new_module, selected_modules):
+    choices.append(new_module)
+    selected_modules.append(new_module)
+
+    return (choices, "", gr.CheckboxGroup.update(value=selected_modules, choices=choices))
 
 
 def finetune_ui():
@@ -896,12 +911,31 @@ def finetune_ui():
                     info="The dropout probability for LoRA, which controls the fraction of LoRA parameters that are set to zero during training. A larger lora_dropout increases the regularization effect of LoRA but also increases the risk of underfitting."
                 )
 
+                lora_target_module_choices = gr.State(value=default_lora_target_module_choices)
+
                 lora_target_modules = gr.CheckboxGroup(
                     label="LoRA Target Modules",
-                    choices=["q_proj", "k_proj", "v_proj", "o_proj"],
+                    choices=default_lora_target_module_choices,
                     value=["q_proj", "v_proj"],
-                    info="Modules to replace with LoRA."
+                    info="Modules to replace with LoRA.",
+                    elem_id="finetune_lora_target_modules"
                 )
+                with gr.Box(elem_id="finetune_lora_target_modules_add_box"):
+                    with gr.Row():
+                        lora_target_modules_add = gr.Textbox(
+                            lines=1, max_lines=1, show_label=False,
+                            elem_id="finetune_lora_target_modules_add"
+                        )
+                        lora_target_modules_add_btn = gr.Button(
+                            "Add",
+                            elem_id="finetune_lora_target_modules_add_btn"
+                        )
+                        lora_target_modules_add_btn.style(full_width=False, size="sm")
+                things_that_might_timeout.append(lora_target_modules_add_btn.click(
+                    handle_lora_target_modules_add,
+                    inputs=[lora_target_module_choices, lora_target_modules_add, lora_target_modules],
+                    outputs=[lora_target_module_choices, lora_target_modules_add, lora_target_modules],
+                ))
 
                 with gr.Row():
                     logging_steps = gr.Number(
@@ -926,6 +960,7 @@ def finetune_ui():
                 with gr.Column():
                     model_name = gr.Textbox(
                         lines=1, label="LoRA Model Name", value=random_name,
+                        max_lines=1,
                         info="The name of the new LoRA model.",
                         elem_id="finetune_model_name",
                     )
@@ -993,8 +1028,8 @@ def finetune_ui():
         things_that_might_timeout.append(
             load_params_from_model_btn.click(
                 fn=handle_load_params_from_model,
-                inputs=[continue_from_model] + finetune_args,
-                outputs=[load_params_from_model_message] + finetune_args
+                inputs=[continue_from_model] + finetune_args + [lora_target_module_choices],
+                outputs=[load_params_from_model_message] + finetune_args + [lora_target_module_choices]
             )
         )
 

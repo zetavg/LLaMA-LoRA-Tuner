@@ -568,6 +568,27 @@ def main_page_custom_css():
         flex: 2;
     }
 
+    #finetune_lora_target_modules_add_box {
+        margin-top: -24px;
+        padding-top: 8px;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        border-top: 0;
+    }
+    #finetune_lora_target_modules_add_box > * > .form {
+        border: 0;
+        box-shadow: none;
+    }
+    #finetune_lora_target_modules_add {
+        padding: 0;
+    }
+    #finetune_lora_target_modules_add input {
+        padding: 4px 8px;
+    }
+    #finetune_lora_target_modules_add_btn {
+        min-width: 60px;
+    }
+
     #finetune_save_total_limit,
     #finetune_save_steps,
     #finetune_logging_steps {
