@@ -104,11 +104,12 @@ def do_inference(
         model = get_model(base_model_name, lora_model_name)
 
         generation_config = GenerationConfig(
-            temperature=temperature,
+            temperature=float(temperature),  # to avoid ValueError('`temperature` has to be a strictly positive float, but is 2')
             top_p=top_p,
             top_k=top_k,
             repetition_penalty=repetition_penalty,
             num_beams=num_beams,
+            do_sample=temperature > 0,  # https://github.com/huggingface/transformers/issues/22405#issuecomment-1485527953
         )
 
         def ui_generation_stopping_criteria(input_ids, score, **kwargs):
@@ -325,7 +326,7 @@ def inference_ui():
                 # with gr.Column():
                 with gr.Accordion("Options", open=True, elem_id="inference_options_accordion"):
                     temperature = gr.Slider(
-                        minimum=0, maximum=1, value=0.1, step=0.01,
+                        minimum=0, maximum=2, value=0.1, step=0.01,
                         label="Temperature",
                         elem_id="inference_temperature"
                     )
@@ -344,7 +345,7 @@ def inference_ui():
                         )
 
                     num_beams = gr.Slider(
-                        minimum=1, maximum=5, value=2, step=1,
+                        minimum=1, maximum=5, value=1, step=1,
                         label="Beams",
                         elem_id="inference_beams"
                     )
