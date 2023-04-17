@@ -326,7 +326,7 @@ def inference_ui():
                 # with gr.Column():
                 with gr.Accordion("Options", open=True, elem_id="inference_options_accordion"):
                     temperature = gr.Slider(
-                        minimum=0, maximum=2, value=0.1, step=0.01,
+                        minimum=0, maximum=2, value=0, step=0.01,
                         label="Temperature",
                         elem_id="inference_temperature"
                     )
@@ -345,7 +345,7 @@ def inference_ui():
                         )
 
                     num_beams = gr.Slider(
-                        minimum=1, maximum=5, value=1, step=1,
+                        minimum=1, maximum=5, value=2, step=1,
                         label="Beams",
                         elem_id="inference_beams"
                     )
@@ -538,7 +538,8 @@ def inference_ui():
             delay: [500, 0],
             animation: 'scale-subtle',
             content:
-              'Controls randomness: Lowering results in less random completions. Higher values (e.g., 1.0) make the model generate more diverse and random outputs. As the temperature approaches zero, the model will become deterministic and repetitive.',
+              '<strong>Controls randomness</strong>: Higher values (e.g., <code>1.0</code>) make the model generate more diverse and random outputs. As the temperature approaches zero, the model will become deterministic and repetitive.<br /><i>Setting a value larger then <code>0</code> will enable sampling.</i>',
+            allowHTML: true,
           });
 
           tippy('#inference_top_p', {
@@ -546,7 +547,8 @@ def inference_ui():
             delay: [500, 0],
             animation: 'scale-subtle',
             content:
-              'Controls diversity via nucleus sampling: only the tokens whose cumulative probability exceeds "top_p" are considered. 0.5 means half of all likelihood-weighted options are considered.',
+              'Controls diversity via nucleus sampling: only the tokens whose cumulative probability exceeds <code>top_p</code> are considered. <code>0.5</code> means half of all likelihood-weighted options are considered.<br />Will only take effect if Temperature is set to > 0.',
+            allowHTML: true,
           });
 
           tippy('#inference_top_k', {
@@ -554,7 +556,8 @@ def inference_ui():
             delay: [500, 0],
             animation: 'scale-subtle',
             content:
-              'Controls diversity of the generated text by only considering the "top_k" tokens with the highest probabilities. This method can lead to more focused and coherent outputs by reducing the impact of low probability tokens.',
+              'Controls diversity of the generated text by only considering the <code>top_k</code> tokens with the highest probabilities. This method can lead to more focused and coherent outputs by reducing the impact of low probability tokens.<br />Will only take effect if Temperature is set to > 0.',
+            allowHTML: true,
           });
 
           tippy('#inference_beams', {

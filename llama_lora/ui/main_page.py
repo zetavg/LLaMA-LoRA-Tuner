@@ -134,6 +134,10 @@ def main_page_custom_css():
         border: 1px solid var(--border-color-primary);
         border-radius: 4px;
         box-shadow: 0 2px 20px rgba(5,5,5,.08);
+        /* box-shadow: var(--shadow-drop-lg); */
+    }
+    body.dark .tippy-box {
+        box-shadow: 0 0 8px rgba(160,160,160,0.12);
     }
     .tippy-arrow {
         color: var(--block-background-fill);
@@ -142,6 +146,45 @@ def main_page_custom_css():
         color: var(--block-label-text-color);
         font-family: var(--font);
         font-weight: 100;
+    }
+
+    .tippy-arrow::before {
+        z-index: 1;
+    }
+    .tippy-arrow::after {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        border-color: transparent;
+        border-style: solid;
+    }
+    .tippy-box[data-placement^=top]> .tippy-arrow::after {
+        bottom: -9px;
+        left: -1px;
+        border-width: 9px 9px 0;
+        border-top-color: var(--border-color-primary);
+        transform-origin: center top;
+    }
+    .tippy-box[data-placement^=bottom]> .tippy-arrow::after {
+        top: -9px;
+        left: -1px;
+        border-width: 0 9px 9px;
+        border-bottom-color: var(--border-color-primary);
+        transform-origin: center bottom;
+    }
+    .tippy-box[data-placement^=left]> .tippy-arrow:after {
+        border-width: 9px 0 9px 9px;
+        border-left-color: var(--border-color-primary);
+        top: -1px;
+        right: -9px;
+        transform-origin: center left;
+    }
+    .tippy-box[data-placement^=right]> .tippy-arrow::after {
+        top: -1px;
+        left: -9px;
+        border-width: 9px 9px 9px 0;
+        border-right-color: var(--border-color-primary);
+        transform-origin: center right;
     }
 
     /*

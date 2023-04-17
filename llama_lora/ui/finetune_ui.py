@@ -858,7 +858,8 @@ def finetune_ui():
                 evaluate_data_count = gr.Slider(
                     minimum=0, maximum=1, step=1, value=0,
                     label="Evaluation Data Count",
-                    info="The number of data to be used for evaluation. This amount of data will not be used for training and will be used to assess the performance of the model during the process."
+                    info="The number of data to be used for evaluation. This specific amount of data will be randomly chosen from the training dataset for evaluating the model's performance during the process, without contributing to the actual training.",
+                    elem_id="finetune_evaluate_data_count"
                 )
 
                 with gr.Box(elem_id="finetune_continue_from_model_box"):
@@ -870,7 +871,10 @@ def finetune_ui():
                             elem_id="finetune_continue_from_model"
                         )
                         continue_from_checkpoint = gr.Dropdown(
-                            value="-", label="Checkpoint", choices=["-"])
+                            value="-",
+                            label="Resume from Checkpoint",
+                            choices=["-"],
+                            elem_id="finetune_continue_from_checkpoint")
                     with gr.Column():
                         load_params_from_model_btn = gr.Button(
                             "Load training parameters from selected model", visible=False)
@@ -911,8 +915,6 @@ def finetune_ui():
                     info="The dropout probability for LoRA, which controls the fraction of LoRA parameters that are set to zero during training. A larger lora_dropout increases the regularization effect of LoRA but also increases the risk of underfitting."
                 )
 
-                lora_target_module_choices = gr.State(value=default_lora_target_module_choices)
-
                 lora_target_modules = gr.CheckboxGroup(
                     label="LoRA Target Modules",
                     choices=default_lora_target_module_choices,
@@ -920,6 +922,7 @@ def finetune_ui():
                     info="Modules to replace with LoRA.",
                     elem_id="finetune_lora_target_modules"
                 )
+                lora_target_module_choices = gr.State(value=default_lora_target_module_choices)
                 with gr.Box(elem_id="finetune_lora_target_modules_add_box"):
                     with gr.Row():
                         lora_target_modules_add = gr.Textbox(
@@ -1136,6 +1139,14 @@ def finetune_ui():
             'Press to load a sample dataset of the current selected format into the textbox.',
         });
 
+        tippy('#finetune_evaluate_data_count', {
+          placement: 'bottom',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content:
+            'While setting a value larger than 0, the checkpoint with the lowest loss on the evaluation data will be saved as the final trained model, thereby helping to prevent overfitting.',
+        });
+
         tippy('#finetune_save_total_limit', {
           placement: 'bottom',
           delay: [500, 0],
@@ -1164,6 +1175,24 @@ def finetune_ui():
           animation: 'scale-subtle',
           content:
             'The name of the new LoRA model. Must be unique.',
+        });
+
+        tippy('#finetune_continue_from_model', {
+          placement: 'bottom',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content:
+            'Select a LoRA model to train a new model on top of that model.<br /><br />💡 To use the same training parameters of a previously trained model, select it here and click the <code>Load training parameters from selected model</code> button, then un-select it.',
+          allowHTML: true,
+        });
+
+        tippy('#finetune_continue_from_checkpoint', {
+          placement: 'bottom',
+          delay: [500, 0],
+          animation: 'scale-subtle',
+          content:
+            'If a checkpoint is selected, training will resume from that specific checkpoint, bypassing any previously completed steps up to the checkpoint\\'s moment. <br /><br />💡 Use this option to resume an unfinished training session. Remember to click the <code>Load training parameters from selected model</code> button to load the training parameters of the selected model.',
+          allowHTML: true,
         });
       }, 100);
 
