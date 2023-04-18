@@ -136,7 +136,6 @@ def main_page():
           const tokenizer_name = current_tokenizer_hint_elem && current_tokenizer_hint_elem.innerText;
 
           if (tokenizer_name && tokenizer_name !== base_model_name) {
-            document.querySelector('#global_tokenizer_select input').value = tokenizer_name;
             const btn = document.getElementById('use_custom_tokenizer_btn');
             if (btn) btn.click();
           }

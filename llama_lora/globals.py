@@ -1,5 +1,7 @@
 import os
 import subprocess
+import psutil
+import math
 
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -7,6 +9,7 @@ from numba import cuda
 import nvidia_smi
 
 from .utils.lru_cache import LRUCache
+from .utils.model_lru_cache import ModelLRUCache
 from .lib.finetune import train
 
 
@@ -34,7 +37,7 @@ class Global:
     generation_force_stopped_at = None
 
     # Model related
-    loaded_models = LRUCache(1)
+    loaded_models = ModelLRUCache(1)
     loaded_tokenizers = LRUCache(1)
     new_base_model_that_is_ready_to_be_used = None
     name_of_new_base_model_that_is_ready_to_be_used = None
@@ -89,6 +92,7 @@ if commit_hash:
 
 
 def load_gpu_info():
+    print("")
     try:
         cc_cores_per_SM_dict = {
             (2, 0): 32,
@@ -135,8 +139,20 @@ def load_gpu_info():
             f"GPU total memory: {total_memory} bytes ({total_memory_mb:.2f} MB) ({total_memory_gb:.2f} GB)")
         Global.gpu_total_memory = total_memory
 
+        available_cpu_ram = psutil.virtual_memory().available
+        available_cpu_ram_mb = available_cpu_ram / (1024 ** 2)
+        available_cpu_ram_gb = available_cpu_ram / (1024 ** 3)
+        print(
+            f"CPU available memory: {available_cpu_ram} bytes ({available_cpu_ram_mb:.2f} MB) ({available_cpu_ram_gb:.2f} GB)")
+        preserve_loaded_models_count = math.floor((available_cpu_ram * 0.8) / total_memory) - 1
+        if preserve_loaded_models_count > 1:
+            print(f"Will keep {preserve_loaded_models_count} offloaded models in CPU RAM.")
+            Global.loaded_models = ModelLRUCache(preserve_loaded_models_count)
+            Global.loaded_tokenizers = LRUCache(preserve_loaded_models_count)
+
     except Exception as e:
         print(f"Notice: cannot get GPU info: {e}")
 
+    print("")
 
 load_gpu_info()
