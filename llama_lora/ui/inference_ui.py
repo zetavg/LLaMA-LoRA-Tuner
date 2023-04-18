@@ -494,7 +494,7 @@ def inference_ui():
                         lines=inference_output_lines, label="Output", elem_id="inference_output")
                     inference_output.style(show_copy_button=True)
 
-                    with gr.Row(elem_id="inference_flagging_group"):
+                    with gr.Row(elem_id="inference_flagging_group", variant="panel"):
                         output_for_flagging = gr.Textbox(
                             interactive=False, visible=False,
                             elem_id="inference_output_for_flagging")

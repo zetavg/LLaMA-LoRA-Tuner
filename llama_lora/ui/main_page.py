@@ -400,6 +400,9 @@ def main_page_custom_css():
 
     #inference_flagging_group {
         position: relative;
+        margin-top: -8px;
+        margin-bottom: -8px;
+        gap: calc(var(--layout-gap) / 2);
     }
     #inference_flag_output {
         min-height: 1px !important;
