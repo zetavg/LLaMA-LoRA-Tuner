@@ -5,7 +5,10 @@ import json
 import re
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, LlamaTokenizer
+from transformers import (
+    AutoModelForCausalLM, AutoModel,
+    AutoTokenizer, LlamaTokenizer
+)
 from peft import PeftModel
 
 from .globals import Global
@@ -27,32 +30,38 @@ def get_new_base_model(base_model_name):
             Global.name_of_new_base_model_that_is_ready_to_be_used = None
             clear_cache()
 
-    device = get_device()
-
-    if device == "cuda":
-        model = AutoModelForCausalLM.from_pretrained(
-            base_model_name,
-            load_in_8bit=Global.load_8bit,
-            torch_dtype=torch.float16,
-            # device_map="auto",
-            # ? https://github.com/tloen/alpaca-lora/issues/21
-            device_map={'': 0},
-            trust_remote_code=Global.trust_remote_code
-        )
-    elif device == "mps":
-        model = AutoModelForCausalLM.from_pretrained(
-            base_model_name,
-            device_map={"": device},
-            torch_dtype=torch.float16,
-            trust_remote_code=Global.trust_remote_code
-        )
-    else:
-        model = AutoModelForCausalLM.from_pretrained(
-            base_model_name,
-            device_map={"": device},
-            low_cpu_mem_usage=True,
-            trust_remote_code=Global.trust_remote_code
-        )
+    model_class = AutoModelForCausalLM
+    from_tf = False
+    force_download = False
+    has_tried_force_download = False
+    while True:
+        try:
+            model = _get_model_from_pretrained(
+                model_class, base_model_name, from_tf=from_tf, force_download=force_download)
+            break
+        except Exception as e:
+            if 'from_tf' in str(e):
+                print(
+                    f"Got error while loading model {base_model_name} with AutoModelForCausalLM: {e}.")
+                print("Retrying with from_tf=True...")
+                from_tf = True
+                force_download = False
+            elif model_class == AutoModelForCausalLM:
+                print(
+                    f"Got error while loading model {base_model_name} with AutoModelForCausalLM: {e}.")
+                print("Retrying with AutoModel...")
+                model_class = AutoModel
+                force_download = False
+            else:
+                if has_tried_force_download:
+                    raise e
+                print(
+                    f"Got error while loading model {base_model_name}: {e}.")
+                print("Retrying with force_download=True...")
+                model_class = AutoModelForCausalLM
+                from_tf = False
+                force_download = True
+                has_tried_force_download = True
 
     tokenizer = get_tokenizer(base_model_name)
 
@@ -62,6 +71,41 @@ def get_new_base_model(base_model_name):
         model.config.eos_token_id = tokenizer.eos_token_id = 2
 
     return model
+
+
+def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_download=False):
+    device = get_device()
+
+    if device == "cuda":
+        return model_class.from_pretrained(
+            model_name,
+            load_in_8bit=Global.load_8bit,
+            torch_dtype=torch.float16,
+            # device_map="auto",
+            # ? https://github.com/tloen/alpaca-lora/issues/21
+            device_map={'': 0},
+            from_tf=from_tf,
+            force_download=force_download,
+            trust_remote_code=Global.trust_remote_code
+        )
+    elif device == "mps":
+        return model_class.from_pretrained(
+            model_name,
+            device_map={"": device},
+            torch_dtype=torch.float16,
+            from_tf=from_tf,
+            force_download=force_download,
+            trust_remote_code=Global.trust_remote_code
+        )
+    else:
+        return model_class.from_pretrained(
+            model_name,
+            device_map={"": device},
+            low_cpu_mem_usage=True,
+            from_tf=from_tf,
+            force_download=force_download,
+            trust_remote_code=Global.trust_remote_code
+        )
 
 
 def get_tokenizer(base_model_name):
