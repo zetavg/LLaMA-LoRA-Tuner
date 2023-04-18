@@ -10,6 +10,7 @@ from transformers import GenerationConfig
 from ..globals import Global
 from ..models import get_model, get_tokenizer, get_device
 from ..lib.inference import generate
+from ..lib.csv_logger import CSVLogger
 from ..utils.data import (
     get_available_template_names,
     get_available_lora_model_names,
@@ -320,7 +321,7 @@ def inference_ui():
     if not os.path.exists(flagging_dir):
         os.makedirs(flagging_dir)
 
-    flag_callback = gr.CSVLogger()
+    flag_callback = CSVLogger()
     flag_components = [
         LoggingItem("Base Model"),
         LoggingItem("Adaptor Model"),
@@ -365,6 +366,18 @@ def inference_ui():
                 "prompt_template_variables", "")),
             json.dumps(output_for_flagging.get("generation_config", "")),
         ]
+
+    def get_flag_filename(output_for_flagging_str):
+        output_for_flagging = json.loads(output_for_flagging_str)
+        base_model = output_for_flagging.get("base_model", None)
+        adaptor_model = output_for_flagging.get("adaptor_model", None)
+        if adaptor_model == "None":
+            adaptor_model = None
+        if not base_model:
+            return "log.csv"
+        if not adaptor_model:
+            return f"log-{base_model}.csv"
+        return f"log-{base_model}#{adaptor_model}.csv"
 
     things_that_might_timeout = []
 
@@ -510,7 +523,8 @@ def inference_ui():
                             lambda d: (flag_callback.flag(
                                 get_flag_callback_args(d, "Flag"),
                                 flag_option="Flag",
-                                username=None
+                                username=None,
+                                filename=get_flag_filename(d)
                             ), "")[1],
                             inputs=[output_for_flagging],
                             outputs=[flag_output],
@@ -519,7 +533,8 @@ def inference_ui():
                             lambda d: (flag_callback.flag(
                                 get_flag_callback_args(d, "👍"),
                                 flag_option="Up Vote",
-                                username=None
+                                username=None,
+                                filename=get_flag_filename(d)
                             ), "")[1],
                             inputs=[output_for_flagging],
                             outputs=[flag_output],
@@ -528,7 +543,8 @@ def inference_ui():
                             lambda d: (flag_callback.flag(
                                 get_flag_callback_args(d, "👎"),
                                 flag_option="Down Vote",
-                                username=None
+                                username=None,
+                                filename=get_flag_filename(d)
                             ), "")[1],
                             inputs=[output_for_flagging],
                             outputs=[flag_output],
