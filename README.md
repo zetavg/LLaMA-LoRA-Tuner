@@ -12,6 +12,7 @@ Making evaluating and fine-tuning LLaMA models with low-rank adaptation (LoRA) e
 * **[1-click up and running in Google Colab](#run-on-google-colab)** with a standard GPU runtime.
   * Loads and stores data in Google Drive.
 * Evaluate various LLaMA LoRA models stored in your folder or from Hugging Face.<br /><a href="https://youtu.be/IoEMgouZ5xU"><img width="640px" src="https://user-images.githubusercontent.com/3784687/231023326-f28c84e2-df74-4179-b0ac-c25c4e8ca001.gif" /></a>
+* Switch between base models such as `decapoda-research/llama-7b-hf`, `nomic-ai/gpt4all-j`, `databricks/dolly-v2-7b`, `EleutherAI/gpt-j-6b`, or `EleutherAI/pythia-6.9b`.
 * Fine-tune LLaMA models with different prompt templates and training dataset format.<br /><a href="https://youtu.be/IoEMgouZ5xU?t=60"><img width="640px" src="https://user-images.githubusercontent.com/3784687/231026640-b5cf5c79-9fe9-430b-8d4e-7346eb9567ad.gif" /></a>
   * Load JSON and JSONL datasets from your folder, or even paste plain text directly into the UI.
   * Supports Stanford Alpaca [seed_tasks](https://github.com/tatsu-lab/stanford_alpaca/blob/main/seed_tasks.jsonl), [alpaca_data](https://github.com/tatsu-lab/stanford_alpaca/blob/main/alpaca_data.json) and [OpenAI "prompt"-"completion"](https://platform.openai.com/docs/guides/fine-tuning/data-formatting) format.
@@ -63,11 +64,13 @@ setup: |
   pip install wandb
   cd ..
   echo 'Dependencies installed.'
+  echo 'Pre-downloading base models so that you won't have to wait for long once the app is ready...'
+  python llama_lora_tuner/download_base_model.py --base_model_names='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j,databricks/dolly-v2-7b'
 
 # Start the app.
 run: |
   echo 'Starting...'
-  python llama_lora_tuner/app.py --data_dir='/data' --wandb_api_key "$([ -f /data/secrets/wandb_api_key ] && cat /data/secrets/wandb_api_key | tr -d '\n')" --base_model='decapoda-research/llama-7b-hf' --share
+  python llama_lora_tuner/app.py --data_dir='/data' --wandb_api_key="$([ -f /data/secrets/wandb_api_key ] && cat /data/secrets/wandb_api_key | tr -d '\n')" --base_model=decapoda-research/llama-7b-hf --base_model_choices='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j,databricks/dolly-v2-7b --share
 ```
 
 Then launch a cluster to run the task:
