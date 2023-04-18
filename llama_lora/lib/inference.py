@@ -66,14 +66,14 @@ def generate(
         with generate_with_streaming(**generate_params) as generator:
             for output in generator:
                 decoded_output = tokenizer.decode(output, skip_special_tokens=skip_special_tokens)
-                yield decoded_output, output
+                yield decoded_output, output, False
                 if output[-1] in [tokenizer.eos_token_id]:
                     break
 
         if generation_output:
             output = generation_output.sequences[0]
             decoded_output = tokenizer.decode(output, skip_special_tokens=skip_special_tokens)
-            yield decoded_output, output
+            yield decoded_output, output, True
 
         return  # early return for stream_output
 
@@ -82,5 +82,5 @@ def generate(
         generation_output = model.generate(**generate_params)
     output = generation_output.sequences[0]
     decoded_output = tokenizer.decode(output, skip_special_tokens=skip_special_tokens)
-    yield decoded_output, output
+    yield decoded_output, output, True
     return

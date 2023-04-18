@@ -15,6 +15,7 @@ def main(
     base_model: str = "",
     data_dir: str = "",
     base_model_choices: str = "",
+    trust_remote_code: bool = False,
     # Allows to listen on all interfaces by providing '0.0.0.0'.
     server_name: str = "127.0.0.1",
     share: bool = False,
@@ -59,6 +60,8 @@ def main(
 
     if base_model not in Global.base_model_choices:
         Global.base_model_choices = [base_model] + Global.base_model_choices
+
+    Global.trust_remote_code = trust_remote_code
 
     Global.data_dir = os.path.abspath(data_dir)
     Global.load_8bit = load_8bit

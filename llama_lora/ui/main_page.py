@@ -398,6 +398,45 @@ def main_page_custom_css():
         bottom: 16px;
     }
 
+    #inference_flagging_group {
+        position: relative;
+    }
+    #inference_flag_output {
+        min-height: 1px !important;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        pointer-events: none;
+        opacity: 0.5;
+    }
+    #inference_flag_output .wrap {
+        top: 0;
+        bottom: 0;
+        right: 0;
+        justify-content: center;
+        align-items: flex-end;
+        padding: 4px !important;
+    }
+    #inference_flag_output .wrap svg {
+        display: none;
+    }
+    .form:has(> #inference_output_for_flagging),
+    #inference_output_for_flagging {
+        display: none;
+    }
+    #inference_flagging_group:has(#inference_output_for_flagging.hidden) {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+    #inference_flag_up_btn, #inference_flag_down_btn {
+        min-width: 44px;
+        flex-grow: 1;
+    }
+    #inference_flag_btn {
+        flex-grow: 2;
+    }
+
     #dataset_plain_text_input_variables_separator textarea,
     #dataset_plain_text_input_and_output_separator textarea,
     #dataset_plain_text_data_separator textarea {

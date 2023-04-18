@@ -20,6 +20,8 @@ class Global:
     base_model_name: str = ""
     base_model_choices: List[str] = []
 
+    trust_remote_code = False
+
     # Functions
     train_fn: Any = train
 
