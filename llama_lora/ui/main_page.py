@@ -25,13 +25,29 @@ def main_page():
                     """,
                     elem_id="page_title",
                 )
-                global_base_model_select = gr.Dropdown(
-                    label="Base Model",
-                    elem_id="global_base_model_select",
-                    choices=Global.base_model_choices,
-                    value=lambda: Global.base_model_name,
-                    allow_custom_value=True,
-                )
+                with gr.Column(elem_id="global_base_model_select_group"):
+                    global_base_model_select = gr.Dropdown(
+                        label="Base Model",
+                        elem_id="global_base_model_select",
+                        choices=Global.base_model_choices,
+                        value=lambda: Global.base_model_name,
+                        allow_custom_value=True,
+                    )
+                    use_custom_tokenizer_btn = gr.Button(
+                        "Use custom tokenizer",
+                        elem_id="use_custom_tokenizer_btn")
+                    global_tokenizer_select = gr.Dropdown(
+                        label="Tokenizer",
+                        elem_id="global_tokenizer_select",
+                        # choices=[],
+                        value=lambda: Global.base_model_name,
+                        visible=False,
+                        allow_custom_value=True,
+                    )
+                    use_custom_tokenizer_btn.click(
+                        fn=lambda: gr.Dropdown.update(visible=True),
+                        inputs=None,
+                        outputs=[global_tokenizer_select])
             # global_base_model_select_loading_status = gr.Markdown("", elem_id="global_base_model_select_loading_status")
 
             with gr.Column(elem_id="main_page_tabs_container") as main_page_tabs_container:
@@ -41,13 +57,17 @@ def main_page():
                     finetune_ui()
                 with gr.Tab("Tokenizer"):
                     tokenizer_ui()
-            please_select_a_base_model_message = gr.Markdown("Please select a base model.", visible=False)
-            current_base_model_hint = gr.Markdown(lambda: Global.base_model_name, elem_id="current_base_model_hint")
+            please_select_a_base_model_message = gr.Markdown(
+                "Please select a base model.", visible=False)
+            current_base_model_hint = gr.Markdown(
+                lambda: Global.base_model_name, elem_id="current_base_model_hint")
+            current_tokenizer_hint = gr.Markdown(
+                lambda: Global.tokenizer_name, elem_id="current_tokenizer_hint")
             foot_info = gr.Markdown(get_foot_info)
 
     global_base_model_select.change(
         fn=pre_handle_change_base_model,
-        inputs=[],
+        inputs=[global_base_model_select],
         outputs=[main_page_tabs_container]
     ).then(
         fn=handle_change_base_model,
@@ -56,7 +76,23 @@ def main_page():
             main_page_tabs_container,
             please_select_a_base_model_message,
             current_base_model_hint,
+            current_tokenizer_hint,
             # global_base_model_select_loading_status,
+            foot_info
+        ]
+    )
+
+    global_tokenizer_select.change(
+        fn=pre_handle_change_tokenizer,
+        inputs=[global_tokenizer_select],
+        outputs=[main_page_tabs_container]
+    ).then(
+        fn=handle_change_tokenizer,
+        inputs=[global_tokenizer_select],
+        outputs=[
+            global_tokenizer_select,
+            main_page_tabs_container,
+            current_tokenizer_hint,
             foot_info
         ]
     )
@@ -95,6 +131,15 @@ def main_page():
           const base_model_name = current_base_model_hint_elem.innerText;
           document.querySelector('#global_base_model_select input').value = base_model_name;
           document.querySelector('#global_base_model_select').classList.add('show');
+
+          const current_tokenizer_hint_elem = document.querySelector('#current_tokenizer_hint > p');
+          const tokenizer_name = current_tokenizer_hint_elem && current_tokenizer_hint_elem.innerText;
+
+          if (tokenizer_name && tokenizer_name !== base_model_name) {
+            document.querySelector('#global_tokenizer_select input').value = tokenizer_name;
+            const btn = document.getElementById('use_custom_tokenizer_btn');
+            if (btn) btn.click();
+          }
         }, 3200);
     """ + """
     }
@@ -209,13 +254,21 @@ def main_page_custom_css():
     #page_title {
         flex-grow: 3;
     }
-    #global_base_model_select {
+    #global_base_model_select_group,
+    #global_base_model_select,
+    #global_tokenizer_select {
         position: relative;
         align-self: center;
-        min-width: 250px;
+        min-width: 250px !important;
+    }
+    #global_base_model_select,
+    #global_tokenizer_select {
+        position: relative;
         padding: 2px 2px;
         border: 0;
         box-shadow: none;
+    }
+    #global_base_model_select {
         opacity: 0;
         pointer-events: none;
     }
@@ -223,10 +276,12 @@ def main_page_custom_css():
         opacity: 1;
         pointer-events: auto;
     }
-    #global_base_model_select label .wrap-inner {
+    #global_base_model_select label .wrap-inner,
+    #global_tokenizer_select label .wrap-inner {
         padding: 2px 8px;
     }
-    #global_base_model_select label span {
+    #global_base_model_select label span,
+    #global_tokenizer_select label span {
         margin-bottom: 2px;
         font-size: 80%;
         position: absolute;
@@ -234,8 +289,27 @@ def main_page_custom_css():
         left: 8px;
         opacity: 0;
     }
-    #global_base_model_select:hover label span {
+    #global_base_model_select_group:hover label span,
+    #global_base_model_select:hover label span,
+    #global_tokenizer_select:hover label span {
         opacity: 1;
+    }
+    #use_custom_tokenizer_btn {
+        position: absolute;
+        top: -16px;
+        right: 10px;
+        border: 0 !important;
+        width: auto !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        font-weight: 100 !important;
+        text-decoration: underline;
+        font-size: 12px !important;
+        opacity: 0;
+    }
+    #global_base_model_select_group:hover #use_custom_tokenizer_btn {
+        opacity: 0.3;
     }
 
     #global_base_model_select_loading_status {
@@ -260,7 +334,7 @@ def main_page_custom_css():
         background: var(--block-background-fill);
     }
 
-    #current_base_model_hint  {
+    #current_base_model_hint, #current_tokenizer_hint {
         display: none;
     }
 
@@ -754,24 +828,61 @@ def main_page_custom_css():
     return css
 
 
-def pre_handle_change_base_model():
-    return gr.Column.update(visible=False)
+def pre_handle_change_base_model(selected_base_model_name):
+    if Global.base_model_name != selected_base_model_name:
+        return gr.Column.update(visible=False)
+    if Global.tokenizer_name and Global.tokenizer_name != selected_base_model_name:
+        return gr.Column.update(visible=False)
+    return gr.Column.update(visible=True)
 
 
 def handle_change_base_model(selected_base_model_name):
     Global.base_model_name = selected_base_model_name
+    Global.tokenizer_name = selected_base_model_name
 
+    is_base_model_selected = False
     if Global.base_model_name:
-        return gr.Column.update(visible=True), gr.Markdown.update(visible=False), Global.base_model_name, get_foot_info()
+        is_base_model_selected = True
 
-    return gr.Column.update(visible=False), gr.Markdown.update(visible=True), Global.base_model_name, get_foot_info()
+    return (
+        gr.Column.update(visible=is_base_model_selected),
+        gr.Markdown.update(visible=not is_base_model_selected),
+        Global.base_model_name,
+        Global.tokenizer_name,
+        get_foot_info())
+
+
+def pre_handle_change_tokenizer(selected_tokenizer_name):
+    if Global.tokenizer_name != selected_tokenizer_name:
+        return gr.Column.update(visible=False)
+    return gr.Column.update(visible=True)
+
+
+def handle_change_tokenizer(selected_tokenizer_name):
+    Global.tokenizer_name = selected_tokenizer_name
+
+    show_tokenizer_select = True
+    if not Global.tokenizer_name:
+        show_tokenizer_select = False
+    if Global.tokenizer_name == Global.base_model_name:
+        show_tokenizer_select = False
+
+    return (
+        gr.Dropdown.update(visible=show_tokenizer_select),
+        gr.Column.update(visible=True),
+        Global.tokenizer_name,
+        get_foot_info()
+    )
 
 
 def get_foot_info():
     info = []
     if Global.version:
         info.append(f"LLaMA-LoRA Tuner `{Global.version}`")
-    info.append(f"Base model: `{Global.base_model_name}`")
+    if Global.base_model_name:
+        info.append(f"Base model: `{Global.base_model_name}`")
+    if Global.tokenizer_name and Global.tokenizer_name != Global.base_model_name:
+        info.append(f"Tokenizer: `{Global.tokenizer_name}`")
     if Global.ui_show_sys_info:
         info.append(f"Data dir: `{Global.data_dir}`")
     return f"""\

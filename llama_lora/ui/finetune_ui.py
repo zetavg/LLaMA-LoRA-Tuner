@@ -306,6 +306,7 @@ def do_train(
 ):
     try:
         base_model_name = Global.base_model_name
+        tokenizer_name = Global.tokenizer_name or Global.base_model_name
 
         resume_from_checkpoint = None
         if continue_from_model == "-" or continue_from_model == "None":
@@ -445,7 +446,7 @@ Train data (first 10):
         Global.should_stop_training = False
 
         base_model = get_new_base_model(base_model_name)
-        tokenizer = get_tokenizer(base_model_name)
+        tokenizer = get_tokenizer(tokenizer_name)
 
         # Do not let other tqdm iterations interfere the progress reporting after training starts.
         # progress.track_tqdm = False  # setting this dynamically is not working, determining if track_tqdm should be enabled based on GPU cores at start instead.

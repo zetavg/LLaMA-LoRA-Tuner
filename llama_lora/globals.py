@@ -18,6 +18,7 @@ class Global:
 
     default_base_model_name: str = ""
     base_model_name: str = ""
+    tokenizer_name = None
     base_model_choices: List[str] = []
 
     trust_remote_code = False

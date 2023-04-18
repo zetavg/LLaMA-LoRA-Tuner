@@ -33,9 +33,10 @@ class LoggingItem:
 
 def prepare_inference(lora_model_name, progress=gr.Progress(track_tqdm=True)):
     base_model_name = Global.base_model_name
+    tokenizer_name = Global.tokenizer_name or Global.base_model_name
 
     try:
-        get_tokenizer(base_model_name)
+        get_tokenizer(tokenizer_name)
         get_model(base_model_name, lora_model_name)
         return ("", "", gr.Textbox.update(visible=False))
 
