@@ -1,4 +1,5 @@
 import gradio as gr
+import os
 import time
 import json
 
@@ -21,13 +22,21 @@ default_show_raw = True
 inference_output_lines = 12
 
 
+class LoggingItem:
+    def __init__(self, label):
+        self.label = label
+
+    def deserialize(self, value, **kwargs):
+        return value
+
+
 def prepare_inference(lora_model_name, progress=gr.Progress(track_tqdm=True)):
     base_model_name = Global.base_model_name
 
     try:
         get_tokenizer(base_model_name)
         get_model(base_model_name, lora_model_name)
-        return ("", "")
+        return ("", "", gr.Textbox.update(visible=False))
 
     except Exception as e:
         raise gr.Error(e)
@@ -65,6 +74,31 @@ def do_inference(
         prompter = Prompter(prompt_template)
         prompt = prompter.generate_prompt(variables)
 
+        generation_config = GenerationConfig(
+            # to avoid ValueError('`temperature` has to be a strictly positive float, but is 2')
+            temperature=float(temperature),
+            top_p=top_p,
+            top_k=top_k,
+            repetition_penalty=repetition_penalty,
+            num_beams=num_beams,
+            # https://github.com/huggingface/transformers/issues/22405#issuecomment-1485527953
+            do_sample=temperature > 0,
+        )
+
+        def get_output_for_flagging(output, raw_output, completed=True):
+            return json.dumps({
+                'base_model': base_model_name,
+                'adaptor_model': lora_model_name,
+                'prompt': prompt,
+                'output': output,
+                'completed': completed,
+                'raw_output': raw_output,
+                'max_new_tokens': max_new_tokens,
+                'prompt_template': prompt_template,
+                'prompt_template_variables': variables,
+                'generation_config': generation_config.to_dict(),
+            })
+
         if Global.ui_dev_mode:
             message = f"Hi, I’m currently in UI-development mode and do not have access to resources to process your request. However, this behavior is similar to what will actually happen, so you can try and see how it will work!\n\nBase model: {base_model_name}\nLoRA model: {lora_model_name}\n\nThe following is your prompt:\n\n{prompt}"
             print(message)
@@ -83,34 +117,49 @@ def do_inference(
                         out += "\n"
                         yield out
 
+                output = ""
                 for partial_sentence in word_generator(message):
+                    output = partial_sentence
                     yield (
                         gr.Textbox.update(
-                            value=partial_sentence, lines=inference_output_lines),
+                            value=output,
+                            lines=inference_output_lines),
                         json.dumps(
-                            list(range(len(partial_sentence.split()))), indent=2)
+                            list(range(len(output.split()))),
+                            indent=2),
+                        gr.Textbox.update(
+                            value=get_output_for_flagging(
+                                output, "", completed=False),
+                            visible=True)
                     )
                     time.sleep(0.05)
+
+                yield (
+                    gr.Textbox.update(
+                        value=output,
+                        lines=inference_output_lines),
+                    json.dumps(
+                        list(range(len(output.split()))),
+                        indent=2),
+                    gr.Textbox.update(
+                        value=get_output_for_flagging(
+                            output, "", completed=True),
+                        visible=True)
+                )
 
                 return
             time.sleep(1)
             yield (
                 gr.Textbox.update(value=message, lines=inference_output_lines),
-                json.dumps(list(range(len(message.split()))), indent=2)
+                json.dumps(list(range(len(message.split()))), indent=2),
+                gr.Textbox.update(
+                    value=get_output_for_flagging(message, ""),
+                    visible=True)
             )
             return
 
         tokenizer = get_tokenizer(base_model_name)
         model = get_model(base_model_name, lora_model_name)
-
-        generation_config = GenerationConfig(
-            temperature=float(temperature),  # to avoid ValueError('`temperature` has to be a strictly positive float, but is 2')
-            top_p=top_p,
-            top_k=top_k,
-            repetition_penalty=repetition_penalty,
-            num_beams=num_beams,
-            do_sample=temperature > 0,  # https://github.com/huggingface/transformers/issues/22405#issuecomment-1485527953
-        )
 
         def ui_generation_stopping_criteria(input_ids, score, **kwargs):
             if Global.should_stop_generating:
@@ -129,10 +178,8 @@ def do_inference(
             'stream_output': stream_output
         }
 
-        for (decoded_output, output) in generate(**generation_args):
-            raw_output_str = None
-            if show_raw:
-                raw_output_str = str(output)
+        for (decoded_output, output, completed) in generate(**generation_args):
+            raw_output_str = str(output)
             response = prompter.get_response(decoded_output)
 
             if Global.should_stop_generating:
@@ -141,7 +188,12 @@ def do_inference(
             yield (
                 gr.Textbox.update(
                     value=response, lines=inference_output_lines),
-                raw_output_str)
+                raw_output_str,
+                gr.Textbox.update(
+                    value=get_output_for_flagging(
+                        decoded_output, raw_output_str, completed=completed),
+                    visible=True)
+            )
 
             if Global.should_stop_generating:
                 # If the user stops the generation, and then clicks the
@@ -199,11 +251,13 @@ def get_warning_message_for_lora_model_and_prompt_template(lora_model, prompt_te
     if lora_mode_info and isinstance(lora_mode_info, dict):
         model_base_model = lora_mode_info.get("base_model")
         if model_base_model and model_base_model != Global.base_model_name:
-            messages.append(f"⚠️ This model was trained on top of base model `{model_base_model}`, it might not work properly with the selected base model `{Global.base_model_name}`.")
+            messages.append(
+                f"⚠️ This model was trained on top of base model `{model_base_model}`, it might not work properly with the selected base model `{Global.base_model_name}`.")
 
         model_prompt_template = lora_mode_info.get("prompt_template")
         if model_prompt_template and model_prompt_template != prompt_template:
-            messages.append(f"This model was trained with prompt template `{model_prompt_template}`.")
+            messages.append(
+                f"This model was trained with prompt template `{model_prompt_template}`.")
 
     return " ".join(messages)
 
@@ -221,7 +275,8 @@ def handle_prompt_template_change(prompt_template, lora_model):
 
     model_prompt_template_message_update = gr.Markdown.update(
         "", visible=False)
-    warning_message = get_warning_message_for_lora_model_and_prompt_template(lora_model, prompt_template)
+    warning_message = get_warning_message_for_lora_model_and_prompt_template(
+        lora_model, prompt_template)
     if warning_message:
         model_prompt_template_message_update = gr.Markdown.update(
             warning_message, visible=True)
@@ -241,7 +296,8 @@ def handle_lora_model_change(lora_model, prompt_template):
 
     model_prompt_template_message_update = gr.Markdown.update(
         "", visible=False)
-    warning_message = get_warning_message_for_lora_model_and_prompt_template(lora_model, prompt_template)
+    warning_message = get_warning_message_for_lora_model_and_prompt_template(
+        lora_model, prompt_template)
     if warning_message:
         model_prompt_template_message_update = gr.Markdown.update(
             warning_message, visible=True)
@@ -260,6 +316,56 @@ def update_prompt_preview(prompt_template,
 
 
 def inference_ui():
+    flagging_dir = os.path.join(Global.data_dir, "flagging", "inference")
+    if not os.path.exists(flagging_dir):
+        os.makedirs(flagging_dir)
+
+    flag_callback = gr.CSVLogger()
+    flag_components = [
+        LoggingItem("Base Model"),
+        LoggingItem("Adaptor Model"),
+        LoggingItem("Type"),
+        LoggingItem("Prompt"),
+        LoggingItem("Output"),
+        LoggingItem("Completed"),
+        LoggingItem("Config"),
+        LoggingItem("Raw Output"),
+        LoggingItem("Max New Tokens"),
+        LoggingItem("Prompt Template"),
+        LoggingItem("Prompt Template Variables"),
+        LoggingItem("Generation Config"),
+    ]
+    flag_callback.setup(flag_components, flagging_dir)
+
+    def get_flag_callback_args(output_for_flagging_str, flag_type):
+        output_for_flagging = json.loads(output_for_flagging_str)
+        generation_config = output_for_flagging.get("generation_config", {})
+        config = []
+        if generation_config.get('do_sample', False):
+            config.append(
+                f"Temperature: {generation_config.get('temperature')}")
+            config.append(f"Top P: {generation_config.get('top_p')}")
+            config.append(f"Top K: {generation_config.get('top_k')}")
+        num_beams = generation_config.get('num_beams', 1)
+        if num_beams > 1:
+            config.append(f"Beams: {generation_config.get('num_beams')}")
+        config.append(f"RP: {generation_config.get('repetition_penalty')}")
+        return [
+            output_for_flagging.get("base_model", ""),
+            output_for_flagging.get("adaptor_model", ""),
+            flag_type,
+            output_for_flagging.get("prompt", ""),
+            output_for_flagging.get("output", ""),
+            str(output_for_flagging.get("completed", "")),
+            ", ".join(config),
+            output_for_flagging.get("raw_output", ""),
+            str(output_for_flagging.get("max_new_tokens", "")),
+            output_for_flagging.get("prompt_template", ""),
+            json.dumps(output_for_flagging.get(
+                "prompt_template_variables", "")),
+            json.dumps(output_for_flagging.get("generation_config", "")),
+        ]
+
     things_that_might_timeout = []
 
     with gr.Blocks() as inference_ui_blocks:
@@ -387,6 +493,47 @@ def inference_ui():
                     inference_output = gr.Textbox(
                         lines=inference_output_lines, label="Output", elem_id="inference_output")
                     inference_output.style(show_copy_button=True)
+
+                    with gr.Row(elem_id="inference_flagging_group"):
+                        output_for_flagging = gr.Textbox(
+                            interactive=False, visible=False,
+                            elem_id="inference_output_for_flagging")
+                        flag_btn = gr.Button(
+                            "Flag", elem_id="inference_flag_btn")
+                        flag_up_btn = gr.Button(
+                            "👍", elem_id="inference_flag_up_btn")
+                        flag_down_btn = gr.Button(
+                            "👎", elem_id="inference_flag_down_btn")
+                        flag_output = gr.Markdown(
+                            "", elem_id="inference_flag_output")
+                        flag_btn.click(
+                            lambda d: (flag_callback.flag(
+                                get_flag_callback_args(d, "Flag"),
+                                flag_option="Flag",
+                                username=None
+                            ), "")[1],
+                            inputs=[output_for_flagging],
+                            outputs=[flag_output],
+                            preprocess=False)
+                        flag_up_btn.click(
+                            lambda d: (flag_callback.flag(
+                                get_flag_callback_args(d, "👍"),
+                                flag_option="Up Vote",
+                                username=None
+                            ), "")[1],
+                            inputs=[output_for_flagging],
+                            outputs=[flag_output],
+                            preprocess=False)
+                        flag_down_btn.click(
+                            lambda d: (flag_callback.flag(
+                                get_flag_callback_args(d, "👎"),
+                                flag_option="Down Vote",
+                                username=None
+                            ), "")[1],
+                            inputs=[output_for_flagging],
+                            outputs=[flag_output],
+                            preprocess=False)
+
                     with gr.Accordion(
                             "Raw Output",
                             open=not default_show_raw,
@@ -400,7 +547,8 @@ def inference_ui():
                             interactive=False,
                             elem_id="inference_raw_output")
 
-        reload_selected_models_btn = gr.Button("", elem_id="inference_reload_selected_models_btn")
+        reload_selected_models_btn = gr.Button(
+            "", elem_id="inference_reload_selected_models_btn")
 
         show_raw_change_event = show_raw.change(
             fn=lambda show_raw: gr.Accordion.update(visible=show_raw),
@@ -440,7 +588,8 @@ def inference_ui():
         generate_event = generate_btn.click(
             fn=prepare_inference,
             inputs=[lora_model],
-            outputs=[inference_output, inference_raw_output],
+            outputs=[inference_output,
+                     inference_raw_output, output_for_flagging],
         ).then(
             fn=do_inference,
             inputs=[
@@ -457,7 +606,8 @@ def inference_ui():
                 stream_output,
                 show_raw,
             ],
-            outputs=[inference_output, inference_raw_output],
+            outputs=[inference_output,
+                     inference_raw_output, output_for_flagging],
             api_name="inference"
         )
         stop_btn.click(
