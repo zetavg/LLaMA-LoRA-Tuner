@@ -5,7 +5,7 @@ import os
 import re
 import secrets
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, Union
 
 class CSVLogger(FlaggingCallback):
     """
@@ -26,7 +26,7 @@ class CSVLogger(FlaggingCallback):
     def setup(
         self,
         components: List[Any],
-        flagging_dir: str | Path,
+        flagging_dir: Union[str, Path],
     ):
         self.components = components
         self.flagging_dir = flagging_dir
@@ -36,7 +36,7 @@ class CSVLogger(FlaggingCallback):
         self,
         flag_data: List[Any],
         flag_option: str = "",
-        username: str | None = None,
+        username: Union[str, None] = None,
         filename="log.csv",
     ) -> int:
         flagging_dir = self.flagging_dir
