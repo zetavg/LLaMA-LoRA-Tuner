@@ -27,6 +27,8 @@ class CSVLogger(FlaggingCallback):
         self,
         components: List[Any],
         flagging_dir: Union[str, Path],
+        components,
+        flagging_dir,
     ):
         self.components = components
         self.flagging_dir = flagging_dir

@@ -1,0 +1,8 @@
+{
+  "hf_model_name": "zetavg/alpaca-lora-7b-yoda-v01",
+  "load_from_hf": true,
+  "base_model": "decapoda-research/llama-7b-hf",
+  "prompt_template": "user_and_ai",
+  "dataset_name": "yoda.json",
+  "continued_from_model": "alpaca-lora-7b"
+}
