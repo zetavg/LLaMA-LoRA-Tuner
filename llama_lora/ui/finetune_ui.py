@@ -299,6 +299,8 @@ def do_train(
     lora_modules_to_save,
     load_in_8bit,
     fp16,
+    bf16,
+    gradient_checkpointing,
     save_steps,
     save_total_limit,
     logging_steps,
@@ -393,6 +395,8 @@ Train options: {json.dumps({
     'lora_modules_to_save': lora_modules_to_save,
     'load_in_8bit': load_in_8bit,
     'fp16': fp16,
+    'bf16': bf16,
+    'gradient_checkpointing': gradient_checkpointing,
     'model_name': model_name,
     'continue_from_model': continue_from_model,
     'continue_from_checkpoint': continue_from_checkpoint,
@@ -532,6 +536,8 @@ Train data (first 10):
             train_on_inputs=train_on_inputs,
             load_in_8bit=load_in_8bit,
             fp16=fp16,
+            bf16=bf16,
+            gradient_checkpointing=gradient_checkpointing,
             group_by_length=False,
             resume_from_checkpoint=resume_from_checkpoint,
             save_steps=save_steps,
@@ -548,8 +554,9 @@ Train data (first 10):
         logs_str = "\n".join([json.dumps(log)
                              for log in log_history]) or "None"
 
-        result_message = f"Training ended:\n{str(train_output)}\n\nLogs:\n{logs_str}"
+        result_message = f"Training ended:\n{str(train_output)}"
         print(result_message)
+        # result_message += f"\n\nLogs:\n{logs_str}"
 
         clear_cache()
 
@@ -597,6 +604,8 @@ def handle_load_params_from_model(
     lora_modules_to_save,
     load_in_8bit,
     fp16,
+    bf16,
+    gradient_checkpointing,
     save_steps,
     save_total_limit,
     logging_steps,
@@ -650,18 +659,24 @@ def handle_load_params_from_model(
                 lora_dropout = value
             elif key == "lora_target_modules":
                 lora_target_modules = value
-                for element in value:
-                    if element not in lora_target_module_choices:
-                        lora_target_module_choices.append(element)
+                if value:
+                    for element in value:
+                        if element not in lora_target_module_choices:
+                            lora_target_module_choices.append(element)
             elif key == "lora_modules_to_save":
                 lora_modules_to_save = value
-                for element in value:
-                    if element not in lora_modules_to_save_choices:
-                        lora_modules_to_save_choices.append(element)
+                if value:
+                    for element in value:
+                        if element not in lora_modules_to_save_choices:
+                            lora_modules_to_save_choices.append(element)
             elif key == "load_in_8bit":
                 load_in_8bit = value
             elif key == "fp16":
                 fp16 = value
+            elif key == "bf16":
+                bf16 = value
+            elif key == "gradient_checkpointing":
+                gradient_checkpointing = value
             elif key == "save_steps":
                 save_steps = value
             elif key == "save_total_limit":
@@ -705,6 +720,8 @@ def handle_load_params_from_model(
             value=lora_modules_to_save, choices=lora_modules_to_save_choices),
         load_in_8bit,
         fp16,
+        bf16,
+        gradient_checkpointing,
         save_steps,
         save_total_limit,
         logging_steps,
@@ -949,9 +966,11 @@ def finetune_ui():
                     )
 
                 with gr.Accordion("Advanced Options", open=False, elem_id="finetune_advance_options_accordion"):
-                    with gr.Row():
-                        load_in_8bit = gr.Checkbox(label="8bit", value=True)
+                    with gr.Row(elem_id="finetune_advanced_options_checkboxes"):
+                        load_in_8bit = gr.Checkbox(label="8bit", value=False)
                         fp16 = gr.Checkbox(label="FP16", value=True)
+                        bf16 = gr.Checkbox(label="BF16", value=False)
+                        gradient_checkpointing = gr.Checkbox(label="gradient_checkpointing", value=False)
 
             with gr.Column():
                 lora_r = gr.Slider(
@@ -1002,57 +1021,62 @@ def finetune_ui():
                                  lora_target_modules_add, lora_target_modules],
                     ))
 
-                with gr.Column(elem_id="finetune_lora_modules_to_save_box"):
-                    lora_modules_to_save = gr.CheckboxGroup(
-                        label="LoRA Modules To Save",
-                        choices=default_lora_modules_to_save_choices,
-                        value=[],
-                        # info="",
-                        elem_id="finetune_lora_modules_to_save"
-                    )
-                    lora_modules_to_save_choices = gr.State(
-                        value=default_lora_modules_to_save_choices)
-                    with gr.Box(elem_id="finetune_lora_modules_to_save_add_box"):
-                        with gr.Row():
-                            lora_modules_to_save_add = gr.Textbox(
-                                lines=1, max_lines=1, show_label=False,
-                                elem_id="finetune_lora_modules_to_save_add"
-                            )
-                            lora_modules_to_save_add_btn = gr.Button(
-                                "Add",
-                                elem_id="finetune_lora_modules_to_save_add_btn"
-                            )
-                            lora_modules_to_save_add_btn.style(
-                                full_width=False, size="sm")
-                    things_that_might_timeout.append(lora_modules_to_save_add_btn.click(
-                        handle_lora_modules_to_save_add,
-                        inputs=[lora_modules_to_save_choices,
-                                lora_modules_to_save_add, lora_modules_to_save],
-                        outputs=[lora_modules_to_save_choices,
-                                 lora_modules_to_save_add, lora_modules_to_save],
-                    ))
+                with gr.Accordion("Advanced LoRA Options", open=False, elem_id="finetune_advance_lora_options_accordion"):
+                    with gr.Column(elem_id="finetune_lora_modules_to_save_box"):
+                        lora_modules_to_save = gr.CheckboxGroup(
+                            label="LoRA Modules To Save",
+                            choices=default_lora_modules_to_save_choices,
+                            value=[],
+                            # info="",
+                            elem_id="finetune_lora_modules_to_save"
+                        )
+                        lora_modules_to_save_choices = gr.State(
+                            value=default_lora_modules_to_save_choices)
+                        with gr.Box(elem_id="finetune_lora_modules_to_save_add_box"):
+                            with gr.Row():
+                                lora_modules_to_save_add = gr.Textbox(
+                                    lines=1, max_lines=1, show_label=False,
+                                    elem_id="finetune_lora_modules_to_save_add"
+                                )
+                                lora_modules_to_save_add_btn = gr.Button(
+                                    "Add",
+                                    elem_id="finetune_lora_modules_to_save_add_btn"
+                                )
+                                lora_modules_to_save_add_btn.style(
+                                    full_width=False, size="sm")
+                        things_that_might_timeout.append(lora_modules_to_save_add_btn.click(
+                            handle_lora_modules_to_save_add,
+                            inputs=[lora_modules_to_save_choices,
+                                    lora_modules_to_save_add, lora_modules_to_save],
+                            outputs=[lora_modules_to_save_choices,
+                                     lora_modules_to_save_add, lora_modules_to_save],
+                        ))
 
-                with gr.Row():
-                    logging_steps = gr.Number(
-                        label="Logging Steps",
-                        precision=0,
-                        value=10,
-                        elem_id="finetune_logging_steps"
-                    )
-                    save_steps = gr.Number(
-                        label="Steps Per Save",
-                        precision=0,
-                        value=500,
-                        elem_id="finetune_save_steps"
-                    )
-                    save_total_limit = gr.Number(
-                        label="Saved Checkpoints Limit",
-                        precision=0,
-                        value=5,
-                        elem_id="finetune_save_total_limit"
-                    )
+                # with gr.Column():
+                #     pass
 
-                with gr.Column():
+                with gr.Column(elem_id="finetune_log_and_save_options_group_container"):
+                    with gr.Row(elem_id="finetune_log_and_save_options_group"):
+                        logging_steps = gr.Number(
+                            label="Logging Steps",
+                            precision=0,
+                            value=10,
+                            elem_id="finetune_logging_steps"
+                        )
+                        save_steps = gr.Number(
+                            label="Steps Per Save",
+                            precision=0,
+                            value=500,
+                            elem_id="finetune_save_steps"
+                        )
+                        save_total_limit = gr.Number(
+                            label="Saved Checkpoints Limit",
+                            precision=0,
+                            value=5,
+                            elem_id="finetune_save_total_limit"
+                        )
+
+                with gr.Column(elem_id="finetune_model_name_group"):
                     model_name = gr.Textbox(
                         lines=1, label="LoRA Model Name", value=random_name,
                         max_lines=1,
@@ -1123,6 +1147,8 @@ def finetune_ui():
             lora_modules_to_save,
             load_in_8bit,
             fp16,
+            bf16,
+            gradient_checkpointing,
             save_steps,
             save_total_limit,
             logging_steps,

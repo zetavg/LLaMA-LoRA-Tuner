@@ -734,11 +734,12 @@ def main_page_custom_css():
     }
 
     #finetune_lora_target_modules_box,
-    #finetune_lora_modules_to_save_box {
-        margin-top: calc((var(--layout-gap) + 8px) * -1)
+    #finetune_lora_target_modules_box + #finetune_lora_modules_to_save_box {
+        margin-top: calc((var(--layout-gap) + 8px) * -1);
+        flex-grow: 0 !important;
     }
     #finetune_lora_target_modules_box > .form,
-    #finetune_lora_modules_to_save_box > .form {
+    #finetune_lora_target_modules_box + #finetune_lora_modules_to_save_box > .form {
         padding-top: calc((var(--layout-gap) + 8px) / 3);
         border-top: 0;
         border-top-left-radius: 0;
@@ -747,7 +748,7 @@ def main_page_custom_css():
         position: relative;
     }
     #finetune_lora_target_modules_box > .form::before,
-    #finetune_lora_modules_to_save_box > .form::before {
+    #finetune_lora_target_modules_box + #finetune_lora_modules_to_save_box > .form::before {
         content: "";
         display: block;
         position: absolute;
@@ -800,6 +801,18 @@ def main_page_custom_css():
     #finetune_save_steps input,
     #finetune_logging_steps input {
         padding: 4px 8px;
+    }
+
+    #finetune_advanced_options_checkboxes > * > * {
+        min-width: auto;
+    }
+
+    #finetune_log_and_save_options_group_container {
+        flex-grow: 1 !important;
+        justify-content: flex-end;
+    }
+    #finetune_model_name_group {
+        flex-grow: 0 !important;
     }
 
     @media screen and (max-width: 392px) {

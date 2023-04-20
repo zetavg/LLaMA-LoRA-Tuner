@@ -28,8 +28,11 @@ def train(
     tokenizer: Any,
     output_dir: str,
     train_data: List[Any],
+    #
     load_in_8bit=True,
     fp16=True,
+    bf16=False,
+    gradient_checkpointing=False,
     # training hyperparams
     micro_batch_size: int = 4,
     gradient_accumulation_steps: int = 32,
@@ -79,18 +82,21 @@ def train(
         'lora_alpha': lora_alpha,
         'lora_dropout': lora_dropout,
         'lora_target_modules': lora_target_modules,
+        'lora_modules_to_save': lora_modules_to_save or [],
         'train_on_inputs': train_on_inputs,
         'group_by_length': group_by_length,
         'load_in_8bit': load_in_8bit,
         'fp16': fp16,
+        'bf16': bf16,
+        'gradient_checkpointing': gradient_checkpointing,
         'save_steps': save_steps,
         'save_total_limit': save_total_limit,
         'logging_steps': logging_steps,
     }
     if val_set_size and val_set_size > 0:
         finetune_args['val_set_size'] = val_set_size
-    if lora_modules_to_save:
-        finetune_args['lora_modules_to_save'] = lora_modules_to_save
+    # if lora_modules_to_save:
+    #     finetune_args['lora_modules_to_save'] = lora_modules_to_save
     if resume_from_checkpoint:
         finetune_args['resume_from_checkpoint'] = resume_from_checkpoint
 
@@ -232,6 +238,8 @@ def train(
         task_type="CAUSAL_LM",
     )
     model = get_peft_model(model, config)
+    if bf16:
+        model = model.to(torch.bfloat16)
 
     # If train_data is a list, convert it to datasets.Dataset
     if isinstance(train_data, list):
@@ -289,11 +297,13 @@ def train(
         # https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments
         args=transformers.TrainingArguments(
             per_device_train_batch_size=micro_batch_size,
+            gradient_checkpointing=gradient_checkpointing,
             gradient_accumulation_steps=gradient_accumulation_steps,
             warmup_steps=100,
             num_train_epochs=num_train_epochs,
             learning_rate=learning_rate,
             fp16=fp16,
+            bf16=bf16,
             logging_steps=logging_steps,
             optim="adamw_torch",
             evaluation_strategy="steps" if val_set_size > 0 else "no",
