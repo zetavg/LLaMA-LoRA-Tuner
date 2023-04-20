@@ -735,11 +735,11 @@ def main_page_custom_css():
 
     #finetune_lora_target_modules_box,
     #finetune_lora_modules_to_save_box {
-        margin-top: -24px;
+        margin-top: calc((var(--layout-gap) + 8px) * -1)
     }
     #finetune_lora_target_modules_box > .form,
     #finetune_lora_modules_to_save_box > .form {
-        padding-top: 8px;
+        padding-top: calc((var(--layout-gap) + 8px) / 3);
         border-top: 0;
         border-top-left-radius: 0;
         border-top-right-radius: 0;
@@ -751,7 +751,7 @@ def main_page_custom_css():
         content: "";
         display: block;
         position: absolute;
-        top: 8px;
+        top: calc((var(--layout-gap) + 8px) / 3);
         left: 0;
         right: 0;
         height: 1px;
