@@ -297,6 +297,8 @@ def do_train(
     lora_dropout,
     lora_target_modules,
     lora_modules_to_save,
+    load_in_8bit,
+    fp16,
     save_steps,
     save_total_limit,
     logging_steps,
@@ -389,6 +391,8 @@ Train options: {json.dumps({
     'lora_dropout': lora_dropout,
     'lora_target_modules': lora_target_modules,
     'lora_modules_to_save': lora_modules_to_save,
+    'load_in_8bit': load_in_8bit,
+    'fp16': fp16,
     'model_name': model_name,
     'continue_from_model': continue_from_model,
     'continue_from_checkpoint': continue_from_checkpoint,
@@ -526,6 +530,8 @@ Train data (first 10):
             lora_target_modules=lora_target_modules,
             lora_modules_to_save=lora_modules_to_save,
             train_on_inputs=train_on_inputs,
+            load_in_8bit=load_in_8bit,
+            fp16=fp16,
             group_by_length=False,
             resume_from_checkpoint=resume_from_checkpoint,
             save_steps=save_steps,
@@ -589,6 +595,8 @@ def handle_load_params_from_model(
     lora_dropout,
     lora_target_modules,
     lora_modules_to_save,
+    load_in_8bit,
+    fp16,
     save_steps,
     save_total_limit,
     logging_steps,
@@ -650,6 +658,10 @@ def handle_load_params_from_model(
                 for element in value:
                     if element not in lora_modules_to_save_choices:
                         lora_modules_to_save_choices.append(element)
+            elif key == "load_in_8bit":
+                load_in_8bit = value
+            elif key == "fp16":
+                fp16 = value
             elif key == "save_steps":
                 save_steps = value
             elif key == "save_total_limit":
@@ -691,6 +703,8 @@ def handle_load_params_from_model(
                                 choices=lora_target_module_choices),
         gr.CheckboxGroup.update(
             value=lora_modules_to_save, choices=lora_modules_to_save_choices),
+        load_in_8bit,
+        fp16,
         save_steps,
         save_total_limit,
         logging_steps,
@@ -934,6 +948,11 @@ def finetune_ui():
                         )
                     )
 
+                with gr.Accordion("Advanced Options", open=False, elem_id="finetune_advance_options_accordion"):
+                    with gr.Row():
+                        load_in_8bit = gr.Checkbox(label="8bit", value=True)
+                        fp16 = gr.Checkbox(label="FP16", value=True)
+
             with gr.Column():
                 lora_r = gr.Slider(
                     minimum=1, maximum=16, step=1, value=8,
@@ -1102,6 +1121,8 @@ def finetune_ui():
             lora_dropout,
             lora_target_modules,
             lora_modules_to_save,
+            load_in_8bit,
+            fp16,
             save_steps,
             save_total_limit,
             logging_steps,

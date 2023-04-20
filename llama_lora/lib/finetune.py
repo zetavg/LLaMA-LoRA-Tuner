@@ -28,6 +28,8 @@ def train(
     tokenizer: Any,
     output_dir: str,
     train_data: List[Any],
+    load_in_8bit=True,
+    fp16=True,
     # training hyperparams
     micro_batch_size: int = 4,
     gradient_accumulation_steps: int = 32,
@@ -79,6 +81,8 @@ def train(
         'lora_target_modules': lora_target_modules,
         'train_on_inputs': train_on_inputs,
         'group_by_length': group_by_length,
+        'load_in_8bit': load_in_8bit,
+        'fp16': fp16,
         'save_steps': save_steps,
         'save_total_limit': save_total_limit,
         'logging_steps': logging_steps,
@@ -140,7 +144,7 @@ def train(
         model_name = model
         model = AutoModelForCausalLM.from_pretrained(
             base_model,
-            load_in_8bit=True,
+            load_in_8bit=load_in_8bit,
             torch_dtype=torch.float16,
             llm_int8_skip_modules=lora_modules_to_save,
             device_map=device_map,
@@ -289,7 +293,7 @@ def train(
             warmup_steps=100,
             num_train_epochs=num_train_epochs,
             learning_rate=learning_rate,
-            # fp16=True,
+            fp16=fp16,
             logging_steps=logging_steps,
             optim="adamw_torch",
             evaluation_strategy="steps" if val_set_size > 0 else "no",
