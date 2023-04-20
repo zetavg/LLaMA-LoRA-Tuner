@@ -733,24 +733,54 @@ def main_page_custom_css():
         flex: 2;
     }
 
-    #finetune_lora_target_modules_add_box {
+    #finetune_lora_target_modules_box,
+    #finetune_lora_modules_to_save_box {
+        margin-top: -24px;
+    }
+    #finetune_lora_target_modules_box > .form,
+    #finetune_lora_modules_to_save_box > .form {
+        padding-top: 8px;
+        border-top: 0;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        background: var(--block-background-fill);
+        position: relative;
+    }
+    #finetune_lora_target_modules_box > .form::before,
+    #finetune_lora_modules_to_save_box > .form::before {
+        content: "";
+        display: block;
+        position: absolute;
+        top: 8px;
+        left: 0;
+        right: 0;
+        height: 1px;
+        z-index: 1;
+        background: var(--block-border-color);
+    }
+    #finetune_lora_target_modules_add_box,
+    #finetune_lora_modules_to_save_add_box {
         margin-top: -24px;
         padding-top: 8px;
         border-top-left-radius: 0;
         border-top-right-radius: 0;
         border-top: 0;
     }
-    #finetune_lora_target_modules_add_box > * > .form {
+    #finetune_lora_target_modules_add_box > * > .form,
+    #finetune_lora_modules_to_save_add_box > * > .form {
         border: 0;
         box-shadow: none;
     }
-    #finetune_lora_target_modules_add {
+    #finetune_lora_target_modules_add,
+    #finetune_lora_modules_to_save_add {
         padding: 0;
     }
-    #finetune_lora_target_modules_add input {
+    #finetune_lora_target_modules_add input,
+    #finetune_lora_modules_to_save_add input {
         padding: 4px 8px;
     }
-    #finetune_lora_target_modules_add_btn {
+    #finetune_lora_target_modules_add_btn,
+    #finetune_lora_modules_to_save_add_btn {
         min-width: 60px;
     }
 

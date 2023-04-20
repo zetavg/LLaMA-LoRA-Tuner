@@ -1,7 +1,8 @@
 import os
 import sys
+import re
 import importlib
-from typing import Any, List
+from typing import Any, List, Union
 
 import json
 
@@ -18,7 +19,7 @@ from peft import (
     prepare_model_for_int8_training,
     set_peft_model_state_dict,
 )
-from transformers import LlamaForCausalLM, LlamaTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, LlamaTokenizer
 
 
 def train(
@@ -42,6 +43,7 @@ def train(
         "q_proj",
         "v_proj",
     ],
+    lora_modules_to_save: Union[List[str], None] = [],
     # llm hyperparams
     train_on_inputs: bool = True,  # if False, masks out inputs in loss
     group_by_length: bool = False,  # faster, but produces an odd training loss curve
@@ -61,6 +63,8 @@ def train(
     wandb_watch: str = "false",  # options: false | gradients | all
     wandb_log_model: str = "true",  # options: false | true
 ):
+    if lora_modules_to_save is not None and len(lora_modules_to_save) <= 0:
+        lora_modules_to_save = None
     # for logging
     finetune_args = {
         'micro_batch_size': micro_batch_size,
@@ -81,6 +85,8 @@ def train(
     }
     if val_set_size and val_set_size > 0:
         finetune_args['val_set_size'] = val_set_size
+    if lora_modules_to_save:
+        finetune_args['lora_modules_to_save'] = lora_modules_to_save
     if resume_from_checkpoint:
         finetune_args['resume_from_checkpoint'] = resume_from_checkpoint
 
@@ -131,19 +137,39 @@ def train(
 
     model = base_model
     if isinstance(model, str):
-        model = LlamaForCausalLM.from_pretrained(
+        model_name = model
+        model = AutoModelForCausalLM.from_pretrained(
             base_model,
             load_in_8bit=True,
             torch_dtype=torch.float16,
+            llm_int8_skip_modules=lora_modules_to_save,
             device_map=device_map,
         )
+        if re.match("[^/]+/llama", model_name):
+            model.config.pad_token_id = 0
+            model.config.bos_token_id = 1
+            model.config.eos_token_id = 2
 
     if isinstance(tokenizer, str):
-        tokenizer = LlamaTokenizer.from_pretrained(tokenizer)
+        tokenizer_name = tokenizer
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(tokenizer)
+        except Exception as e:
+            if 'LLaMATokenizer' in str(e):
+                tokenizer = LlamaTokenizer.from_pretrained(
+                    tokenizer_name,
+                )
+            else:
+                raise e
 
-    tokenizer.pad_token_id = (
-        0  # unk. we want this to be different from the eos token
-    )
+        if re.match("[^/]+/llama", tokenizer_name):
+            tokenizer.pad_token_id = 0
+            tokenizer.bos_token_id = 1
+            tokenizer.eos_token_id = 2
+
+    # tokenizer.pad_token_id = (
+    #     0  # unk. we want this to be different from the eos token
+    # )
     tokenizer.padding_side = "left"  # Allow batched inference
 
     def tokenize(prompt, add_eos_token=True):
@@ -196,6 +222,7 @@ def train(
         r=lora_r,
         lora_alpha=lora_alpha,
         target_modules=lora_target_modules,
+        modules_to_save=lora_modules_to_save,
         lora_dropout=lora_dropout,
         bias="none",
         task_type="CAUSAL_LM",

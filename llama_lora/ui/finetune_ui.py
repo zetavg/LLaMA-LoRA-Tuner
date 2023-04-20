@@ -296,6 +296,7 @@ def do_train(
     lora_alpha,
     lora_dropout,
     lora_target_modules,
+    lora_modules_to_save,
     save_steps,
     save_total_limit,
     logging_steps,
@@ -314,16 +315,22 @@ def do_train(
         if continue_from_checkpoint == "-" or continue_from_checkpoint == "None":
             continue_from_checkpoint = None
         if continue_from_model:
-            resume_from_checkpoint = os.path.join(Global.data_dir, "lora_models", continue_from_model)
+            resume_from_checkpoint = os.path.join(
+                Global.data_dir, "lora_models", continue_from_model)
             if continue_from_checkpoint:
-                resume_from_checkpoint = os.path.join(resume_from_checkpoint, continue_from_checkpoint)
-                will_be_resume_from_checkpoint_file = os.path.join(resume_from_checkpoint, "pytorch_model.bin")
+                resume_from_checkpoint = os.path.join(
+                    resume_from_checkpoint, continue_from_checkpoint)
+                will_be_resume_from_checkpoint_file = os.path.join(
+                    resume_from_checkpoint, "pytorch_model.bin")
                 if not os.path.exists(will_be_resume_from_checkpoint_file):
-                    raise ValueError(f"Unable to resume from checkpoint {continue_from_model}/{continue_from_checkpoint}. Resuming is only possible from checkpoints stored locally in the data directory. Please ensure that the file '{will_be_resume_from_checkpoint_file}' exists.")
+                    raise ValueError(
+                        f"Unable to resume from checkpoint {continue_from_model}/{continue_from_checkpoint}. Resuming is only possible from checkpoints stored locally in the data directory. Please ensure that the file '{will_be_resume_from_checkpoint_file}' exists.")
             else:
-                will_be_resume_from_checkpoint_file = os.path.join(resume_from_checkpoint, "adapter_model.bin")
+                will_be_resume_from_checkpoint_file = os.path.join(
+                    resume_from_checkpoint, "adapter_model.bin")
                 if not os.path.exists(will_be_resume_from_checkpoint_file):
-                    raise ValueError(f"Unable to continue from model {continue_from_model}. Continuation is only possible from models stored locally in the data directory. Please ensure that the file '{will_be_resume_from_checkpoint_file}' exists.")
+                    raise ValueError(
+                        f"Unable to continue from model {continue_from_model}. Continuation is only possible from models stored locally in the data directory. Please ensure that the file '{will_be_resume_from_checkpoint_file}' exists.")
 
         output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
         if os.path.exists(output_dir):
@@ -334,7 +341,11 @@ def do_train(
         if not should_training_progress_track_tqdm:
             progress(0, desc="Preparing train data...")
 
-        unload_models()  # Need RAM for training
+        # Need RAM for training
+        unload_models()
+        Global.new_base_model_that_is_ready_to_be_used = None
+        Global.name_of_new_base_model_that_is_ready_to_be_used = None
+        clear_cache()
 
         prompter = Prompter(template)
         # variable_names = prompter.get_variable_names()
@@ -363,6 +374,31 @@ def do_train(
         if Global.ui_dev_mode:
             Global.should_stop_training = False
 
+            message = f"""Currently in UI dev mode, not doing the actual training.
+
+Train options: {json.dumps({
+    'max_seq_length': max_seq_length,
+    'val_set_size': evaluate_data_count,
+    'micro_batch_size': micro_batch_size,
+    'gradient_accumulation_steps': gradient_accumulation_steps,
+    'epochs': epochs,
+    'learning_rate': learning_rate,
+    'train_on_inputs': train_on_inputs,
+    'lora_r': lora_r,
+    'lora_alpha': lora_alpha,
+    'lora_dropout': lora_dropout,
+    'lora_target_modules': lora_target_modules,
+    'lora_modules_to_save': lora_modules_to_save,
+    'model_name': model_name,
+    'continue_from_model': continue_from_model,
+    'continue_from_checkpoint': continue_from_checkpoint,
+}, indent=2)}
+
+Train data (first 10):
+{json.dumps(train_data[:10], indent=2)}
+            """
+            print(message)
+
             for i in range(300):
                 if (Global.should_stop_training):
                     return
@@ -380,34 +416,12 @@ def do_train(
 
                 time.sleep(0.1)
 
-            message = f"""Currently in UI dev mode, not doing the actual training.
-
-Train options: {json.dumps({
-    'max_seq_length': max_seq_length,
-    'val_set_size': evaluate_data_count,
-    'micro_batch_size': micro_batch_size,
-    'gradient_accumulation_steps': gradient_accumulation_steps,
-    'epochs': epochs,
-    'learning_rate': learning_rate,
-    'train_on_inputs': train_on_inputs,
-    'lora_r': lora_r,
-    'lora_alpha': lora_alpha,
-    'lora_dropout': lora_dropout,
-    'lora_target_modules': lora_target_modules,
-    'model_name': model_name,
-    'continue_from_model': continue_from_model,
-    'continue_from_checkpoint': continue_from_checkpoint,
-}, indent=2)}
-
-Train data (first 10):
-{json.dumps(train_data[:10], indent=2)}
-            """
-            print(message)
             time.sleep(2)
             return message
 
         if not should_training_progress_track_tqdm:
-            progress(0, desc=f"Preparing model {base_model_name} for training...")
+            progress(
+                0, desc=f"Preparing model {base_model_name} for training...")
 
         log_history = []
 
@@ -444,9 +458,6 @@ Train data (first 10):
         training_callbacks = [UiTrainerCallback]
 
         Global.should_stop_training = False
-
-        base_model = get_new_base_model(base_model_name)
-        tokenizer = get_tokenizer(tokenizer_name)
 
         # Do not let other tqdm iterations interfere the progress reporting after training starts.
         # progress.track_tqdm = False  # setting this dynamically is not working, determining if track_tqdm should be enabled based on GPU cores at start instead.
@@ -498,33 +509,34 @@ Train data (first 10):
             wandb_tags.append(f"dataset:{dataset_from_data_dir}")
 
         train_output = Global.train_fn(
-            base_model,  # base_model
-            tokenizer,  # tokenizer
-            output_dir,  # output_dir
-            train_data,
+            base_model=base_model_name,
+            tokenizer=tokenizer_name,
+            output_dir=output_dir,
+            train_data=train_data,
             # 128,  # batch_size (is not used, use gradient_accumulation_steps instead)
-            micro_batch_size,    # micro_batch_size
-            gradient_accumulation_steps,
-            epochs,   # num_epochs
-            learning_rate,   # learning_rate
-            max_seq_length,  # cutoff_len
-            evaluate_data_count,  # val_set_size
-            lora_r,  # lora_r
-            lora_alpha,  # lora_alpha
-            lora_dropout,  # lora_dropout
-            lora_target_modules,  # lora_target_modules
-            train_on_inputs,  # train_on_inputs
-            False,  # group_by_length
-            resume_from_checkpoint,  # resume_from_checkpoint
-            save_steps,  # save_steps
-            save_total_limit,  # save_total_limit
-            logging_steps,  # logging_steps
-            training_callbacks,  # callbacks
-            Global.wandb_api_key,  # wandb_api_key
-            Global.default_wandb_project if Global.enable_wandb else None,  # wandb_project
-            wandb_group,  # wandb_group
-            model_name,  # wandb_run_name
-            wandb_tags  # wandb_tags
+            micro_batch_size=micro_batch_size,
+            gradient_accumulation_steps=gradient_accumulation_steps,
+            num_epochs=epochs,
+            learning_rate=learning_rate,
+            cutoff_len=max_seq_length,
+            val_set_size=evaluate_data_count,
+            lora_r=lora_r,
+            lora_alpha=lora_alpha,
+            lora_dropout=lora_dropout,
+            lora_target_modules=lora_target_modules,
+            lora_modules_to_save=lora_modules_to_save,
+            train_on_inputs=train_on_inputs,
+            group_by_length=False,
+            resume_from_checkpoint=resume_from_checkpoint,
+            save_steps=save_steps,
+            save_total_limit=save_total_limit,
+            logging_steps=logging_steps,
+            callbacks=training_callbacks,
+            wandb_api_key=Global.wandb_api_key,
+            wandb_project=Global.default_wandb_project if Global.enable_wandb else None,
+            wandb_group=wandb_group,
+            wandb_run_name=model_name,
+            wandb_tags=wandb_tags
         )
 
         logs_str = "\n".join([json.dumps(log)
@@ -578,10 +590,12 @@ def handle_load_params_from_model(
     lora_alpha,
     lora_dropout,
     lora_target_modules,
+    lora_modules_to_save,
     save_steps,
     save_total_limit,
     logging_steps,
     lora_target_module_choices,
+    lora_modules_to_save_choices,
 ):
     error_message = ""
     notice_message = ""
@@ -633,6 +647,11 @@ def handle_load_params_from_model(
                 for element in value:
                     if element not in lora_target_module_choices:
                         lora_target_module_choices.append(element)
+            elif key == "lora_modules_to_save":
+                lora_modules_to_save = value
+                for element in value:
+                    if element not in lora_modules_to_save_choices:
+                        lora_modules_to_save_choices.append(element)
             elif key == "save_steps":
                 save_steps = value
             elif key == "save_total_limit":
@@ -670,18 +689,30 @@ def handle_load_params_from_model(
         lora_r,
         lora_alpha,
         lora_dropout,
-        gr.CheckboxGroup.update(value=lora_target_modules, choices=lora_target_module_choices),
+        gr.CheckboxGroup.update(value=lora_target_modules,
+                                choices=lora_target_module_choices),
+        gr.CheckboxGroup.update(
+            value=lora_modules_to_save, choices=lora_modules_to_save_choices),
         save_steps,
         save_total_limit,
         logging_steps,
         lora_target_module_choices,
+        lora_modules_to_save_choices
     )
 
 
 default_lora_target_module_choices = ["q_proj", "k_proj", "v_proj", "o_proj"]
+default_lora_modules_to_save_choices = ["model.embed_tokens", "lm_head"]
 
 
 def handle_lora_target_modules_add(choices, new_module, selected_modules):
+    choices.append(new_module)
+    selected_modules.append(new_module)
+
+    return (choices, "", gr.CheckboxGroup.update(value=selected_modules, choices=choices))
+
+
+def handle_lora_modules_to_save_add(choices, new_module, selected_modules):
     choices.append(new_module)
     selected_modules.append(new_module)
 
@@ -863,12 +894,13 @@ def finetune_ui():
                     info="The initial learning rate for the optimizer. A higher learning rate may speed up convergence but also cause instability or divergence. A lower learning rate may require more steps to reach optimal performance but also avoid overshooting or oscillating around local minima."
                 )
 
-                evaluate_data_count = gr.Slider(
-                    minimum=0, maximum=1, step=1, value=0,
-                    label="Evaluation Data Count",
-                    info="The number of data to be used for evaluation. This specific amount of data will be randomly chosen from the training dataset for evaluating the model's performance during the process, without contributing to the actual training.",
-                    elem_id="finetune_evaluate_data_count"
-                )
+                with gr.Column():
+                    evaluate_data_count = gr.Slider(
+                        minimum=0, maximum=1, step=1, value=0,
+                        label="Evaluation Data Count",
+                        info="The number of data to be used for evaluation. This specific amount of data will be randomly chosen from the training dataset for evaluating the model's performance during the process, without contributing to the actual training.",
+                        elem_id="finetune_evaluate_data_count"
+                    )
 
                 with gr.Box(elem_id="finetune_continue_from_model_box"):
                     with gr.Row():
@@ -923,30 +955,65 @@ def finetune_ui():
                     info="The dropout probability for LoRA, which controls the fraction of LoRA parameters that are set to zero during training. A larger lora_dropout increases the regularization effect of LoRA but also increases the risk of underfitting."
                 )
 
-                lora_target_modules = gr.CheckboxGroup(
-                    label="LoRA Target Modules",
-                    choices=default_lora_target_module_choices,
-                    value=["q_proj", "v_proj"],
-                    info="Modules to replace with LoRA.",
-                    elem_id="finetune_lora_target_modules"
-                )
-                lora_target_module_choices = gr.State(value=default_lora_target_module_choices)
-                with gr.Box(elem_id="finetune_lora_target_modules_add_box"):
-                    with gr.Row():
-                        lora_target_modules_add = gr.Textbox(
-                            lines=1, max_lines=1, show_label=False,
-                            elem_id="finetune_lora_target_modules_add"
-                        )
-                        lora_target_modules_add_btn = gr.Button(
-                            "Add",
-                            elem_id="finetune_lora_target_modules_add_btn"
-                        )
-                        lora_target_modules_add_btn.style(full_width=False, size="sm")
-                things_that_might_timeout.append(lora_target_modules_add_btn.click(
-                    handle_lora_target_modules_add,
-                    inputs=[lora_target_module_choices, lora_target_modules_add, lora_target_modules],
-                    outputs=[lora_target_module_choices, lora_target_modules_add, lora_target_modules],
-                ))
+                with gr.Column(elem_id="finetune_lora_target_modules_box"):
+                    lora_target_modules = gr.CheckboxGroup(
+                        label="LoRA Target Modules",
+                        choices=default_lora_target_module_choices,
+                        value=["q_proj", "v_proj"],
+                        info="Modules to replace with LoRA.",
+                        elem_id="finetune_lora_target_modules"
+                    )
+                    lora_target_module_choices = gr.State(
+                        value=default_lora_target_module_choices)
+                    with gr.Box(elem_id="finetune_lora_target_modules_add_box"):
+                        with gr.Row():
+                            lora_target_modules_add = gr.Textbox(
+                                lines=1, max_lines=1, show_label=False,
+                                elem_id="finetune_lora_target_modules_add"
+                            )
+                            lora_target_modules_add_btn = gr.Button(
+                                "Add",
+                                elem_id="finetune_lora_target_modules_add_btn"
+                            )
+                            lora_target_modules_add_btn.style(
+                                full_width=False, size="sm")
+                    things_that_might_timeout.append(lora_target_modules_add_btn.click(
+                        handle_lora_target_modules_add,
+                        inputs=[lora_target_module_choices,
+                                lora_target_modules_add, lora_target_modules],
+                        outputs=[lora_target_module_choices,
+                                 lora_target_modules_add, lora_target_modules],
+                    ))
+
+                with gr.Column(elem_id="finetune_lora_modules_to_save_box"):
+                    lora_modules_to_save = gr.CheckboxGroup(
+                        label="LoRA Modules To Save",
+                        choices=default_lora_modules_to_save_choices,
+                        value=[],
+                        # info="",
+                        elem_id="finetune_lora_modules_to_save"
+                    )
+                    lora_modules_to_save_choices = gr.State(
+                        value=default_lora_modules_to_save_choices)
+                    with gr.Box(elem_id="finetune_lora_modules_to_save_add_box"):
+                        with gr.Row():
+                            lora_modules_to_save_add = gr.Textbox(
+                                lines=1, max_lines=1, show_label=False,
+                                elem_id="finetune_lora_modules_to_save_add"
+                            )
+                            lora_modules_to_save_add_btn = gr.Button(
+                                "Add",
+                                elem_id="finetune_lora_modules_to_save_add_btn"
+                            )
+                            lora_modules_to_save_add_btn.style(
+                                full_width=False, size="sm")
+                    things_that_might_timeout.append(lora_modules_to_save_add_btn.click(
+                        handle_lora_modules_to_save_add,
+                        inputs=[lora_modules_to_save_choices,
+                                lora_modules_to_save_add, lora_modules_to_save],
+                        outputs=[lora_modules_to_save_choices,
+                                 lora_modules_to_save_add, lora_modules_to_save],
+                    ))
 
                 with gr.Row():
                     logging_steps = gr.Number(
@@ -976,20 +1043,25 @@ def finetune_ui():
                         elem_id="finetune_model_name",
                     )
 
-                    with gr.Row():
-                        train_btn = gr.Button(
-                            "Train", variant="primary", label="Train",
-                            elem_id="finetune_start_btn"
-                        )
+        with gr.Row():
+            with gr.Column():
+                pass
+            with gr.Column():
 
-                        abort_button = gr.Button(
-                            "Abort", label="Abort",
-                            elem_id="finetune_stop_btn"
-                        )
-                        confirm_abort_button = gr.Button(
-                            "Confirm Abort", label="Confirm Abort", variant="stop",
-                            elem_id="finetune_confirm_stop_btn"
-                        )
+                with gr.Row():
+                    train_btn = gr.Button(
+                        "Train", variant="primary", label="Train",
+                        elem_id="finetune_start_btn"
+                    )
+
+                    abort_button = gr.Button(
+                        "Abort", label="Abort",
+                        elem_id="finetune_stop_btn"
+                    )
+                    confirm_abort_button = gr.Button(
+                        "Confirm Abort", label="Confirm Abort", variant="stop",
+                        elem_id="finetune_confirm_stop_btn"
+                    )
 
         things_that_might_timeout.append(reload_selections_button.click(
             reload_selections,
@@ -1031,6 +1103,7 @@ def finetune_ui():
             lora_alpha,
             lora_dropout,
             lora_target_modules,
+            lora_modules_to_save,
             save_steps,
             save_total_limit,
             logging_steps,
@@ -1039,8 +1112,10 @@ def finetune_ui():
         things_that_might_timeout.append(
             load_params_from_model_btn.click(
                 fn=handle_load_params_from_model,
-                inputs=[continue_from_model] + finetune_args + [lora_target_module_choices],
-                outputs=[load_params_from_model_message] + finetune_args + [lora_target_module_choices]
+                inputs=[continue_from_model] + finetune_args +
+                [lora_target_module_choices, lora_modules_to_save_choices],
+                outputs=[load_params_from_model_message] + finetune_args +
+                [lora_target_module_choices, lora_modules_to_save_choices]
             )
         )
 
