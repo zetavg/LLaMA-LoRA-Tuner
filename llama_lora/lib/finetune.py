@@ -277,10 +277,12 @@ def train(
         model.is_parallelizable = True
         model.model_parallel = True
 
+    # https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.Trainer
     trainer = transformers.Trainer(
         model=model,
         train_dataset=train_data,
         eval_dataset=val_data,
+        # https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments
         args=transformers.TrainingArguments(
             per_device_train_batch_size=micro_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,

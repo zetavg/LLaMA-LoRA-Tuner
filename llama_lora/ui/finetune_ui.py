@@ -545,8 +545,6 @@ Train data (first 10):
         result_message = f"Training ended:\n{str(train_output)}\n\nLogs:\n{logs_str}"
         print(result_message)
 
-        del base_model
-        del tokenizer
         clear_cache()
 
         return result_message
