@@ -27,7 +27,7 @@ def train(
     base_model: Any,
     tokenizer: Any,
     output_dir: str,
-    train_dataset_data: List[Any],
+    train_data: List[Any],
     # training hyperparams
     micro_batch_size: int = 4,
     gradient_accumulation_steps: int = 32,
@@ -229,11 +229,11 @@ def train(
     )
     model = get_peft_model(model, config)
 
-    # If train_dataset_data is a list, convert it to datasets.Dataset
-    if isinstance(train_dataset_data, list):
+    # If train_data is a list, convert it to datasets.Dataset
+    if isinstance(train_data, list):
         with open(os.path.join(output_dir, "train_data_samples.json"), 'w') as file:
-            json.dump(list(train_dataset_data[:100]), file, indent=2)
-        train_dataset_data = Dataset.from_list(train_dataset_data)
+            json.dump(list(train_data[:100]), file, indent=2)
+        train_data = Dataset.from_list(train_data)
 
     if resume_from_checkpoint:
         # Check the available weights and load them
@@ -259,7 +259,7 @@ def train(
     model.print_trainable_parameters()
 
     if val_set_size > 0:
-        train_val = train_dataset_data.train_test_split(
+        train_val = train_data.train_test_split(
             test_size=val_set_size, shuffle=True, seed=42
         )
         train_data = (
@@ -269,7 +269,7 @@ def train(
             train_val["test"].shuffle().map(generate_and_tokenize_prompt)
         )
     else:
-        train_data = train_dataset_data.shuffle().map(generate_and_tokenize_prompt)
+        train_data = train_data.shuffle().map(generate_and_tokenize_prompt)
         val_data = None
 
     if not ddp and torch.cuda.device_count() > 1:
@@ -287,7 +287,7 @@ def train(
             warmup_steps=100,
             num_train_epochs=num_train_epochs,
             learning_rate=learning_rate,
-            fp16=True,
+            # fp16=True,
             logging_steps=logging_steps,
             optim="adamw_torch",
             evaluation_strategy="steps" if val_set_size > 0 else "no",

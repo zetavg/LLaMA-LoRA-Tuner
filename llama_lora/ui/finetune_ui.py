@@ -516,7 +516,7 @@ Train data (first 10):
             # 128,  # batch_size (is not used, use gradient_accumulation_steps instead)
             micro_batch_size=micro_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
-            num_epochs=epochs,
+            num_train_epochs=epochs,
             learning_rate=learning_rate,
             cutoff_len=max_seq_length,
             val_set_size=evaluate_data_count,
