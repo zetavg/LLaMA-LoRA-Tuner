@@ -275,7 +275,18 @@ def train(
             raise ValueError(f"Checkpoint {checkpoint_name} not found")
 
     # Be more transparent about the % of trainable params.
+    trainable_params = 0
+    all_param = 0
+    for _, param in model.named_parameters():
+        all_param += param.numel()
+        if param.requires_grad:
+            trainable_params += param.numel()
+    print(
+        f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param} (calculated)"
+    )
     model.print_trainable_parameters()
+    if use_wandb and wandb:
+        wandb.config.update({"model": { "all_param": all_param, "trainable_params": trainable_params, "trainable%": 100 * trainable_params / all_param }})
 
     if val_set_size > 0:
         train_val = train_data.train_test_split(
