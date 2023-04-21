@@ -17,7 +17,7 @@ def main(
     ), "Please specify --base_model_names, e.g. --base_model_names='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j'"
 
     base_model_names_list = base_model_names.split(',')
-    base_model_names_list = [name.strip() for name in base_model_names]
+    base_model_names_list = [name.strip() for name in base_model_names_list]
 
     print(f"Base models: {', '.join(base_model_names_list)}.")
 
