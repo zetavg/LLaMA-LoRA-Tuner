@@ -7,6 +7,7 @@ datasets
 fire
 git+https://github.com/huggingface/peft.git
 git+https://github.com/huggingface/transformers.git
+huggingface_hub
 numba
 nvidia-ml-py3
 gradio
