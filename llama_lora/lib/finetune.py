@@ -53,16 +53,16 @@ def train(
     train_on_inputs: bool = True,  # if False, masks out inputs in loss
     group_by_length: bool = False,  # faster, but produces an odd training loss curve
     # either training checkpoint or final adapter
-    resume_from_checkpoint = None,
+    resume_from_checkpoint=None,
     save_steps: int = 200,
     save_total_limit: int = 3,
     logging_steps: int = 10,
     # logging
     callbacks: List[Any] = [],
     # wandb params
-    wandb_api_key = None,
+    wandb_api_key=None,
     wandb_project: str = "",
-    wandb_group = None,
+    wandb_group=None,
     wandb_run_name: str = "",
     wandb_tags: List[str] = [],
     wandb_watch: str = "false",  # options: false | gradients | all
@@ -115,8 +115,8 @@ def train(
     if wandb_log_model:
         os.environ["WANDB_LOG_MODEL"] = wandb_log_model
     use_wandb = (wandb_project and len(wandb_project) > 0) or (
-            "WANDB_PROJECT" in os.environ and len(os.environ["WANDB_PROJECT"]) > 0
-        )
+        "WANDB_PROJECT" in os.environ and len(os.environ["WANDB_PROJECT"]) > 0
+    )
     if use_wandb:
         os.environ['WANDB_MODE'] = "online"
         wandb = importlib.import_module("wandb")
@@ -130,7 +130,7 @@ def train(
             magic=True,
             config={'finetune_args': finetune_args},
             # id=None  # used for resuming
-            )
+        )
     else:
         os.environ['WANDB_MODE'] = "disabled"
 
@@ -177,7 +177,8 @@ def train(
                 raise e
 
         if re.match("[^/]+/llama", tokenizer_name):
-            print(f"Setting special tokens for LLaMA tokenizer {tokenizer_name}...")
+            print(
+                f"Setting special tokens for LLaMA tokenizer {tokenizer_name}...")
             tokenizer.pad_token_id = 0
             tokenizer.bos_token_id = 1
             tokenizer.eos_token_id = 2
@@ -276,17 +277,18 @@ def train(
 
     # Be more transparent about the % of trainable params.
     trainable_params = 0
-    all_param = 0
+    all_params = 0
     for _, param in model.named_parameters():
-        all_param += param.numel()
+        all_params += param.numel()
         if param.requires_grad:
             trainable_params += param.numel()
     print(
-        f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param} (calculated)"
+        f"trainable params: {trainable_params} || all params: {all_params} || trainable%: {100 * trainable_params / all_params} (calculated)"
     )
     model.print_trainable_parameters()
     if use_wandb and wandb:
-        wandb.config.update({"model": { "all_param": all_param, "trainable_params": trainable_params, "trainable%": 100 * trainable_params / all_param }})
+        wandb.config.update({"model": {"all_params": all_params, "trainable_params": trainable_params,
+                            "trainable%": 100 * trainable_params / all_params}})
 
     if val_set_size > 0:
         train_val = train_data.train_test_split(
