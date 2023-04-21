@@ -9,6 +9,7 @@ import math
 from random_word import RandomWords
 
 from transformers import TrainerCallback
+from huggingface_hub import try_to_load_from_cache, snapshot_download
 
 from ..globals import Global
 from ..models import (
@@ -313,28 +314,49 @@ def do_train(
         base_model_name = Global.base_model_name
         tokenizer_name = Global.tokenizer_name or Global.base_model_name
 
-        resume_from_checkpoint = None
+        resume_from_checkpoint_param = None
         if continue_from_model == "-" or continue_from_model == "None":
             continue_from_model = None
         if continue_from_checkpoint == "-" or continue_from_checkpoint == "None":
             continue_from_checkpoint = None
         if continue_from_model:
-            resume_from_checkpoint = os.path.join(
+            resume_from_model_path = os.path.join(
                 Global.data_dir, "lora_models", continue_from_model)
+            resume_from_checkpoint_param = resume_from_model_path
             if continue_from_checkpoint:
-                resume_from_checkpoint = os.path.join(
-                    resume_from_checkpoint, continue_from_checkpoint)
+                resume_from_checkpoint_param = os.path.join(
+                    resume_from_checkpoint_param, continue_from_checkpoint)
                 will_be_resume_from_checkpoint_file = os.path.join(
-                    resume_from_checkpoint, "pytorch_model.bin")
+                    resume_from_checkpoint_param, "pytorch_model.bin")
                 if not os.path.exists(will_be_resume_from_checkpoint_file):
                     raise ValueError(
                         f"Unable to resume from checkpoint {continue_from_model}/{continue_from_checkpoint}. Resuming is only possible from checkpoints stored locally in the data directory. Please ensure that the file '{will_be_resume_from_checkpoint_file}' exists.")
             else:
                 will_be_resume_from_checkpoint_file = os.path.join(
-                    resume_from_checkpoint, "adapter_model.bin")
+                    resume_from_checkpoint_param, "adapter_model.bin")
                 if not os.path.exists(will_be_resume_from_checkpoint_file):
-                    raise ValueError(
-                        f"Unable to continue from model {continue_from_model}. Continuation is only possible from models stored locally in the data directory. Please ensure that the file '{will_be_resume_from_checkpoint_file}' exists.")
+                    # Try to get model in Hugging Face cache
+                    resume_from_checkpoint_param = None
+                    possible_hf_model_name = None
+                    possible_model_info_file = os.path.join(
+                        resume_from_model_path, "info.json")
+                    if "/" in continue_from_model:
+                        possible_hf_model_name = continue_from_model
+                    elif os.path.exists(possible_model_info_file):
+                        with open(possible_model_info_file, "r") as file:
+                            model_info = json.load(file)
+                            possible_hf_model_name = model_info.get("hf_model_name")
+                    if possible_hf_model_name:
+                        possible_hf_model_cached_path = try_to_load_from_cache(possible_hf_model_name, 'adapter_model.bin')
+                        if not possible_hf_model_cached_path:
+                            snapshot_download(possible_hf_model_name)
+                            possible_hf_model_cached_path = try_to_load_from_cache(possible_hf_model_name, 'adapter_model.bin')
+                        if possible_hf_model_cached_path:
+                            resume_from_checkpoint_param = os.path.dirname(possible_hf_model_cached_path)
+
+                    if not resume_from_checkpoint_param:
+                        raise ValueError(
+                            f"Unable to continue from model {continue_from_model}. Continuation is only possible from models stored locally in the data directory. Please ensure that the file '{will_be_resume_from_checkpoint_file}' exists.")
 
         output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
         if os.path.exists(output_dir):
@@ -400,6 +422,7 @@ Train options: {json.dumps({
     'model_name': model_name,
     'continue_from_model': continue_from_model,
     'continue_from_checkpoint': continue_from_checkpoint,
+    'resume_from_checkpoint_param': resume_from_checkpoint_param,
 }, indent=2)}
 
 Train data (first 10):
@@ -539,7 +562,7 @@ Train data (first 10):
             bf16=bf16,
             gradient_checkpointing=gradient_checkpointing,
             group_by_length=False,
-            resume_from_checkpoint=resume_from_checkpoint,
+            resume_from_checkpoint=resume_from_checkpoint_param,
             save_steps=save_steps,
             save_total_limit=save_total_limit,
             logging_steps=logging_steps,
@@ -937,6 +960,7 @@ def finetune_ui():
                             value="-",
                             label="Continue from Model",
                             choices=["-"],
+                            allow_custom_value=True,
                             elem_id="finetune_continue_from_model"
                         )
                         continue_from_checkpoint = gr.Dropdown(
@@ -970,7 +994,8 @@ def finetune_ui():
                         load_in_8bit = gr.Checkbox(label="8bit", value=False)
                         fp16 = gr.Checkbox(label="FP16", value=True)
                         bf16 = gr.Checkbox(label="BF16", value=False)
-                        gradient_checkpointing = gr.Checkbox(label="gradient_checkpointing", value=False)
+                        gradient_checkpointing = gr.Checkbox(
+                            label="gradient_checkpointing", value=False)
 
             with gr.Column():
                 lora_r = gr.Slider(
@@ -1310,7 +1335,7 @@ def finetune_ui():
           delay: [500, 0],
           animation: 'scale-subtle',
           content:
-            'Select a LoRA model to train a new model on top of that model.<br /><br />💡 To use the same training parameters of a previously trained model, select it here and click the <code>Load training parameters from selected model</code> button, then un-select it.',
+            'Select a LoRA model to train a new model on top of that model. You can also type in a model name on Hugging Face Hub, such as <code>tloen/alpaca-lora-7b</code>.<br /><br />💡 To reload the training parameters of one of your previously trained models, select it here and click the <code>Load training parameters from selected model</code> button, then un-select it.',
           allowHTML: true,
         });
 
