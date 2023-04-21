@@ -25,6 +25,7 @@ def main(
         print(f"Preparing {name}...")
         snapshot_download(name)
 
+    print("")
     print("Done.")
 
 
