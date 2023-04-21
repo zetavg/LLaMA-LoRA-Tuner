@@ -92,7 +92,7 @@ def train(
         try:
             additional_lora_config = json.loads(additional_lora_config)
         except Exception as e:
-            raise ValueError(f"Could not parse additional_training_arguments: {e}")
+            raise ValueError(f"Could not parse additional_lora_config: {e}")
 
     # for logging
     finetune_args = {
@@ -262,16 +262,19 @@ def train(
 
     # model = prepare_model_for_int8_training(model)
 
-    config = LoraConfig(
-        r=lora_r,
-        lora_alpha=lora_alpha,
-        target_modules=lora_target_modules,
-        modules_to_save=lora_modules_to_save,
-        lora_dropout=lora_dropout,
-        bias="none",
-        task_type="CAUSAL_LM",
-        **additional_lora_config,
-    )
+    lora_config_args = {
+        'r': lora_r,
+        'lora_alpha': lora_alpha,
+        'target_modules': lora_target_modules,
+        'modules_to_save': lora_modules_to_save,
+        'lora_dropout': lora_dropout,
+        'bias': "none",
+        'task_type': "CAUSAL_LM",
+    }
+    config = LoraConfig(**{
+        **lora_config_args,
+        **(additional_lora_config or {}),
+    })
     model = get_peft_model(model, config)
     if bf16:
         model = model.to(torch.bfloat16)
@@ -336,36 +339,42 @@ def train(
         model.is_parallelizable = True
         model.model_parallel = True
 
+    # https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments
+    training_args = {
+        'output_dir': output_dir,
+        'per_device_train_batch_size': micro_batch_size,
+        'gradient_checkpointing': gradient_checkpointing,
+        'gradient_accumulation_steps': gradient_accumulation_steps,
+        'warmup_steps': 100,
+        'num_train_epochs': num_train_epochs,
+        'learning_rate': learning_rate,
+        'fp16': fp16,
+        'bf16': bf16,
+        'logging_steps': logging_steps,
+        'optim': "adamw_torch",
+        'evaluation_strategy': "steps" if val_set_size > 0 else "no",
+        'save_strategy': "steps",
+        'eval_steps': save_steps if val_set_size > 0 else None,
+        'save_steps': save_steps,
+        'output_dir': output_dir,
+        'save_total_limit': save_total_limit,
+        'load_best_model_at_end': True if val_set_size > 0 else False,
+        'ddp_find_unused_parameters': False if ddp else None,
+        'group_by_length': group_by_length,
+        'report_to': "wandb" if use_wandb else None,
+        'run_name': wandb_run_name if use_wandb else None,
+    }
+
     # https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.Trainer
     trainer = transformers.Trainer(
         model=model,
         train_dataset=train_data,
         eval_dataset=val_data,
-        # https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments
-        args=transformers.TrainingArguments(
-            per_device_train_batch_size=micro_batch_size,
-            gradient_checkpointing=gradient_checkpointing,
-            gradient_accumulation_steps=gradient_accumulation_steps,
-            warmup_steps=100,
-            num_train_epochs=num_train_epochs,
-            learning_rate=learning_rate,
-            fp16=fp16,
-            bf16=bf16,
-            logging_steps=logging_steps,
-            optim="adamw_torch",
-            evaluation_strategy="steps" if val_set_size > 0 else "no",
-            save_strategy="steps",
-            eval_steps=save_steps if val_set_size > 0 else None,
-            save_steps=save_steps,
-            output_dir=output_dir,
-            save_total_limit=save_total_limit,
-            load_best_model_at_end=True if val_set_size > 0 else False,
-            ddp_find_unused_parameters=False if ddp else None,
-            group_by_length=group_by_length,
-            report_to="wandb" if use_wandb else None,
-            run_name=wandb_run_name if use_wandb else None,
-            **additional_training_arguments
-        ),
+        tokenizer=tokenizer,
+        args=transformers.TrainingArguments(**{
+            **training_args,
+            **(additional_training_arguments or {})
+        }),
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
         ),
