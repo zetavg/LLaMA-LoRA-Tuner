@@ -530,6 +530,10 @@ Train data (first 10):
                 info['continued_from_model'] = continue_from_model
                 if continue_from_checkpoint:
                     info['continued_from_checkpoint'] = continue_from_checkpoint
+
+            if Global.version:
+                info['tuner_version'] = Global.version
+
             json.dump(info, info_json_file, indent=2)
 
         if not should_training_progress_track_tqdm:
