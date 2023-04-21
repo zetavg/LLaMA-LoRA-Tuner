@@ -57,6 +57,9 @@ def train(
     save_steps: int = 200,
     save_total_limit: int = 3,
     logging_steps: int = 10,
+    #
+    additional_training_arguments: Union[dict, str, None] = None,
+    additional_lora_config: Union[dict, str, None] = None,
     # logging
     callbacks: List[Any] = [],
     # wandb params
@@ -70,6 +73,27 @@ def train(
 ):
     if lora_modules_to_save is not None and len(lora_modules_to_save) <= 0:
         lora_modules_to_save = None
+
+    if isinstance(additional_training_arguments, str):
+        additional_training_arguments = additional_training_arguments.strip()
+    if not additional_training_arguments:
+        additional_training_arguments = None
+    if isinstance(additional_training_arguments, str):
+        try:
+            additional_training_arguments = json.loads(additional_training_arguments)
+        except Exception as e:
+            raise ValueError(f"Could not parse additional_training_arguments: {e}")
+
+    if isinstance(additional_lora_config, str):
+        additional_lora_config = additional_lora_config.strip()
+    if not additional_lora_config:
+        additional_lora_config = None
+    if isinstance(additional_lora_config, str):
+        try:
+            additional_lora_config = json.loads(additional_lora_config)
+        except Exception as e:
+            raise ValueError(f"Could not parse additional_training_arguments: {e}")
+
     # for logging
     finetune_args = {
         'micro_batch_size': micro_batch_size,
@@ -92,6 +116,8 @@ def train(
         'save_steps': save_steps,
         'save_total_limit': save_total_limit,
         'logging_steps': logging_steps,
+        'additional_training_arguments': additional_training_arguments,
+        'additional_lora_config': additional_lora_config,
     }
     if val_set_size and val_set_size > 0:
         finetune_args['val_set_size'] = val_set_size
@@ -243,6 +269,7 @@ def train(
         lora_dropout=lora_dropout,
         bias="none",
         task_type="CAUSAL_LM",
+        **additional_lora_config,
     )
     model = get_peft_model(model, config)
     if bf16:
@@ -324,6 +351,7 @@ def train(
             group_by_length=group_by_length,
             report_to="wandb" if use_wandb else None,
             run_name=wandb_run_name if use_wandb else None,
+            **additional_training_arguments
         ),
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True

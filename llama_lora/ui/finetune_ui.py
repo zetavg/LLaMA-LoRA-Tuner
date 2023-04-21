@@ -305,6 +305,8 @@ def do_train(
     save_steps,
     save_total_limit,
     logging_steps,
+    additional_training_arguments,
+    additional_lora_config,
     model_name,
     continue_from_model,
     continue_from_checkpoint,
@@ -566,6 +568,8 @@ Train data (first 10):
             save_steps=save_steps,
             save_total_limit=save_total_limit,
             logging_steps=logging_steps,
+            additional_training_arguments=additional_training_arguments,
+            additional_lora_config=additional_lora_config,
             callbacks=training_callbacks,
             wandb_api_key=Global.wandb_api_key,
             wandb_project=Global.default_wandb_project if Global.enable_wandb else None,
@@ -632,6 +636,8 @@ def handle_load_params_from_model(
     save_steps,
     save_total_limit,
     logging_steps,
+    additional_training_arguments,
+    additional_lora_config,
     lora_target_module_choices,
     lora_modules_to_save_choices,
 ):
@@ -706,6 +712,16 @@ def handle_load_params_from_model(
                 save_total_limit = value
             elif key == "logging_steps":
                 logging_steps = value
+            elif key == "additional_training_arguments":
+                if value:
+                    additional_training_arguments = json.dumps(value, indent=2)
+                else:
+                    additional_training_arguments = ""
+            elif key == "additional_lora_config":
+                if value:
+                    additional_lora_config = json.dumps(value, indent=2)
+                else:
+                    additional_lora_config = ""
             elif key == "group_by_length":
                 pass
             elif key == "resume_from_checkpoint":
@@ -748,6 +764,8 @@ def handle_load_params_from_model(
         save_steps,
         save_total_limit,
         logging_steps,
+        additional_training_arguments,
+        additional_lora_config,
         lora_target_module_choices,
         lora_modules_to_save_choices
     )
@@ -946,13 +964,14 @@ def finetune_ui():
                     info="The initial learning rate for the optimizer. A higher learning rate may speed up convergence but also cause instability or divergence. A lower learning rate may require more steps to reach optimal performance but also avoid overshooting or oscillating around local minima."
                 )
 
-                with gr.Column():
+                with gr.Column(elem_id="finetune_eval_data_group"):
                     evaluate_data_count = gr.Slider(
                         minimum=0, maximum=1, step=1, value=0,
                         label="Evaluation Data Count",
                         info="The number of data to be used for evaluation. This specific amount of data will be randomly chosen from the training dataset for evaluating the model's performance during the process, without contributing to the actual training.",
                         elem_id="finetune_evaluate_data_count"
                     )
+                gr.HTML(elem_classes="flex_vertical_grow_area")
 
                 with gr.Box(elem_id="finetune_continue_from_model_box"):
                     with gr.Row():
@@ -996,6 +1015,18 @@ def finetune_ui():
                         bf16 = gr.Checkbox(label="BF16", value=False)
                         gradient_checkpointing = gr.Checkbox(
                             label="gradient_checkpointing", value=False)
+                    with gr.Column(variant="panel", elem_id="finetune_additional_training_arguments_box"):
+                        gr.Textbox(
+                            label="Additional Training Arguments",
+                            info="Additional training arguments to be passed to the Trainer in JSON format. Note that this can override ALL other arguments set elsewhere. See https://bit.ly/hf20-transformers-training-arguments for more details.",
+                            elem_id="finetune_additional_training_arguments_textbox_for_label_display"
+                            )
+                        additional_training_arguments = gr.Code(
+                            show_label=False,
+                            language="json",
+                            value="",
+                            # lines=2,
+                            elem_id="finetune_additional_training_arguments")
 
             with gr.Column():
                 lora_r = gr.Slider(
@@ -1077,8 +1108,20 @@ def finetune_ui():
                                      lora_modules_to_save_add, lora_modules_to_save],
                         ))
 
-                # with gr.Column():
-                #     pass
+                    with gr.Column(variant="panel", elem_id="finetune_additional_lora_config_box"):
+                        gr.Textbox(
+                            label="Additional LoRA Config",
+                            info="Additional LoraConfig in JSON format. Note that this can override ALL other arguments set elsewhere.",
+                            elem_id="finetune_additional_lora_config_textbox_for_label_display"
+                            )
+                        additional_lora_config = gr.Code(
+                            show_label=False,
+                            language="json",
+                            value="",
+                            # lines=2,
+                            elem_id="finetune_additional_lora_config")
+
+                gr.HTML(elem_classes="flex_vertical_grow_area no_limit")
 
                 with gr.Column(elem_id="finetune_log_and_save_options_group_container"):
                     with gr.Row(elem_id="finetune_log_and_save_options_group"):
@@ -1177,6 +1220,8 @@ def finetune_ui():
             save_steps,
             save_total_limit,
             logging_steps,
+            additional_training_arguments,
+            additional_lora_config,
         ]
 
         things_that_might_timeout.append(
