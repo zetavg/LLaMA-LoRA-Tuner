@@ -148,6 +148,7 @@ def train(
     model = base_model
     if isinstance(model, str):
         model_name = model
+        print(f"Loading base model {model_name}...")
         model = AutoModelForCausalLM.from_pretrained(
             base_model,
             load_in_8bit=load_in_8bit,
@@ -156,9 +157,12 @@ def train(
             device_map=device_map,
         )
         if re.match("[^/]+/llama", model_name):
+            print(f"Setting special tokens for LLaMA model {model_name}...")
             model.config.pad_token_id = 0
             model.config.bos_token_id = 1
             model.config.eos_token_id = 2
+
+        print(f"Loaded model {model_name}")
 
     if isinstance(tokenizer, str):
         tokenizer_name = tokenizer
@@ -173,9 +177,12 @@ def train(
                 raise e
 
         if re.match("[^/]+/llama", tokenizer_name):
+            print(f"Setting special tokens for LLaMA tokenizer {tokenizer_name}...")
             tokenizer.pad_token_id = 0
             tokenizer.bos_token_id = 1
             tokenizer.eos_token_id = 2
+
+        print(f"Loaded tokenizer {tokenizer_name}")
 
     # tokenizer.pad_token_id = (
     #     0  # unk. we want this to be different from the eos token
