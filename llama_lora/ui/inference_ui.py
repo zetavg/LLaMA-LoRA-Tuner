@@ -7,6 +7,7 @@ import torch
 import transformers
 from transformers import GenerationConfig
 
+from ..config import Config
 from ..globals import Global
 from ..models import get_model, get_tokenizer, get_device
 from ..lib.inference import generate
@@ -101,7 +102,7 @@ def do_inference(
                 'generation_config': generation_config.to_dict(),
             })
 
-        if Global.ui_dev_mode:
+        if Config.ui_dev_mode:
             message = f"Hi, I’m currently in UI-development mode and do not have access to resources to process your request. However, this behavior is similar to what will actually happen, so you can try and see how it will work!\n\nBase model: {base_model_name}\nLoRA model: {lora_model_name}\n\nThe following is your prompt:\n\n{prompt}"
             print(message)
 
@@ -318,7 +319,7 @@ def update_prompt_preview(prompt_template,
 
 
 def inference_ui():
-    flagging_dir = os.path.join(Global.data_dir, "flagging", "inference")
+    flagging_dir = os.path.join(Config.data_dir, "flagging", "inference")
     if not os.path.exists(flagging_dir):
         os.makedirs(flagging_dir)
 

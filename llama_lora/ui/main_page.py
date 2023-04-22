@@ -1,5 +1,6 @@
 import gradio as gr
 
+from ..config import Config
 from ..globals import Global
 
 from .inference_ui import inference_ui
@@ -21,7 +22,7 @@ def main_page():
                 gr.Markdown(
                     f"""
                     <h1 class="app_title_text">{title}</h1> <wbr />
-                    <h2 class="app_subtitle_text">{Global.ui_subtitle}</h2>
+                    <h2 class="app_subtitle_text">{Config.ui_subtitle}</h2>
                     """,
                     elem_id="page_title",
                 )
@@ -29,7 +30,7 @@ def main_page():
                     global_base_model_select = gr.Dropdown(
                         label="Base Model",
                         elem_id="global_base_model_select",
-                        choices=Global.base_model_choices,
+                        choices=Config.base_model_choices,
                         value=lambda: Global.base_model_name,
                         allow_custom_value=True,
                     )
@@ -146,11 +147,11 @@ def main_page():
 
 
 def get_page_title():
-    title = Global.ui_title
-    if (Global.ui_dev_mode):
-        title = Global.ui_dev_mode_title_prefix + title
-    if (Global.ui_emoji):
-        title = f"{Global.ui_emoji} {title}"
+    title = Config.ui_title
+    if (Config.ui_dev_mode):
+        title = Config.ui_dev_mode_title_prefix + title
+    if (Config.ui_emoji):
+        title = f"{Config.ui_emoji} {title}"
     return title
 
 
@@ -953,8 +954,8 @@ def get_foot_info():
         info.append(f"Base model: `{Global.base_model_name}`")
     if Global.tokenizer_name and Global.tokenizer_name != Global.base_model_name:
         info.append(f"Tokenizer: `{Global.tokenizer_name}`")
-    if Global.ui_show_sys_info:
-        info.append(f"Data dir: `{Global.data_dir}`")
+    if Config.ui_show_sys_info:
+        info.append(f"Data dir: `{Config.data_dir}`")
     return f"""\
         <small>{"&nbsp;&nbsp;·&nbsp;&nbsp;".join(info)}</small>
         """

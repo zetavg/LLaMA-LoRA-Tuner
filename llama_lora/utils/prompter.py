@@ -9,6 +9,7 @@ import importlib
 import itertools
 from typing import Union, List
 
+from ..config import Config
 from ..globals import Global
 
 
@@ -31,7 +32,7 @@ class Prompter(object):
         else:
             filename = base_filename + ext
 
-        file_path = osp.join(Global.data_dir, "templates", filename)
+        file_path = osp.join(Config.data_dir, "templates", filename)
 
         if not osp.exists(file_path):
             raise ValueError(f"Can't read {file_path}")

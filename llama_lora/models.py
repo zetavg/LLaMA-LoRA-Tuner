@@ -11,12 +11,13 @@ from transformers import (
 )
 from peft import PeftModel
 
+from .config import Config
 from .globals import Global
 from .lib.get_device import get_device
 
 
 def get_new_base_model(base_model_name):
-    if Global.ui_dev_mode:
+    if Config.ui_dev_mode:
         return
 
     if Global.new_base_model_that_is_ready_to_be_used:
@@ -79,14 +80,14 @@ def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_dow
     if device == "cuda":
         return model_class.from_pretrained(
             model_name,
-            load_in_8bit=Global.load_8bit,
+            load_in_8bit=Config.load_8bit,
             torch_dtype=torch.float16,
             # device_map="auto",
             # ? https://github.com/tloen/alpaca-lora/issues/21
             device_map={'': 0},
             from_tf=from_tf,
             force_download=force_download,
-            trust_remote_code=Global.trust_remote_code
+            trust_remote_code=Config.trust_remote_code
         )
     elif device == "mps":
         return model_class.from_pretrained(
@@ -95,7 +96,7 @@ def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_dow
             torch_dtype=torch.float16,
             from_tf=from_tf,
             force_download=force_download,
-            trust_remote_code=Global.trust_remote_code
+            trust_remote_code=Config.trust_remote_code
         )
     else:
         return model_class.from_pretrained(
@@ -104,12 +105,12 @@ def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_dow
             low_cpu_mem_usage=True,
             from_tf=from_tf,
             force_download=force_download,
-            trust_remote_code=Global.trust_remote_code
+            trust_remote_code=Config.trust_remote_code
         )
 
 
 def get_tokenizer(base_model_name):
-    if Global.ui_dev_mode:
+    if Config.ui_dev_mode:
         return
 
     loaded_tokenizer = Global.loaded_tokenizers.get(base_model_name)
@@ -119,13 +120,13 @@ def get_tokenizer(base_model_name):
     try:
         tokenizer = AutoTokenizer.from_pretrained(
             base_model_name,
-            trust_remote_code=Global.trust_remote_code
+            trust_remote_code=Config.trust_remote_code
         )
     except Exception as e:
         if 'LLaMATokenizer' in str(e):
             tokenizer = LlamaTokenizer.from_pretrained(
                 base_model_name,
-                trust_remote_code=Global.trust_remote_code
+                trust_remote_code=Config.trust_remote_code
             )
         else:
             raise e
@@ -138,7 +139,7 @@ def get_tokenizer(base_model_name):
 def get_model(
         base_model_name,
         peft_model_name=None):
-    if Global.ui_dev_mode:
+    if Config.ui_dev_mode:
         return
 
     if peft_model_name == "None":
@@ -156,7 +157,7 @@ def get_model(
 
     if peft_model_name:
         lora_models_directory_path = os.path.join(
-            Global.data_dir, "lora_models")
+            Config.data_dir, "lora_models")
         possible_lora_model_path = os.path.join(
             lora_models_directory_path, peft_model_name)
         if os.path.isdir(possible_lora_model_path):
@@ -211,7 +212,7 @@ def get_model(
         model.config.bos_token_id = 1
         model.config.eos_token_id = 2
 
-    if not Global.load_8bit:
+    if not Config.load_8bit:
         model.half()  # seems to fix bugs for some users.
 
     model.eval()
@@ -224,7 +225,7 @@ def get_model(
     return model
 
 
-def prepare_base_model(base_model_name=Global.default_base_model_name):
+def prepare_base_model(base_model_name=Config.default_base_model_name):
     Global.new_base_model_that_is_ready_to_be_used = get_new_base_model(
         base_model_name)
     Global.name_of_new_base_model_that_is_ready_to_be_used = base_model_name

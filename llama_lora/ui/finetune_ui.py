@@ -11,6 +11,7 @@ from random_word import RandomWords
 from transformers import TrainerCallback
 from huggingface_hub import try_to_load_from_cache, snapshot_download
 
+from ..config import Config
 from ..globals import Global
 from ..models import (
     get_new_base_model, get_tokenizer,
@@ -240,9 +241,9 @@ def refresh_dataset_items_count(
 
         trace = traceback.format_exc()
         traces = [s.strip() for s in re.split("\n * File ", trace)]
-        templates_path = os.path.join(Global.data_dir, "templates")
+        templates_path = os.path.join(Config.data_dir, "templates")
         traces_to_show = [s for s in traces if os.path.join(
-            Global.data_dir, "templates") in s]
+            Config.data_dir, "templates") in s]
         traces_to_show = [re.sub(" *\n *", ": ", s) for s in traces_to_show]
         if len(traces_to_show) > 0:
             update_message = gr.Markdown.update(
@@ -323,7 +324,7 @@ def do_train(
             continue_from_checkpoint = None
         if continue_from_model:
             resume_from_model_path = os.path.join(
-                Global.data_dir, "lora_models", continue_from_model)
+                Config.data_dir, "lora_models", continue_from_model)
             resume_from_checkpoint_param = resume_from_model_path
             if continue_from_checkpoint:
                 resume_from_checkpoint_param = os.path.join(
@@ -360,7 +361,7 @@ def do_train(
                         raise ValueError(
                             f"Unable to continue from model {continue_from_model}. Continuation is only possible from models stored locally in the data directory. Please ensure that the file '{will_be_resume_from_checkpoint_file}' exists.")
 
-        output_dir = os.path.join(Global.data_dir, "lora_models", model_name)
+        output_dir = os.path.join(Config.data_dir, "lora_models", model_name)
         if os.path.exists(output_dir):
             if (not os.path.isdir(output_dir)) or os.path.exists(os.path.join(output_dir, 'adapter_config.json')):
                 raise ValueError(
@@ -399,7 +400,7 @@ def do_train(
                 progress_detail += f", Loss: {last_loss:.4f}"
             return f"Training... ({progress_detail})"
 
-        if Global.ui_dev_mode:
+        if Config.ui_dev_mode:
             Global.should_stop_training = False
 
             message = f"""Currently in UI dev mode, not doing the actual training.
@@ -575,8 +576,8 @@ Train data (first 10):
             additional_training_arguments=additional_training_arguments,
             additional_lora_config=additional_lora_config,
             callbacks=training_callbacks,
-            wandb_api_key=Global.wandb_api_key,
-            wandb_project=Global.default_wandb_project if Global.enable_wandb else None,
+            wandb_api_key=Config.wandb_api_key,
+            wandb_project=Config.default_wandb_project if Config.enable_wandb else None,
             wandb_group=wandb_group,
             wandb_run_name=model_name,
             wandb_tags=wandb_tags
@@ -605,7 +606,7 @@ def do_abort_training():
 def handle_continue_from_model_change(model_name):
     try:
         lora_models_directory_path = os.path.join(
-            Global.data_dir, "lora_models")
+            Config.data_dir, "lora_models")
         lora_model_directory_path = os.path.join(
             lora_models_directory_path, model_name)
         all_files = os.listdir(lora_model_directory_path)
@@ -651,7 +652,7 @@ def handle_load_params_from_model(
     unknown_keys = []
     try:
         lora_models_directory_path = os.path.join(
-            Global.data_dir, "lora_models")
+            Config.data_dir, "lora_models")
         lora_model_directory_path = os.path.join(
             lora_models_directory_path, model_name)
 

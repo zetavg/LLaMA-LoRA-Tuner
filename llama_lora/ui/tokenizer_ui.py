@@ -2,6 +2,7 @@ import gradio as gr
 import time
 import json
 
+from ..config import Config
 from ..globals import Global
 from ..models import get_tokenizer
 
@@ -12,7 +13,7 @@ def handle_decode(encoded_tokens_json):
 
     try:
         encoded_tokens = json.loads(encoded_tokens_json)
-        if Global.ui_dev_mode:
+        if Config.ui_dev_mode:
             return f"Not actually decoding tokens in UI dev mode.", gr.Markdown.update("", visible=False)
         tokenizer = get_tokenizer(tokenizer_name)
         decoded_tokens = tokenizer.decode(encoded_tokens)
@@ -26,7 +27,7 @@ def handle_encode(decoded_tokens):
     tokenizer_name = Global.tokenizer_name or Global.base_model_name
 
     try:
-        if Global.ui_dev_mode:
+        if Config.ui_dev_mode:
             return f"[\"Not actually encoding tokens in UI dev mode.\"]", gr.Markdown.update("", visible=False)
         tokenizer = get_tokenizer(tokenizer_name)
         result = tokenizer(decoded_tokens)

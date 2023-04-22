@@ -8,23 +8,21 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from numba import cuda
 import nvidia_smi
 
+from .config import Config
 from .utils.lru_cache import LRUCache
 from .utils.model_lru_cache import ModelLRUCache
 from .lib.finetune import train
 
 
 class Global:
-    version = None
+    """
+    A singleton class holding global states.
+    """
 
-    data_dir: str = ""
-    load_8bit: bool = False
+    version: Union[str, None] = None
 
-    default_base_model_name: str = ""
     base_model_name: str = ""
     tokenizer_name = None
-    base_model_choices: List[str] = []
-
-    trust_remote_code = False
 
     # Functions
     train_fn: Any = train
@@ -48,18 +46,15 @@ class Global:
     gpu_total_cores = None  # GPU total cores
     gpu_total_memory = None
 
-    # WandB
-    enable_wandb = False
-    wandb_api_key = None
-    default_wandb_project = "llama-lora-tuner"
 
-    # UI related
-    ui_title: str = "LLaMA-LoRA Tuner"
-    ui_emoji: str = "🦙🎛️"
-    ui_subtitle: str = "Toolkit for evaluating and fine-tuning LLaMA models with low-rank adaptation (LoRA)."
-    ui_show_sys_info: bool = True
-    ui_dev_mode: bool = False
-    ui_dev_mode_title_prefix: str = "[UI DEV MODE] "
+def initialize_global():
+    Global.base_model_name = Config.default_base_model_name
+    commit_hash = get_git_commit_hash()
+
+    if commit_hash:
+        Global.version = commit_hash[:8]
+
+    load_gpu_info()
 
 
 def get_package_dir():
@@ -83,12 +78,6 @@ def get_git_commit_hash():
             os.chdir(original_cwd)
     except Exception as e:
         print(f"Cannot get git commit hash: {e}")
-
-
-commit_hash = get_git_commit_hash()
-
-if commit_hash:
-    Global.version = commit_hash[:8]
 
 
 def load_gpu_info():
@@ -154,5 +143,3 @@ def load_gpu_info():
         print(f"Notice: cannot get GPU info: {e}")
 
     print("")
-
-load_gpu_info()
