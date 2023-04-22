@@ -1,7 +1,9 @@
 from typing import Union
 
-import fire
 import gradio as gr
+import fire
+import os
+import yaml
 
 from llama_lora.config import Config, process_config
 from llama_lora.globals import initialize_global
@@ -40,6 +42,14 @@ def main(
     :param wandb_api_key: The API key for Weights & Biases. Setting either this or `wandb_project` will enable Weights & Biases.
     :param wandb_project: The default project name for Weights & Biases. Setting either this or `wandb_api_key` will enable Weights & Biases.
     '''
+
+    config_from_file = read_yaml_config()
+    if config_from_file:
+        for key, value in config_from_file.items():
+            if not hasattr(Config, key):
+                available_keys = [k for k in vars(Config) if not k.startswith('__')]
+                raise ValueError(f"Invalid config key '{key}' in config.yaml. Available keys: {', '.join(available_keys)}")
+            setattr(Config, key, value)
 
     if base_model is not None:
         Config.default_base_model_name = base_model
@@ -89,6 +99,19 @@ def main(
 
     demo.queue(concurrency_count=1).launch(
         server_name=server_name, share=share)
+
+
+def read_yaml_config():
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(app_dir, 'config.yaml')
+
+    if not os.path.exists(config_path):
+        return None
+
+    print(f"Loading config from {config_path}...")
+    with open(config_path, 'r') as yaml_file:
+        config = yaml.safe_load(yaml_file)
+    return config
 
 
 if __name__ == "__main__":
