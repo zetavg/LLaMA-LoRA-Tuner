@@ -46,6 +46,9 @@ def main(
     config_from_file = read_yaml_config()
     if config_from_file:
         for key, value in config_from_file.items():
+            if key == "server_name":
+                server_name = value
+                continue
             if not hasattr(Config, key):
                 available_keys = [k for k in vars(Config) if not k.startswith('__')]
                 raise ValueError(f"Invalid config key '{key}' in config.yaml. Available keys: {', '.join(available_keys)}")
