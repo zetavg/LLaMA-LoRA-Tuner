@@ -550,7 +550,7 @@ Train data (first 10):
             wandb_group += f"/{dataset_from_data_dir}"
             wandb_tags.append(f"dataset:{dataset_from_data_dir}")
 
-        train_output = Global.train_fn(
+        train_output = Global.finetune_train_fn(
             base_model=base_model_name,
             tokenizer=tokenizer_name,
             output_dir=output_dir,

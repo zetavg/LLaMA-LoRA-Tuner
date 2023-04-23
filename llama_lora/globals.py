@@ -1,3 +1,4 @@
+import importlib
 import os
 import subprocess
 import psutil
@@ -8,10 +9,9 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from numba import cuda
 import nvidia_smi
 
+from .dynamic_import import dynamic_import
 from .config import Config
 from .utils.lru_cache import LRUCache
-from .utils.model_lru_cache import ModelLRUCache
-from .lib.finetune import train
 
 
 class Global:
@@ -22,20 +22,21 @@ class Global:
     version: Union[str, None] = None
 
     base_model_name: str = ""
-    tokenizer_name = None
+    tokenizer_name: Union[str, None] = None
 
     # Functions
-    train_fn: Any = train
+    inference_generate_fn: Any
+    finetune_train_fn: Any
 
     # Training Control
-    should_stop_training = False
+    should_stop_training: bool = False
 
     # Generation Control
-    should_stop_generating = False
-    generation_force_stopped_at = None
+    should_stop_generating: bool = False
+    generation_force_stopped_at: Union[float, None] = None
 
     # Model related
-    loaded_models = ModelLRUCache(1)
+    loaded_models = LRUCache(1)
     loaded_tokenizers = LRUCache(1)
     new_base_model_that_is_ready_to_be_used = None
     name_of_new_base_model_that_is_ready_to_be_used = None
@@ -54,7 +55,12 @@ def initialize_global():
     if commit_hash:
         Global.version = commit_hash[:8]
 
-    load_gpu_info()
+    if not Config.ui_dev_mode:
+        ModelLRUCache = dynamic_import('.utils.model_lru_cache').ModelLRUCache
+        Global.loaded_models = ModelLRUCache(1)
+        Global.inference_generate_fn = dynamic_import('.lib.inference').generate
+        Global.finetune_train_fn = dynamic_import('.lib.finetune').train
+        load_gpu_info()
 
 
 def get_package_dir():
@@ -81,6 +87,8 @@ def get_git_commit_hash():
 
 
 def load_gpu_info():
+    # cuda = importlib.import_module('numba').cuda
+    # nvidia_smi = importlib.import_module('nvidia_smi')
     print("")
     try:
         cc_cores_per_SM_dict = {
@@ -133,9 +141,11 @@ def load_gpu_info():
         available_cpu_ram_gb = available_cpu_ram / (1024 ** 3)
         print(
             f"CPU available memory: {available_cpu_ram} bytes ({available_cpu_ram_mb:.2f} MB) ({available_cpu_ram_gb:.2f} GB)")
-        preserve_loaded_models_count = math.floor((available_cpu_ram * 0.8) / total_memory) - 1
+        preserve_loaded_models_count = math.floor(
+            (available_cpu_ram * 0.8) / total_memory) - 1
         if preserve_loaded_models_count > 1:
-            print(f"Will keep {preserve_loaded_models_count} offloaded models in CPU RAM.")
+            print(
+                f"Will keep {preserve_loaded_models_count} offloaded models in CPU RAM.")
             Global.loaded_models = ModelLRUCache(preserve_loaded_models_count)
             Global.loaded_tokenizers = LRUCache(preserve_loaded_models_count)
 

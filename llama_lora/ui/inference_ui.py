@@ -3,14 +3,11 @@ import os
 import time
 import json
 
-import torch
-import transformers
 from transformers import GenerationConfig
 
 from ..config import Config
 from ..globals import Global
 from ..models import get_model, get_tokenizer, get_device
-from ..lib.inference import generate
 from ..lib.csv_logger import CSVLogger
 from ..utils.data import (
     get_available_template_names,
@@ -181,7 +178,7 @@ def do_inference(
             'stream_output': stream_output
         }
 
-        for (decoded_output, output, completed) in generate(**generation_args):
+        for (decoded_output, output, completed) in Global.inference_generate_fn(**generation_args):
             raw_output_str = str(output)
             response = prompter.get_response(decoded_output)
 
@@ -217,7 +214,7 @@ def do_inference(
 
         return
     except Exception as e:
-        raise gr.Error(e)
+        raise gr.Error(str(e))
 
 
 def handle_stop_generate():

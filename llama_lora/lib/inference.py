@@ -4,6 +4,7 @@ import transformers
 from .get_device import get_device
 from .streaming_generation_utils import Iteratorize, Stream
 
+
 def generate(
     # model
     model,

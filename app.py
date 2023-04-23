@@ -7,8 +7,8 @@ import yaml
 
 from llama_lora.config import Config, process_config
 from llama_lora.globals import initialize_global
-from llama_lora.models import prepare_base_model
 from llama_lora.utils.data import init_data_dir
+from llama_lora.models import prepare_base_model
 from llama_lora.ui.main_page import (
     main_page, get_page_title
 )

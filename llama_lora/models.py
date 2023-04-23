@@ -1,19 +1,26 @@
+import importlib
 import os
 import sys
 import gc
 import json
 import re
 
-import torch
 from transformers import (
     AutoModelForCausalLM, AutoModel,
     AutoTokenizer, LlamaTokenizer
 )
-from peft import PeftModel
 
 from .config import Config
 from .globals import Global
 from .lib.get_device import get_device
+
+
+def get_torch():
+    return importlib.import_module('torch')
+
+
+def get_peft_model_class():
+    return importlib.import_module('peft').PeftModel
 
 
 def get_new_base_model(base_model_name):
@@ -75,6 +82,7 @@ def get_new_base_model(base_model_name):
 
 
 def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_download=False):
+    torch = get_torch()
     device = get_device()
 
     if device == "cuda":
@@ -183,6 +191,8 @@ def get_model(
 
     if peft_model_name:
         device = get_device()
+        torch = get_torch()
+        PeftModel = get_peft_model_class()
 
         if device == "cuda":
             model = PeftModel.from_pretrained(
