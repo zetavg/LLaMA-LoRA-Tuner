@@ -1,4 +1,6 @@
-css_styles = []
+from typing import List
+
+css_styles: List[str] = []
 
 
 def get_css_styles():

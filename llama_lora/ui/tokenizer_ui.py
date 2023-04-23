@@ -46,6 +46,7 @@ def tokenizer_ui():
                 encoded_tokens = gr.Code(
                     label="Encoded Tokens (JSON)",
                     language="json",
+                    lines=10,
                     value=sample_encoded_tokens_value,
                     elem_id="tokenizer_encoded_tokens_input_textbox")
                 decode_btn = gr.Button("Decode ➡️")
@@ -54,6 +55,7 @@ def tokenizer_ui():
             with gr.Column():
                 decoded_tokens = gr.Code(
                     label="Decoded Tokens",
+                    lines=10,
                     value=sample_decoded_text_value,
                     elem_id="tokenizer_decoded_text_input_textbox")
                 encode_btn = gr.Button("⬅️ Encode")

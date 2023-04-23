@@ -556,9 +556,10 @@ def inference_ui():
                             elem_id="inference_inference_raw_output_accordion"
                     ) as raw_output_group:
                         inference_raw_output = gr.Code(
-                            label="Raw Output",
-                            show_label=False,
+                            # label="Raw Output",
+                            label="Tensor",
                             language="json",
+                            lines=8,
                             interactive=False,
                             elem_id="inference_raw_output")
 
