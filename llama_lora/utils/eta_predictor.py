@@ -31,7 +31,7 @@ class ETAPredictor:
                 self._cleanup_old_data()
 
             # Only predict if we have enough data
-            if len(self.data) < 2 or self.data[-1][1] - self.data[0][1] < 5:
+            if len(self.data) < 2 or self.data[-1][1] - self.data[0][1] < 1:
                 return None
 
             first_step, first_time = self.data[0]

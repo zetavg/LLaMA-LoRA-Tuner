@@ -163,6 +163,7 @@ def load_gpu_info():
         preserve_loaded_models_count = math.floor(
             (available_cpu_ram * 0.8) / total_memory) - 1
         if preserve_loaded_models_count > 1:
+            ModelLRUCache = dynamic_import('.utils.model_lru_cache').ModelLRUCache
             print(
                 f"Will keep {preserve_loaded_models_count} offloaded models in CPU RAM.")
             Global.loaded_models = ModelLRUCache(preserve_loaded_models_count)
