@@ -49,6 +49,7 @@ class Global:
     training_eta: Union[int, None] = None
     train_output: Union[None, Any] = None
     train_output_str: Union[None, str] = None
+    training_params_info_text: str = ""
 
     # Generation Control
     should_stop_generating: bool = False

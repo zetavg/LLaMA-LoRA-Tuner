@@ -29,6 +29,10 @@ def status_message_callback(message):
     Global.training_status_text = message
 
 
+def params_info_callback(all_params, trainable_params):
+    Global.training_params_info_text = f"Params: {trainable_params}/{all_params} ({100 * trainable_params / all_params:.4f}% trainable)"
+
+
 def do_train(
     # Dataset
     template,
@@ -262,6 +266,8 @@ def do_train(
                     train_data=train_data,
                     callbacks=training_callbacks,
                     status_message_callback=status_message_callback,
+                    params_info_callback=params_info_callback,
+                    additional_wandb_config=info,
                     **finetune_args,
                 )
 
@@ -325,6 +331,14 @@ def render_training_status():
             end_message = "✅ Training completed"
             if Global.should_stop_training:
                 end_message = "🛑 Train aborted"
+
+            params_info_html = ""
+            if Global.training_params_info_text:
+                params_info_html = f"""
+                <div class="params-info">
+                  {Global.training_params_info_text}
+                </div>
+                """
             html_content = f"""
             <div class="progress-block">
               <div class="progress-level">
@@ -335,6 +349,7 @@ def render_training_status():
                   <div class="message">{Global.train_output_str}</div>
                 </div>
               </div>
+              {params_info_html}
             </div>
             """
             return (gr.HTML.update(value=html_content), gr.HTML.update(visible=False))
@@ -371,6 +386,13 @@ def render_training_status():
     else:
         meta_info.append(format_time(time_elapsed))
 
+    params_info_html = ""
+    if Global.training_params_info_text:
+        params_info_html = f"""
+        <div class="params-info">
+          {Global.training_params_info_text}
+        </div>
+        """
     html_content = f"""
     <div class="progress-block is_training">
       <div class="meta-text">{' | '.join(meta_info)}</div>
@@ -383,6 +405,7 @@ def render_training_status():
           </div>
         </div>
       </div>
+      {params_info_html}
     </div>
     """
     return (gr.HTML.update(value=html_content), gr.HTML.update(visible=True))

@@ -24,6 +24,7 @@ def reset_training_status():
     Global.training_eta = None
     Global.train_output = None
     Global.train_output_str = None
+    Global.training_params_info_text = ""
 
 
 def get_progress_text(current_epoch, total_epochs, last_loss):

@@ -70,10 +70,12 @@ def train(
     wandb_tags: List[str] = [],
     wandb_watch: str = "false",  # options: false | gradients | all
     wandb_log_model: str = "true",  # options: false | true
+    additional_wandb_config: Union[dict, None] = None,
     status_message_callback: Any = None,
+    params_info_callback: Any = None,
 ):
     if status_message_callback:
-        cb_result = status_message_callback("Preparing training...")
+        cb_result = status_message_callback("Preparing...")
         if cb_result:
             return
 
@@ -163,6 +165,8 @@ def train(
             config={'finetune_args': finetune_args},
             # id=None  # used for resuming
         )
+        if additional_wandb_config:
+            wandb.config.update(additional_wandb_config)
     else:
         os.environ['WANDB_MODE'] = "disabled"
 
@@ -294,6 +298,10 @@ def train(
     if use_wandb and wandb:
         wandb.config.update({"model": {"all_params": all_params, "trainable_params": trainable_params,
                             "trainable%": 100 * trainable_params / all_params}})
+    if params_info_callback:
+        cb_result = params_info_callback(all_params=all_params, trainable_params=trainable_params)
+        if cb_result:
+            return
 
     if status_message_callback:
         cb_result = status_message_callback("Preparing train data...")

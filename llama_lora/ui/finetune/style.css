@@ -271,6 +271,7 @@
 #finetune_training_status .progress-block {
     min-height: 100px;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     background: var(--panel-background-fill);
@@ -300,11 +301,14 @@
     white-space: pre-wrap;
 }
 #finetune_training_status .progress-block .progress-level {
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
+    justify-content: center;
     align-items: center;
     z-index: var(--layer-2);
     width: var(--size-full);
+    padding: 8px 0;
 }
 #finetune_training_status .progress-block .progress-level-inner {
     margin: var(--size-2) auto;
@@ -324,6 +328,17 @@
     width: var(--size-full);
     height: var(--size-full);
     transition: all 150ms ease 0s;
+}
+
+#finetune_training_status .progress-block .params-info {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-light);
+    margin-top: 8px;
+    margin-bottom: -4px !important;
+    opacity: 0.4;
+}
+#finetune_training_status .progress-block .progress-level + .params-info {
+    margin-top: -8px;
 }
 
 #finetune_training_status .progress-block .output {
