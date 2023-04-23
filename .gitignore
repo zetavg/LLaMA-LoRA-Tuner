@@ -1,6 +1,7 @@
 __pycache__/
 .venv
 /venv
+/pyrightconfig.json
 .vscode
 
 /config.yaml
