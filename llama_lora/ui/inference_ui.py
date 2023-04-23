@@ -213,7 +213,7 @@ def do_inference(
                 yield (
                     gr.Textbox.update(
                         value="Please retry", lines=1),
-                    None)
+                    None, None)
 
         return
     except Exception as e:
