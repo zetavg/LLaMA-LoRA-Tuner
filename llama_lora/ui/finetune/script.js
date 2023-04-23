@@ -130,10 +130,10 @@ function finetune_ui_blocks_js() {
 
   // Show/hide start and stop button base on the state.
   setTimeout(function () {
-    // Make the '#finetune_training_status > .wrap' element appear
-    if (!document.querySelector('#finetune_training_status > .wrap')) {
-      document.getElementById('finetune_confirm_stop_btn').click();
-    }
+    // Make the '#finetune_training_indicator > .wrap' element appear
+    // if (!document.querySelector('#finetune_training_indicator > .wrap')) {
+    //   document.getElementById('finetune_confirm_stop_btn').click();
+    // }
 
     setTimeout(function () {
       let resetStopButtonTimer;
@@ -156,11 +156,20 @@ function finetune_ui_blocks_js() {
           document.getElementById('finetune_confirm_stop_btn').style.display =
             'block';
         });
-      const output_wrap_element = document.querySelector(
-        '#finetune_training_status > .wrap'
+      // const training_indicator_wrap_element = document.querySelector(
+      //   '#finetune_training_indicator > .wrap'
+      // );
+      const training_indicator_element = document.querySelector(
+        '#finetune_training_indicator'
       );
-      function handle_output_wrap_element_class_change() {
-        if (Array.from(output_wrap_element.classList).includes('hide')) {
+      let isTraining = undefined;
+      function handle_training_indicator_change() {
+        // const wrapperHidden = Array.from(training_indicator_wrap_element.classList).includes('hide');
+        const hidden = Array.from(training_indicator_element.classList).includes('hidden');
+        const newIsTraining = !(/* wrapperHidden && */ hidden);
+        if (newIsTraining === isTraining) return;
+        isTraining = newIsTraining;
+        if (!isTraining) {
           if (resetStopButtonTimer) clearTimeout(resetStopButtonTimer);
           document.getElementById('finetune_start_btn').style.display = 'block';
           document.getElementById('finetune_stop_btn').style.display = 'none';
@@ -173,13 +182,19 @@ function finetune_ui_blocks_js() {
             'none';
         }
       }
+      // new MutationObserver(function (mutationsList, observer) {
+      //   handle_training_indicator_change();
+      // }).observe(training_indicator_wrap_element, {
+      //   attributes: true,
+      //   attributeFilter: ['class'],
+      // });
       new MutationObserver(function (mutationsList, observer) {
-        handle_output_wrap_element_class_change();
-      }).observe(output_wrap_element, {
+        handle_training_indicator_change();
+      }).observe(training_indicator_element, {
         attributes: true,
         attributeFilter: ['class'],
       });
-      handle_output_wrap_element_class_change();
+      handle_training_indicator_change();
     }, 500);
   }, 0);
 }

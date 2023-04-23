@@ -27,7 +27,8 @@ from .previewing import (
     refresh_dataset_items_count,
 )
 from .training import (
-    do_train
+    do_train,
+    render_training_status
 )
 
 register_css_style('finetune', relative_read_file(__file__, "style.css"))
@@ -770,19 +771,22 @@ def finetune_ui():
             )
         )
 
-        train_output = gr.Text(
+        train_status = gr.HTML(
             "Training results will be shown here.",
             label="Train Output",
             elem_id="finetune_training_status")
 
-        train_progress = train_btn.click(
+        training_indicator = gr.HTML(
+            "training_indicator", visible=False, elem_id="finetune_training_indicator")
+
+        train_start = train_btn.click(
             fn=do_train,
             inputs=(dataset_inputs + finetune_args + [
                 model_name,
                 continue_from_model,
                 continue_from_checkpoint,
             ]),
-            outputs=train_output
+            outputs=[train_status, training_indicator]
         )
 
         # controlled by JS, shows the confirm_abort_button
@@ -790,13 +794,20 @@ def finetune_ui():
         confirm_abort_button.click(
             fn=do_abort_training,
             inputs=None, outputs=None,
-            cancels=[train_progress])
+            cancels=[train_start])
 
-        stop_timeoutable_btn = gr.Button(
-            "stop not-responding elements",
-            elem_id="inference_stop_timeoutable_btn",
-            elem_classes="foot_stop_timeoutable_btn")
-        stop_timeoutable_btn.click(
-            fn=None, inputs=None, outputs=None, cancels=things_that_might_timeout)
-
+    training_status_updates = finetune_ui_blocks.load(
+        fn=render_training_status,
+        inputs=None,
+        outputs=[train_status, training_indicator],
+        every=0.1
+    )
     finetune_ui_blocks.load(_js=relative_read_file(__file__, "script.js"))
+
+    # things_that_might_timeout.append(training_status_updates)
+    stop_timeoutable_btn = gr.Button(
+        "stop not-responding elements",
+        elem_id="inference_stop_timeoutable_btn",
+        elem_classes="foot_stop_timeoutable_btn")
+    stop_timeoutable_btn.click(
+        fn=None, inputs=None, outputs=None, cancels=things_that_might_timeout)

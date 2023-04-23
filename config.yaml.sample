@@ -9,6 +9,8 @@ base_model_choices:
 load_8bit: false
 trust_remote_code: false
 
+# timezone: Atlantic/Reykjavik
+
 # UI Customization
 # ui_title: LLM Tuner
 # ui_emoji: 🦙🎛️

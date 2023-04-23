@@ -12,6 +12,7 @@ import nvidia_smi
 from .dynamic_import import dynamic_import
 from .config import Config
 from .utils.lru_cache import LRUCache
+from .utils.eta_predictor import ETAPredictor
 
 
 class Global:
@@ -30,6 +31,24 @@ class Global:
 
     # Training Control
     should_stop_training: bool = False
+
+    # Training Status
+    is_train_starting: bool = False
+    is_training: bool = False
+    train_started_at: float = 0.0
+    training_error_message: Union[str, None] = None
+    training_error_detail: Union[str, None] = None
+    training_total_epochs: int = 0
+    training_current_epoch: float = 0.0
+    training_total_steps: int = 0
+    training_current_step: int = 0
+    training_progress: float = 0.0
+    training_log_history: List[Any] = []
+    training_status_text: str = ""
+    training_eta_predictor = ETAPredictor()
+    training_eta: Union[int, None] = None
+    train_output: Union[None, Any] = None
+    train_output_str: Union[None, str] = None
 
     # Generation Control
     should_stop_generating: bool = False

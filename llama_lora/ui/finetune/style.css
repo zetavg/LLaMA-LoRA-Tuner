@@ -255,8 +255,118 @@
     display: none;
 }
 
-/* in case if there's too many logs on the previous run and made the box too high */
-#finetune_training_status:has(.wrap:not(.hide)) {
-    max-height: 160px;
-    height: 160px;
+#finetune_training_status > .wrap {
+    border: 0;
+    background: transparent;
+    pointer-events: none;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
+#finetune_training_status > .wrap .meta-text-center {
+    transform: none !important;
+}
+
+#finetune_training_status .progress-block {
+    min-height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--panel-background-fill);
+    border-radius: var(--radius-lg);
+    border: var(--block-border-width) solid var(--border-color-primary);
+    padding: var(--block-padding);
+}
+#finetune_training_status .progress-block.is_training {
+    min-height: 160px;
+}
+#finetune_training_status .progress-block .empty-text {
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 120%;
+    opacity: 0.12;
+}
+#finetune_training_status .progress-block .meta-text {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: var(--layer-2);
+    padding: var(--size-1) var(--size-2);
+    font-size: var(--text-sm);
+    font-family: var(--font-mono);
+}
+#finetune_training_status .progress-block .status {
+    white-space: pre-wrap;
+}
+#finetune_training_status .progress-block .progress-level {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: var(--layer-2);
+    width: var(--size-full);
+}
+#finetune_training_status .progress-block .progress-level-inner {
+    margin: var(--size-2) auto;
+    color: var(--body-text-color);
+    font-size: var(--text-sm);
+    font-family: var(--font-mono);
+}
+#finetune_training_status .progress-block .progress-bar-wrap {
+    border: 1px solid var(--border-color-primary);
+    background: var(--background-fill-primary);
+    width: 55.5%;
+    height: var(--size-4);
+}
+#finetune_training_status .progress-block .progress-bar {
+    transform-origin: left;
+    background-color: var(--loader-color);
+    width: var(--size-full);
+    height: var(--size-full);
+    transition: all 150ms ease 0s;
+}
+
+#finetune_training_status .progress-block .output {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+#finetune_training_status .progress-block .output .title {
+    padding: var(--size-1) var(--size-3);
+    font-weight: var(--weight-bold);
+    font-size: var(--text-lg);
+    line-height: var(--line-xs);
+}
+#finetune_training_status .progress-block .output .message {
+    padding: var(--size-1) var(--size-3);
+    color: var(--body-text-color) !important;
+    font-family: var(--font-mono);
+    white-space: pre-wrap;
+}
+
+#finetune_training_status .progress-block .error {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+#finetune_training_status .progress-block .error .title {
+    padding: var(--size-1) var(--size-3);
+    color: var(--color-red-500);
+    font-weight: var(--weight-bold);
+    font-size: var(--text-lg);
+    line-height: var(--line-xs);
+}
+#finetune_training_status .progress-block .error .error-message {
+    padding: var(--size-1) var(--size-3);
+    color: var(--body-text-color) !important;
+    font-family: var(--font-mono);
+    white-space: pre-wrap;
+}
+#finetune_training_status .progress-block.is_error {
+    /* background: var(--error-background-fill) !important; */
+    border: 1px solid var(--error-border-color) !important;
+}
+
+#finetune_training_indicator { display: none; }

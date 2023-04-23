@@ -1,5 +1,6 @@
 import os
-from typing import List, Union
+import pytz
+from typing import List, Union, Any
 
 
 class Config:
@@ -14,6 +15,8 @@ class Config:
     base_model_choices: Union[List[str], str] = []
 
     trust_remote_code: bool = False
+
+    timezone: Any = pytz.UTC
 
     # WandB
     enable_wandb: Union[bool, None] = False
@@ -36,6 +39,9 @@ def process_config():
         base_model_choices = Config.base_model_choices.split(',')
         base_model_choices = [name.strip() for name in base_model_choices]
         Config.base_model_choices = base_model_choices
+
+    if isinstance(Config.timezone, str):
+        Config.timezone = pytz.timezone(Config.timezone)
 
     if Config.default_base_model_name not in Config.base_model_choices:
         Config.base_model_choices = [Config.default_base_model_name] + Config.base_model_choices

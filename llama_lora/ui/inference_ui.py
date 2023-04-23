@@ -381,7 +381,7 @@ def inference_ui():
     things_that_might_timeout = []
 
     with gr.Blocks() as inference_ui_blocks:
-        with gr.Row():
+        with gr.Row(elem_classes="disable_while_training"):
             with gr.Column(elem_id="inference_lora_model_group"):
                 model_prompt_template_message = gr.Markdown(
                     "", visible=False, elem_id="inference_lora_model_prompt_template_message")
@@ -402,7 +402,7 @@ def inference_ui():
             reload_selections_button.style(
                 full_width=False,
                 size="sm")
-        with gr.Row():
+        with gr.Row(elem_classes="disable_while_training"):
             with gr.Column():
                 with gr.Column(elem_id="inference_prompt_box"):
                     variable_0 = gr.Textbox(

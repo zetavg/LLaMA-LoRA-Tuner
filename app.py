@@ -28,6 +28,7 @@ def main(
     ui_dev_mode: Union[bool, None] = None,
     wandb_api_key: Union[str, None] = None,
     wandb_project: Union[str, None] = None,
+    timezone: Union[str, None] = None,
 ):
     '''
     Start the LLaMA-LoRA Tuner UI.
@@ -75,6 +76,9 @@ def main(
 
     if wandb_project is not None:
         Config.default_wandb_project = wandb_project
+
+    if timezone is not None:
+        Config.timezone = timezone
 
     if ui_dev_mode is not None:
         Config.ui_dev_mode = ui_dev_mode

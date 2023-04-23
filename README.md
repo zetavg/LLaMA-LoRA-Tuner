@@ -70,7 +70,7 @@ setup: |
 # Start the app.
 run: |
   echo 'Starting...'
-  python llama_lora_tuner/app.py --data_dir='/data' --wandb_api_key="$([ -f /data/secrets/wandb_api_key ] && cat /data/secrets/wandb_api_key | tr -d '\n')" --base_model=decapoda-research/llama-7b-hf --base_model_choices='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j,databricks/dolly-v2-7b --share
+  python llama_lora_tuner/app.py --data_dir='/data' --wandb_api_key="$([ -f /data/secrets/wandb_api_key ] && cat /data/secrets/wandb_api_key | tr -d '\n')" --timezone='Atlantic/Reykjavik' --base_model=decapoda-research/llama-7b-hf --base_model_choices='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j,databricks/dolly-v2-7b --share
 ```
 
 Then launch a cluster to run the task:
@@ -100,7 +100,7 @@ When you are done, run `sky stop <cluster_name>` to stop the cluster. To termina
 
 ```bash
 pip install -r requirements.lock.txt
-python app.py --data_dir='./data' --base_model='decapoda-research/llama-7b-hf' --share
+python app.py --data_dir='./data' --base_model='decapoda-research/llama-7b-hf' --timezone='Atlantic/Reykjavik' --share
 ```
 
 You will see the local and public URLs of the app in the terminal. Open the URL in your browser to use the app.

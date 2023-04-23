@@ -18,6 +18,8 @@ def main_page():
             title=title,
             css=get_css_styles(),
     ) as main_page_blocks:
+        training_indicator = gr.HTML(
+            "", visible=False, elem_id="training_indicator")
         with gr.Column(elem_id="main_page_content"):
             with gr.Row():
                 gr.Markdown(
@@ -27,7 +29,10 @@ def main_page():
                     """,
                     elem_id="page_title",
                 )
-                with gr.Column(elem_id="global_base_model_select_group"):
+                with gr.Column(
+                    elem_id="global_base_model_select_group",
+                    elem_classes="disable_while_training without_message"
+                ):
                     global_base_model_select = gr.Dropdown(
                         label="Base Model",
                         elem_id="global_base_model_select",
@@ -97,6 +102,19 @@ def main_page():
             current_tokenizer_hint,
             foot_info
         ]
+    )
+
+    main_page_blocks.load(
+        fn=lambda: gr.HTML.update(
+            visible=Global.is_training or Global.is_train_starting,
+            value=Global.is_training and "training"
+            or (
+                Global.is_train_starting and "train_starting" or ""
+            )
+        ),
+        inputs=None,
+        outputs=[training_indicator],
+        every=2
     )
 
     main_page_blocks.load(_js=f"""
@@ -239,6 +257,12 @@ def main_page_custom_css():
     }
     */
 
+   .hide_wrap > .wrap {
+       border: 0;
+       background: transparent;
+       pointer-events: none;
+   }
+
     .error-message, .error-message p {
         color: var(--error-text-color) !important;
     }
@@ -259,6 +283,36 @@ def main_page_custom_css():
     }
     .flex_vertical_grow_area.no_limit {
         max-height: unset;
+    }
+
+    #training_indicator { display: none; }
+    #training_indicator:not(.hidden) ~ * .disable_while_training {
+        position: relative !important;
+        pointer-events: none !important;
+    }
+    #training_indicator:not(.hidden) ~ * .disable_while_training * {
+        pointer-events: none !important;
+    }
+    #training_indicator:not(.hidden) ~ * .disable_while_training::after {
+        content: "Disabled while training is in progress";
+        display: flex;
+        position: absolute !important;
+        z-index: 70;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--block-background-fill);
+        opacity: 0.7;
+        justify-content: center;
+        align-items: center;
+        color: var(--body-text-color);
+        font-size: var(--text-lg);
+        font-weight: var(--weight-bold);
+        text-transform: uppercase;
+    }
+    #training_indicator:not(.hidden) ~ * .disable_while_training.without_message::after {
+        content: "";
     }
 
     #page_title {

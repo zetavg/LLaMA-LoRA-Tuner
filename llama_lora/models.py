@@ -26,6 +26,8 @@ def get_peft_model_class():
 def get_new_base_model(base_model_name):
     if Config.ui_dev_mode:
         return
+    if Global.is_train_starting or Global.is_training:
+        raise Exception("Cannot load new base model while training.")
 
     if Global.new_base_model_that_is_ready_to_be_used:
         if Global.name_of_new_base_model_that_is_ready_to_be_used == base_model_name:
@@ -121,6 +123,9 @@ def get_tokenizer(base_model_name):
     if Config.ui_dev_mode:
         return
 
+    if Global.is_train_starting or Global.is_training:
+        raise Exception("Cannot load new base model while training.")
+
     loaded_tokenizer = Global.loaded_tokenizers.get(base_model_name)
     if loaded_tokenizer:
         return loaded_tokenizer
@@ -149,6 +154,9 @@ def get_model(
         peft_model_name=None):
     if Config.ui_dev_mode:
         return
+
+    if Global.is_train_starting or Global.is_training:
+        raise Exception("Cannot load new base model while training.")
 
     if peft_model_name == "None":
         peft_model_name = None

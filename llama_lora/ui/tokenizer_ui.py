@@ -41,7 +41,7 @@ def tokenizer_ui():
     things_that_might_timeout = []
 
     with gr.Blocks() as tokenizer_ui_blocks:
-        with gr.Row():
+        with gr.Row(elem_classes="disable_while_training"):
             with gr.Column():
                 encoded_tokens = gr.Code(
                     label="Encoded Tokens (JSON)",
