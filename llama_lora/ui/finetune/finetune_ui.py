@@ -800,7 +800,7 @@ def finetune_ui():
         fn=render_training_status,
         inputs=None,
         outputs=[train_status, training_indicator],
-        every=0.1
+        every=0.2
     )
     finetune_ui_blocks.load(_js=relative_read_file(__file__, "script.js"))
 

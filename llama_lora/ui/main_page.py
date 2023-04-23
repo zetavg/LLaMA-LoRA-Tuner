@@ -114,7 +114,7 @@ def main_page():
         ),
         inputs=None,
         outputs=[training_indicator],
-        every=2
+        every=3
     )
 
     main_page_blocks.load(_js=f"""
