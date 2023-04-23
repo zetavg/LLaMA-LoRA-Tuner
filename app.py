@@ -120,5 +120,10 @@ def read_yaml_config():
 
 if __name__ == "__main__":
     fire.Fire(main)
-elif __name__ == "app":  # app is run by `gradio`
-    main()  # does not support command line args, must use config.yaml
+elif __name__ == "app":  # running in gradio reload mode (`gradio`)
+    try:
+        main()
+    except AssertionError as e:
+        message = str(e)
+        message += "\nNote that command line args are not supported while running in gradio reload mode, config.yaml must be used."
+        raise AssertionError(message) from e
