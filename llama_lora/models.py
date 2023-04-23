@@ -244,6 +244,7 @@ def prepare_base_model(base_model_name=Config.default_base_model_name):
 def clear_cache():
     gc.collect()
 
+    torch = get_torch()
     # if not shared.args.cpu: # will not be running on CPUs anyway
     with torch.no_grad():
         torch.cuda.empty_cache()
