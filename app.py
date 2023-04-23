@@ -10,8 +10,9 @@ from llama_lora.globals import initialize_global
 from llama_lora.models import prepare_base_model
 from llama_lora.utils.data import init_data_dir
 from llama_lora.ui.main_page import (
-    main_page, get_page_title, main_page_custom_css
+    main_page, get_page_title
 )
+from llama_lora.ui.css_styles import get_css_styles
 
 
 def main(
@@ -97,7 +98,7 @@ def main(
     if (not skip_loading_base_model) and (not Config.ui_dev_mode):
         prepare_base_model(Config.default_base_model_name)
 
-    with gr.Blocks(title=get_page_title(), css=main_page_custom_css()) as demo:
+    with gr.Blocks(title=get_page_title(), css=get_css_styles()) as demo:
         main_page()
 
     demo.queue(concurrency_count=1).launch(

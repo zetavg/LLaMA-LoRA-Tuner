@@ -4,10 +4,11 @@ from ..config import Config
 from ..globals import Global
 
 from .inference_ui import inference_ui
-from .finetune_ui import finetune_ui
+from .finetune.finetune_ui import finetune_ui
 from .tokenizer_ui import tokenizer_ui
 
 from .js_scripts import popperjs_core_code, tippy_js_code
+from .css_styles import get_css_styles, register_css_style
 
 
 def main_page():
@@ -15,7 +16,7 @@ def main_page():
 
     with gr.Blocks(
             title=title,
-            css=main_page_custom_css(),
+            css=get_css_styles(),
     ) as main_page_blocks:
         with gr.Column(elem_id="main_page_content"):
             with gr.Row():
@@ -533,10 +534,6 @@ def main_page_custom_css():
         margin-top: -8px;
     }
 
-    #finetune_dataset_text_load_sample_button {
-        margin: -4px 12px 8px;
-    }
-
     #inference_preview_prompt_container .label-wrap {
         user-select: none;
     }
@@ -563,23 +560,6 @@ def main_page_custom_css():
         border-bottom-left-radius: 0;
         box-shadow: none;
         opacity: 0.8;
-    }
-
-    #finetune_reload_selections_button {
-        position: absolute;
-        top: 0;
-        right: 0;
-        margin: 16px;
-        margin-bottom: auto;
-        height: 42px !important;
-        min-width: 42px !important;
-        width: 42px !important;
-        z-index: 1;
-    }
-
-    #finetune_dataset_from_data_dir {
-        border: 0;
-        box-shadow: none;
     }
 
     @media screen and (min-width: 640px) {
@@ -626,224 +606,6 @@ def main_page_custom_css():
         }
     }
 
-    #finetune_ui_content > .tabs > .tab-nav::before {
-        content: "Training Dataset:";
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding-right: 12px;
-        padding-left: 8px;
-    }
-
-    #finetune_template,
-    #finetune_template + * {
-        border: 0;
-        box-shadow: none;
-    }
-
-    #finetune_dataset_text_input_group .form {
-        border: 0;
-        box-shadow: none;
-        padding: 0;
-    }
-
-    #finetune_dataset_text_input_textbox > .wrap:last-of-type {
-        margin-top: -20px;
-    }
-
-    #finetune_dataset_plain_text_separators_group * {
-        font-size: 0.8rem;
-    }
-    #finetune_dataset_plain_text_separators_group textarea {
-        height: auto !important;
-    }
-    #finetune_dataset_plain_text_separators_group > .form {
-        gap: 0 !important;
-    }
-
-    #finetune_dataset_from_text_message p,
-    #finetune_dataset_from_text_message + * p {
-        font-size: 80%;
-    }
-    #finetune_dataset_from_text_message,
-    #finetune_dataset_from_text_message *,
-    #finetune_dataset_from_text_message + *,
-    #finetune_dataset_from_text_message + * * {
-        display: inline;
-    }
-
-
-    #finetune_dataset_from_data_dir_message,
-    #finetune_dataset_from_data_dir_message * {
-        min-height: 0 !important;
-    }
-    #finetune_dataset_from_data_dir_message {
-        margin: -20px 24px 0;
-        font-size: 0.8rem;
-    }
-
-    #finetune_dataset_from_text_message > .wrap > *:first-child,
-    #finetune_dataset_from_data_dir_message > .wrap > *:first-child {
-        display: none;
-    }
-    #finetune_dataset_from_data_dir_message > .wrap {
-        top: -18px;
-    }
-    #finetune_dataset_from_text_message > .wrap svg,
-    #finetune_dataset_from_data_dir_message > .wrap svg {
-        margin: -32px -16px;
-    }
-
-    #finetune_continue_from_model_box {
-        /* padding: 0; */
-    }
-    #finetune_continue_from_model_box .block {
-        border: 0;
-        box-shadow: none;
-        padding: 0;
-    }
-    #finetune_continue_from_model_box > * {
-        /* gap: 0; */
-    }
-    #finetune_continue_from_model_box button {
-        margin-top: 16px;
-    }
-    #finetune_continue_from_model {
-        flex-grow: 2;
-    }
-
-    .finetune_dataset_error_message {
-        color: var(--error-text-color) !important;
-    }
-
-    #finetune_dataset_preview_info_message {
-        align-items: flex-end;
-        flex-direction: row;
-        display: flex;
-        margin-bottom: -4px;
-    }
-
-    #finetune_dataset_preview td {
-        white-space: pre-wrap;
-    }
-
-    /*
-    #finetune_dataset_preview {
-        max-height: 100vh;
-        overflow: auto;
-        border: var(--block-border-width) solid var(--border-color-primary);
-        border-radius: var(--radius-lg);
-    }
-    #finetune_dataset_preview .table-wrap {
-        border: 0 !important;
-    }
-    */
-
-    #finetune_max_seq_length {
-        flex: 2;
-    }
-
-    #finetune_lora_target_modules_box,
-    #finetune_lora_target_modules_box + #finetune_lora_modules_to_save_box {
-        margin-top: calc((var(--layout-gap) + 8px) * -1);
-        flex-grow: 0 !important;
-    }
-    #finetune_lora_target_modules_box > .form,
-    #finetune_lora_target_modules_box + #finetune_lora_modules_to_save_box > .form {
-        padding-top: calc((var(--layout-gap) + 8px) / 3);
-        border-top: 0;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-        background: var(--block-background-fill);
-        position: relative;
-    }
-    #finetune_lora_target_modules_box > .form::before,
-    #finetune_lora_target_modules_box + #finetune_lora_modules_to_save_box > .form::before {
-        content: "";
-        display: block;
-        position: absolute;
-        top: calc((var(--layout-gap) + 8px) / 3);
-        left: 0;
-        right: 0;
-        height: 1px;
-        z-index: 1;
-        background: var(--block-border-color);
-    }
-    #finetune_lora_target_modules_add_box,
-    #finetune_lora_modules_to_save_add_box {
-        margin-top: -24px;
-        padding-top: 8px;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-        border-top: 0;
-    }
-    #finetune_lora_target_modules_add_box > * > .form,
-    #finetune_lora_modules_to_save_add_box > * > .form {
-        border: 0;
-        box-shadow: none;
-    }
-    #finetune_lora_target_modules_add,
-    #finetune_lora_modules_to_save_add {
-        padding: 0;
-    }
-    #finetune_lora_target_modules_add input,
-    #finetune_lora_modules_to_save_add input {
-        padding: 4px 8px;
-    }
-    #finetune_lora_target_modules_add_btn,
-    #finetune_lora_modules_to_save_add_btn {
-        min-width: 60px;
-    }
-
-    #finetune_save_total_limit,
-    #finetune_save_steps,
-    #finetune_logging_steps {
-        min-width: min(120px,100%) !important;
-        padding-top: 4px;
-    }
-    #finetune_save_total_limit span,
-    #finetune_save_steps span,
-    #finetune_logging_steps span {
-        font-size: 12px;
-        margin-bottom: 5px;
-    }
-    #finetune_save_total_limit input,
-    #finetune_save_steps input,
-    #finetune_logging_steps input {
-        padding: 4px 8px;
-    }
-
-    #finetune_advanced_options_checkboxes > * > * {
-        min-width: auto;
-    }
-
-    #finetune_log_and_save_options_group_container {
-        flex-grow: 0 !important;
-    }
-    #finetune_model_name_group {
-        flex-grow: 0 !important;
-    }
-
-    #finetune_eval_data_group {
-        flex-grow: 0 !important;
-    }
-
-    #finetune_additional_training_arguments_box > .form,
-    #finetune_additional_lora_config_box > .form {
-        border: 0;
-        background: transparent;
-    }
-    #finetune_additional_training_arguments_textbox_for_label_display,
-    #finetune_additional_lora_config_textbox_for_label_display {
-        padding: 0;
-        margin-bottom: -10px;
-        background: transparent;
-    }
-    #finetune_additional_training_arguments_textbox_for_label_display textarea,
-    #finetune_additional_lora_config_textbox_for_label_display textarea {
-        display: none;
-    }
-
     @media screen and (max-width: 392px) {
         #inference_lora_model, #inference_lora_model_group, #finetune_template {
             border-bottom-left-radius: 0;
@@ -869,12 +631,6 @@ def main_page_custom_css():
         overflow: hidden !important;
     }
 
-    /* in case if there's too many logs on the previous run and made the box too high */
-    #finetune_training_status:has(.wrap:not(.hide)) {
-        max-height: 160px;
-        height: 160px;
-    }
-
     .foot_stop_timeoutable_btn {
         align-self: flex-end;
         border: 0 !important;
@@ -897,6 +653,9 @@ def main_page_custom_css():
     .tippy-box[data-animation=scale-subtle][data-placement^=top]{transform-origin:bottom}.tippy-box[data-animation=scale-subtle][data-placement^=bottom]{transform-origin:top}.tippy-box[data-animation=scale-subtle][data-placement^=left]{transform-origin:right}.tippy-box[data-animation=scale-subtle][data-placement^=right]{transform-origin:left}.tippy-box[data-animation=scale-subtle][data-state=hidden]{transform:scale(.8);opacity:0}
     """
     return css
+
+
+register_css_style('main', main_page_custom_css())
 
 
 def pre_handle_change_base_model(selected_base_model_name):
