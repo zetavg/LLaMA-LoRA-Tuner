@@ -57,6 +57,9 @@ def update_training_states(
     Global.training_log_history = log_history
     Global.training_eta = Global.training_eta_predictor.predict_eta(current_step, total_steps)
 
+    if Global.should_stop_training:
+        return
+
     last_history = None
     last_loss = None
     if len(Global.training_log_history) > 0:

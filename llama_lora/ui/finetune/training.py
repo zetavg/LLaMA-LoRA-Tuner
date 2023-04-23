@@ -22,6 +22,13 @@ from ..trainer_callback import (
 from .data_processing import get_data_from_input
 
 
+def status_message_callback(message):
+    if Global.should_stop_training:
+        return True
+
+    Global.training_status_text = message
+
+
 def do_train(
     # Dataset
     template,
@@ -254,6 +261,7 @@ def do_train(
                 train_output = Global.finetune_train_fn(
                     train_data=train_data,
                     callbacks=training_callbacks,
+                    status_message_callback=status_message_callback,
                     **finetune_args,
                 )
 

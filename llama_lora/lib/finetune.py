@@ -70,7 +70,13 @@ def train(
     wandb_tags: List[str] = [],
     wandb_watch: str = "false",  # options: false | gradients | all
     wandb_log_model: str = "true",  # options: false | true
+    status_message_callback: Any = None,
 ):
+    if status_message_callback:
+        cb_result = status_message_callback("Preparing training...")
+        if cb_result:
+            return
+
     if lora_modules_to_save is not None and len(lora_modules_to_save) <= 0:
         lora_modules_to_save = None
 
@@ -171,6 +177,16 @@ def train(
     if ddp:
         device_map = {"": int(os.environ.get("LOCAL_RANK") or 0)}
 
+    if status_message_callback:
+        if isinstance(base_model, str):
+            cb_result = status_message_callback(f"Preparing model '{base_model}' for training...")
+            if cb_result:
+                return
+        else:
+            cb_result = status_message_callback("Preparing model for training...")
+            if cb_result:
+                return
+
     model = base_model
     if isinstance(model, str):
         model_name = model
@@ -216,6 +232,74 @@ def train(
     # )
     tokenizer.padding_side = "left"  # Allow batched inference
 
+    try:
+        model = prepare_model_for_int8_training(model)
+    except Exception as e:
+        print(
+            f"Got error while running prepare_model_for_int8_training(model), maybe the model has already be prepared. Original error: {e}.")
+
+    if status_message_callback:
+        cb_result = status_message_callback("Preparing PEFT model for training...")
+        if cb_result:
+            return
+
+    lora_config_args = {
+        'r': lora_r,
+        'lora_alpha': lora_alpha,
+        'target_modules': lora_target_modules,
+        'modules_to_save': lora_modules_to_save,
+        'lora_dropout': lora_dropout,
+        'bias': "none",
+        'task_type': "CAUSAL_LM",
+    }
+    config = LoraConfig(**{
+        **lora_config_args,
+        **(additional_lora_config or {}),
+    })
+    model = get_peft_model(model, config)
+    if bf16:
+        model = model.to(torch.bfloat16)
+
+    if resume_from_checkpoint:
+        # Check the available weights and load them
+        checkpoint_name = os.path.join(
+            resume_from_checkpoint, "pytorch_model.bin"
+        )  # Full checkpoint
+        if not os.path.exists(checkpoint_name):
+            checkpoint_name = os.path.join(
+                resume_from_checkpoint, "adapter_model.bin"
+            )  # only LoRA model - LoRA config above has to fit
+            resume_from_checkpoint = (
+                False  # So the trainer won't try loading its state
+            )
+        # The two files above have a different name depending on how they were saved, but are actually the same.
+        if os.path.exists(checkpoint_name):
+            print(f"Restarting from {checkpoint_name}")
+            adapters_weights = torch.load(checkpoint_name)
+            model = set_peft_model_state_dict(model, adapters_weights)
+        else:
+            raise ValueError(f"Checkpoint {checkpoint_name} not found")
+
+    # Be more transparent about the % of trainable params.
+    trainable_params = 0
+    all_params = 0
+    for _, param in model.named_parameters():
+        all_params += param.numel()
+        if param.requires_grad:
+            trainable_params += param.numel()
+    print(
+        f"trainable params: {trainable_params} || all params: {all_params} || trainable%: {100 * trainable_params / all_params} (calculated)"
+    )
+    model.print_trainable_parameters()
+    if use_wandb and wandb:
+        wandb.config.update({"model": {"all_params": all_params, "trainable_params": trainable_params,
+                            "trainable%": 100 * trainable_params / all_params}})
+
+    if status_message_callback:
+        cb_result = status_message_callback("Preparing train data...")
+        if cb_result:
+            return
+
     def tokenize(prompt, add_eos_token=True):
         # there's probably a way to do this with the tokenizer settings
         # but again, gotta move fast
@@ -253,72 +337,11 @@ def train(
             ]  # could be sped up, probably
         return tokenized_full_prompt
 
-    # will fail anyway.
-    try:
-        model = prepare_model_for_int8_training(model)
-    except Exception as e:
-        print(
-            f"Got error while running prepare_model_for_int8_training(model), maybe the model has already be prepared. Original error: {e}.")
-
-    # model = prepare_model_for_int8_training(model)
-
-    lora_config_args = {
-        'r': lora_r,
-        'lora_alpha': lora_alpha,
-        'target_modules': lora_target_modules,
-        'modules_to_save': lora_modules_to_save,
-        'lora_dropout': lora_dropout,
-        'bias': "none",
-        'task_type': "CAUSAL_LM",
-    }
-    config = LoraConfig(**{
-        **lora_config_args,
-        **(additional_lora_config or {}),
-    })
-    model = get_peft_model(model, config)
-    if bf16:
-        model = model.to(torch.bfloat16)
-
     # If train_data is a list, convert it to datasets.Dataset
     if isinstance(train_data, list):
         with open(os.path.join(output_dir, "train_data_samples.json"), 'w') as file:
             json.dump(list(train_data[:100]), file, indent=2)
         train_data = Dataset.from_list(train_data)
-
-    if resume_from_checkpoint:
-        # Check the available weights and load them
-        checkpoint_name = os.path.join(
-            resume_from_checkpoint, "pytorch_model.bin"
-        )  # Full checkpoint
-        if not os.path.exists(checkpoint_name):
-            checkpoint_name = os.path.join(
-                resume_from_checkpoint, "adapter_model.bin"
-            )  # only LoRA model - LoRA config above has to fit
-            resume_from_checkpoint = (
-                False  # So the trainer won't try loading its state
-            )
-        # The two files above have a different name depending on how they were saved, but are actually the same.
-        if os.path.exists(checkpoint_name):
-            print(f"Restarting from {checkpoint_name}")
-            adapters_weights = torch.load(checkpoint_name)
-            model = set_peft_model_state_dict(model, adapters_weights)
-        else:
-            raise ValueError(f"Checkpoint {checkpoint_name} not found")
-
-    # Be more transparent about the % of trainable params.
-    trainable_params = 0
-    all_params = 0
-    for _, param in model.named_parameters():
-        all_params += param.numel()
-        if param.requires_grad:
-            trainable_params += param.numel()
-    print(
-        f"trainable params: {trainable_params} || all params: {all_params} || trainable%: {100 * trainable_params / all_params} (calculated)"
-    )
-    model.print_trainable_parameters()
-    if use_wandb and wandb:
-        wandb.config.update({"model": {"all_params": all_params, "trainable_params": trainable_params,
-                            "trainable%": 100 * trainable_params / all_params}})
 
     if val_set_size > 0:
         train_val = train_data.train_test_split(
@@ -338,6 +361,11 @@ def train(
         # keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
         model.is_parallelizable = True
         model.model_parallel = True
+
+    if status_message_callback:
+        cb_result = status_message_callback("Train starting...")
+        if cb_result:
+            return
 
     # https://huggingface.co/docs/transformers/main/en/main_classes/trainer#transformers.TrainingArguments
     training_args = {

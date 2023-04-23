@@ -309,6 +309,7 @@ def handle_lora_modules_to_save_add(choices, new_module, selected_modules):
 
 def do_abort_training():
     Global.should_stop_training = True
+    Global.training_status_text = "Aborting..."
 
 
 def finetune_ui():
