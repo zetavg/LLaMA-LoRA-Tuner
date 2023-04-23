@@ -19,7 +19,7 @@ class Config:
     timezone: Any = pytz.UTC
 
     # WandB
-    enable_wandb: Union[bool, None] = False
+    enable_wandb: Union[bool, None] = None
     wandb_api_key: Union[str, None] = None
     default_wandb_project: str = "llama-lora-tuner"
 
