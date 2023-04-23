@@ -120,3 +120,5 @@ def read_yaml_config():
 
 if __name__ == "__main__":
     fire.Fire(main)
+elif __name__ == "app":  # app is run by `gradio`
+    main()  # does not support command line args, must use config.yaml
