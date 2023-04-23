@@ -188,6 +188,21 @@
     min-width: 60px;
 }
 
+#finetune_advance_lora_options_accordion > *:last-child:not(.label-wrap) > *:first-child {
+    margin-top: 8px;
+}
+#finetune_advance_lora_options_accordion #finetune_lora_modules_to_save,
+#finetune_advance_lora_options_accordion #finetune_lora_modules_to_save_add_box {
+    padding: var(--spacing-lg);
+    background: var(--panel-background-fill);
+    border: 0;
+}
+#finetune_advance_lora_options_accordion #finetune_lora_modules_to_save_box > .form,
+#finetune_advance_lora_options_accordion #finetune_lora_modules_to_save,
+#finetune_advance_lora_options_accordion #finetune_lora_modules_to_save_add_box {
+    border: 0;
+}
+
 #finetune_save_total_limit,
 #finetune_save_steps,
 #finetune_logging_steps {
@@ -206,6 +221,9 @@
     padding: 4px 8px;
 }
 
+#finetune_advance_options_accordion > *:last-child:not(.label-wrap) > *:first-child {
+    margin-top: 8px;
+}
 #finetune_advanced_options_checkboxes > * > * {
     min-width: auto;
 }

@@ -1043,14 +1043,14 @@ def finetune_ui():
                     with gr.Column(variant="panel", elem_id="finetune_additional_training_arguments_box"):
                         gr.Textbox(
                             label="Additional Training Arguments",
-                            info="Additional training arguments to be passed to the Trainer in JSON format. Note that this can override ALL other arguments set elsewhere. See https://bit.ly/hf20-transformers-training-arguments for more details.",
+                            info="Additional training arguments to be passed to the Trainer. Note that this can override ALL other arguments set elsewhere. See https://bit.ly/hf20-transformers-training-arguments for more details.",
                             elem_id="finetune_additional_training_arguments_textbox_for_label_display"
                             )
                         additional_training_arguments = gr.Code(
-                            show_label=False,
+                            label="JSON",
                             language="json",
                             value="",
-                            # lines=2,
+                            lines=2,
                             elem_id="finetune_additional_training_arguments")
 
             with gr.Column():
@@ -1136,14 +1136,14 @@ def finetune_ui():
                     with gr.Column(variant="panel", elem_id="finetune_additional_lora_config_box"):
                         gr.Textbox(
                             label="Additional LoRA Config",
-                            info="Additional LoraConfig in JSON format. Note that this can override ALL other arguments set elsewhere.",
+                            info="Additional LoraConfig. Note that this can override ALL other arguments set elsewhere.",
                             elem_id="finetune_additional_lora_config_textbox_for_label_display"
                             )
                         additional_lora_config = gr.Code(
-                            show_label=False,
+                            label="JSON",
                             language="json",
                             value="",
-                            # lines=2,
+                            lines=2,
                             elem_id="finetune_additional_lora_config")
 
                 gr.HTML(elem_classes="flex_vertical_grow_area no_limit")
