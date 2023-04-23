@@ -4,7 +4,6 @@ import fnmatch
 import json
 
 from ..config import Config
-from ..globals import Global
 
 
 def init_data_dir():
@@ -13,12 +12,16 @@ def init_data_dir():
     parent_directory_path = os.path.dirname(current_file_path)
     project_dir_path = os.path.abspath(
         os.path.join(parent_directory_path, "..", ".."))
-    copy_sample_data_if_not_exists(os.path.join(project_dir_path, "templates"),
-                                   os.path.join(Config.data_dir, "templates"))
-    copy_sample_data_if_not_exists(os.path.join(project_dir_path, "datasets"),
-                                   os.path.join(Config.data_dir, "datasets"))
-    copy_sample_data_if_not_exists(os.path.join(project_dir_path, "lora_models"),
-                                   os.path.join(Config.data_dir, "lora_models"))
+    sample_data_dir_path = os.path.join(project_dir_path, "sample_data")
+    copy_sample_data_if_not_exists(
+        os.path.join(sample_data_dir_path, "templates"),
+        os.path.join(Config.data_dir, "templates"))
+    copy_sample_data_if_not_exists(
+        os.path.join(sample_data_dir_path, "datasets"),
+        os.path.join(Config.data_dir, "datasets"))
+    copy_sample_data_if_not_exists(
+        os.path.join(sample_data_dir_path, "lora_models"),
+        os.path.join(Config.data_dir, "lora_models"))
 
 
 def copy_sample_data_if_not_exists(source, destination):
@@ -32,21 +35,33 @@ def copy_sample_data_if_not_exists(source, destination):
 def get_available_template_names():
     templates_directory_path = os.path.join(Config.data_dir, "templates")
     all_files = os.listdir(templates_directory_path)
-    names = [filename.rstrip(".json") for filename in all_files if fnmatch.fnmatch(filename, "*.json") or fnmatch.fnmatch(filename, "*.py")]
+    names = [
+        filename.rstrip(".json") for filename in all_files
+        if fnmatch.fnmatch(
+            filename, "*.json") or fnmatch.fnmatch(filename, "*.py")
+    ]
     return sorted(names)
 
 
 def get_available_dataset_names():
     datasets_directory_path = os.path.join(Config.data_dir, "datasets")
     all_files = os.listdir(datasets_directory_path)
-    names = [filename for filename in all_files if fnmatch.fnmatch(filename, "*.json") or fnmatch.fnmatch(filename, "*.jsonl")]
+    names = [
+        filename for filename in all_files
+        if fnmatch.fnmatch(filename, "*.json")
+        or fnmatch.fnmatch(filename, "*.jsonl")
+    ]
     return sorted(names)
 
 
 def get_available_lora_model_names():
     lora_models_directory_path = os.path.join(Config.data_dir, "lora_models")
     all_items = os.listdir(lora_models_directory_path)
-    names = [item for item in all_items if os.path.isdir(os.path.join(lora_models_directory_path, item))]
+    names = [
+        item for item in all_items
+        if os.path.isdir(
+            os.path.join(lora_models_directory_path, item))
+    ]
     return sorted(names)
 
 
@@ -67,7 +82,9 @@ def get_info_of_available_lora_model(name):
         if not path_of_available_lora_model:
             return None
 
-        with open(os.path.join(path_of_available_lora_model, "info.json"), "r") as json_file:
+        with open(
+            os.path.join(path_of_available_lora_model, "info.json"), "r"
+        ) as json_file:
             return json.load(json_file)
 
     except Exception as e:
@@ -95,4 +112,5 @@ def get_dataset_content(name):
             return data
         else:
             raise ValueError(
-                f"Unknown file format: {file_name}. Expects '*.json' or '*.jsonl'")
+                f"Unknown file format: {file_name}. Expects '*.json' or '*.jsonl'"
+            )
