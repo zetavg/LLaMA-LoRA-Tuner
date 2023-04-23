@@ -502,6 +502,27 @@ def finetune_ui():
                     )
                 gr.HTML(elem_classes="flex_vertical_grow_area")
 
+                with gr.Accordion("Advanced Options", open=False, elem_id="finetune_advance_options_accordion"):
+                    with gr.Row(elem_id="finetune_advanced_options_checkboxes"):
+                        load_in_8bit = gr.Checkbox(
+                            label="8bit", value=Config.load_8bit)
+                        fp16 = gr.Checkbox(label="FP16", value=True)
+                        bf16 = gr.Checkbox(label="BF16", value=False)
+                        gradient_checkpointing = gr.Checkbox(
+                            label="gradient_checkpointing", value=False)
+                    with gr.Column(variant="panel", elem_id="finetune_additional_training_arguments_box"):
+                        gr.Textbox(
+                            label="Additional Training Arguments",
+                            info="Additional training arguments to be passed to the Trainer. Note that this can override ALL other arguments set elsewhere. See https://bit.ly/hf20-transformers-training-arguments for more details.",
+                            elem_id="finetune_additional_training_arguments_textbox_for_label_display"
+                        )
+                        additional_training_arguments = gr.Code(
+                            label="JSON",
+                            language="json",
+                            value="",
+                            lines=2,
+                            elem_id="finetune_additional_training_arguments")
+
                 with gr.Box(elem_id="finetune_continue_from_model_box"):
                     with gr.Row():
                         continue_from_model = gr.Dropdown(
@@ -536,27 +557,6 @@ def finetune_ui():
                             ]
                         )
                     )
-
-                with gr.Accordion("Advanced Options", open=False, elem_id="finetune_advance_options_accordion"):
-                    with gr.Row(elem_id="finetune_advanced_options_checkboxes"):
-                        load_in_8bit = gr.Checkbox(
-                            label="8bit", value=Config.load_8bit)
-                        fp16 = gr.Checkbox(label="FP16", value=True)
-                        bf16 = gr.Checkbox(label="BF16", value=False)
-                        gradient_checkpointing = gr.Checkbox(
-                            label="gradient_checkpointing", value=False)
-                    with gr.Column(variant="panel", elem_id="finetune_additional_training_arguments_box"):
-                        gr.Textbox(
-                            label="Additional Training Arguments",
-                            info="Additional training arguments to be passed to the Trainer. Note that this can override ALL other arguments set elsewhere. See https://bit.ly/hf20-transformers-training-arguments for more details.",
-                            elem_id="finetune_additional_training_arguments_textbox_for_label_display"
-                        )
-                        additional_training_arguments = gr.Code(
-                            label="JSON",
-                            language="json",
-                            value="",
-                            lines=2,
-                            elem_id="finetune_additional_training_arguments")
 
             with gr.Column():
                 lora_r = gr.Slider(

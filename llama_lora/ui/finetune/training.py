@@ -66,7 +66,7 @@ def do_train(
     continue_from_checkpoint,
     progress=gr.Progress(track_tqdm=False),
 ):
-    if Global.is_training:
+    if Global.is_training or Global.is_train_starting:
         return render_training_status()
 
     reset_training_status()
