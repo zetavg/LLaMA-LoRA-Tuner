@@ -47,7 +47,11 @@ def get_new_base_model(base_model_name):
     while True:
         try:
             model = _get_model_from_pretrained(
-                model_class, base_model_name, from_tf=from_tf, force_download=force_download)
+                model_class,
+                base_model_name,
+                from_tf=from_tf,
+                force_download=force_download
+            )
             break
         except Exception as e:
             if 'from_tf' in str(e):
@@ -83,7 +87,9 @@ def get_new_base_model(base_model_name):
     return model
 
 
-def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_download=False):
+def _get_model_from_pretrained(
+        model_class, model_name,
+        from_tf=False, force_download=False):
     torch = get_torch()
     device = get_device()
 
@@ -97,7 +103,8 @@ def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_dow
             device_map={'': 0},
             from_tf=from_tf,
             force_download=force_download,
-            trust_remote_code=Config.trust_remote_code
+            trust_remote_code=Config.trust_remote_code,
+            use_auth_token=Config.hf_access_token
         )
     elif device == "mps":
         return model_class.from_pretrained(
@@ -106,7 +113,8 @@ def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_dow
             torch_dtype=torch.float16,
             from_tf=from_tf,
             force_download=force_download,
-            trust_remote_code=Config.trust_remote_code
+            trust_remote_code=Config.trust_remote_code,
+            use_auth_token=Config.hf_access_token
         )
     else:
         return model_class.from_pretrained(
@@ -115,7 +123,8 @@ def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_dow
             low_cpu_mem_usage=True,
             from_tf=from_tf,
             force_download=force_download,
-            trust_remote_code=Config.trust_remote_code
+            trust_remote_code=Config.trust_remote_code,
+            use_auth_token=Config.hf_access_token
         )
 
 
@@ -133,13 +142,15 @@ def get_tokenizer(base_model_name):
     try:
         tokenizer = AutoTokenizer.from_pretrained(
             base_model_name,
-            trust_remote_code=Config.trust_remote_code
+            trust_remote_code=Config.trust_remote_code,
+            use_auth_token=Config.hf_access_token
         )
     except Exception as e:
         if 'LLaMATokenizer' in str(e):
             tokenizer = LlamaTokenizer.from_pretrained(
                 base_model_name,
-                trust_remote_code=Config.trust_remote_code
+                trust_remote_code=Config.trust_remote_code,
+                use_auth_token=Config.hf_access_token
             )
         else:
             raise e
@@ -210,6 +221,7 @@ def get_model(
                 torch_dtype=torch.float16,
                 # ? https://github.com/tloen/alpaca-lora/issues/21
                 device_map={'': 0},
+                use_auth_token=Config.hf_access_token
             )
         elif device == "mps":
             model = PeftModel.from_pretrained(
@@ -217,12 +229,14 @@ def get_model(
                 peft_model_name_or_path,
                 device_map={"": device},
                 torch_dtype=torch.float16,
+                use_auth_token=Config.hf_access_token
             )
         else:
             model = PeftModel.from_pretrained(
                 model,
                 peft_model_name_or_path,
                 device_map={"": device},
+                use_auth_token=Config.hf_access_token
             )
 
     if re.match("[^/]+/llama", base_model_name):

@@ -78,11 +78,12 @@ setup: |
   echo "Pre-downloading base models so that you won't have to wait for long once the app is ready..."
   python llm_tuner/download_base_model.py --base_model_names='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j'
 
-# Start the app. `wandb_api_key` and `wandb_project_name` are optional.
+# Start the app. `hf_access_token`, `wandb_api_key` and `wandb_project_name` are optional.
 run: |
   conda activate llm-tuner
   python llm_tuner/app.py \
     --data_dir='/data' \
+    --hf_access_token="$([ -f /data/secrets/hf_access_token.txt ] && cat /data/secrets/hf_access_token.txt | tr -d '\n')" \
     --wandb_api_key="$([ -f /data/secrets/wandb_api_key.txt ] && cat /data/secrets/wandb_api_key.txt | tr -d '\n')" \
     --wandb_project_name='llm-tuner' \
     --timezone='Atlantic/Reykjavik' \

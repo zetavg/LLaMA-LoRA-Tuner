@@ -29,6 +29,7 @@ def main(
     ui_dev_mode: Union[bool, None] = None,
     wandb_api_key: Union[str, None] = None,
     wandb_project: Union[str, None] = None,
+    hf_access_token: Union[str, None] = None,
     timezone: Union[str, None] = None,
     config: Union[str, None] = None,
 ):
@@ -45,6 +46,8 @@ def main(
 
     :param wandb_api_key: The API key for Weights & Biases. Setting either this or `wandb_project` will enable Weights & Biases.
     :param wandb_project: The default project name for Weights & Biases. Setting either this or `wandb_api_key` will enable Weights & Biases.
+
+    :param hf_access_token: Provide an access token to load private models form Hugging Face Hub. An access token can be created at https://huggingface.co/settings/tokens.
     '''
 
     config_from_file = read_yaml_config(config_path=config)

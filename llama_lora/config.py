@@ -8,18 +8,24 @@ class Config:
     Stores the application configuration. This is a singleton class.
     """
 
+    # Where data is stored
     data_dir: str = ""
-    load_8bit: bool = False
 
+    # Model Related
     default_base_model_name: str = ""
     base_model_choices: Union[List[str], str] = []
-
+    load_8bit: bool = False
     trust_remote_code: bool = False
 
+    # Application Settings
     timezone: Any = pytz.UTC
 
+    # Authentication
     auth_username: Union[str, None] = None
     auth_password: Union[str, None] = None
+
+    # Hugging Face
+    hf_access_token: Union[str, None] = None
 
     # WandB
     enable_wandb: Union[bool, None] = None

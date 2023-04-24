@@ -71,6 +71,7 @@ def train(
     wandb_watch: str = "false",  # options: false | gradients | all
     wandb_log_model: str = "true",  # options: false | true
     additional_wandb_config: Union[dict, None] = None,
+    hf_access_token: Union[str, None] = None,
     status_message_callback: Any = None,
     params_info_callback: Any = None,
 ):
@@ -88,9 +89,11 @@ def train(
         additional_training_arguments = None
     if isinstance(additional_training_arguments, str):
         try:
-            additional_training_arguments = json.loads(additional_training_arguments)
+            additional_training_arguments = json.loads(
+                additional_training_arguments)
         except Exception as e:
-            raise ValueError(f"Could not parse additional_training_arguments: {e}")
+            raise ValueError(
+                f"Could not parse additional_training_arguments: {e}")
 
     if isinstance(additional_lora_config, str):
         additional_lora_config = additional_lora_config.strip()
@@ -183,11 +186,13 @@ def train(
 
     if status_message_callback:
         if isinstance(base_model, str):
-            cb_result = status_message_callback(f"Preparing model '{base_model}' for training...")
+            cb_result = status_message_callback(
+                f"Preparing model '{base_model}' for training...")
             if cb_result:
                 return
         else:
-            cb_result = status_message_callback("Preparing model for training...")
+            cb_result = status_message_callback(
+                "Preparing model for training...")
             if cb_result:
                 return
 
@@ -201,6 +206,7 @@ def train(
             torch_dtype=torch.float16,
             llm_int8_skip_modules=lora_modules_to_save,
             device_map=device_map,
+            use_auth_token=hf_access_token
         )
         if re.match("[^/]+/llama", model_name):
             print(f"Setting special tokens for LLaMA model {model_name}...")
@@ -213,11 +219,14 @@ def train(
     if isinstance(tokenizer, str):
         tokenizer_name = tokenizer
         try:
-            tokenizer = AutoTokenizer.from_pretrained(tokenizer)
+            tokenizer = AutoTokenizer.from_pretrained(
+                tokenizer, use_auth_token=hf_access_token
+            )
         except Exception as e:
             if 'LLaMATokenizer' in str(e):
                 tokenizer = LlamaTokenizer.from_pretrained(
                     tokenizer_name,
+                    use_auth_token=hf_access_token
                 )
             else:
                 raise e
@@ -243,7 +252,8 @@ def train(
             f"Got error while running prepare_model_for_int8_training(model), maybe the model has already be prepared. Original error: {e}.")
 
     if status_message_callback:
-        cb_result = status_message_callback("Preparing PEFT model for training...")
+        cb_result = status_message_callback(
+            "Preparing PEFT model for training...")
         if cb_result:
             return
 
@@ -299,7 +309,8 @@ def train(
         wandb.config.update({"model": {"all_params": all_params, "trainable_params": trainable_params,
                             "trainable%": 100 * trainable_params / all_params}})
     if params_info_callback:
-        cb_result = params_info_callback(all_params=all_params, trainable_params=trainable_params)
+        cb_result = params_info_callback(
+            all_params=all_params, trainable_params=trainable_params)
         if cb_result:
             return
 
