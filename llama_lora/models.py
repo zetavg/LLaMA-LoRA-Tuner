@@ -158,6 +158,8 @@ def get_model(
     if Global.is_train_starting or Global.is_training:
         raise Exception("Cannot load new base model while training.")
 
+    torch = get_torch()
+
     if peft_model_name == "None":
         peft_model_name = None
 
@@ -199,7 +201,6 @@ def get_model(
 
     if peft_model_name:
         device = get_device()
-        torch = get_torch()
         PeftModel = get_peft_model_class()
 
         if device == "cuda":
