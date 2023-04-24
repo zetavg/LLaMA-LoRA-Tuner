@@ -659,7 +659,7 @@ def inference_ui():
       // Add tooltips
       setTimeout(function () {
         tippy('#inference_lora_model', {
-          placement: 'bottom-start',
+          placement: 'top-start',
           delay: [500, 0],
           animation: 'scale-subtle',
           content:
@@ -668,7 +668,7 @@ def inference_ui():
         });
 
         tippy('#inference_prompt_template', {
-          placement: 'bottom-start',
+          placement: 'top-start',
           delay: [500, 0],
           animation: 'scale-subtle',
           content:

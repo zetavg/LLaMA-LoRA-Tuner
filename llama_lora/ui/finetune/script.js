@@ -14,7 +14,7 @@ function finetune_ui_blocks_js() {
     });
 
     tippy('#finetune_template', {
-      placement: 'bottom-start',
+      placement: 'right',
       delay: [500, 0],
       animation: 'scale-subtle',
       content:
@@ -110,7 +110,7 @@ function finetune_ui_blocks_js() {
     });
 
     tippy('#finetune_continue_from_model', {
-      placement: 'bottom',
+      placement: 'right',
       delay: [500, 0],
       animation: 'scale-subtle',
       content:
@@ -119,7 +119,7 @@ function finetune_ui_blocks_js() {
     });
 
     tippy('#finetune_continue_from_checkpoint', {
-      placement: 'bottom',
+      placement: 'right',
       delay: [500, 0],
       animation: 'scale-subtle',
       content:
