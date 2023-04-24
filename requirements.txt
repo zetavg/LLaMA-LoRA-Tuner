@@ -1,4 +1,5 @@
 accelerate
+altair
 appdirs
 bitsandbytes
 black
@@ -7,10 +8,11 @@ datasets
 fire
 git+https://github.com/huggingface/peft.git
 git+https://github.com/huggingface/transformers.git
+gradio
 huggingface_hub
+loralib
 numba
 nvidia-ml-py3
-gradio
-loralib
-sentencepiece
+pandas
 random-word
+sentencepiece

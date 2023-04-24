@@ -255,7 +255,9 @@
     display: none;
 }
 
-#finetune_training_status > .wrap {
+#finetune_training_status > .wrap,
+#finetune_loss_plot_container > .wrap,
+#finetune_loss_plot > .wrap {
     border: 0;
     background: transparent;
     pointer-events: none;
@@ -263,6 +265,17 @@
     bottom: 0;
     left: 0;
     right: 0;
+}
+#finetune_training_status > .wrap:not(.generating)::after {
+    content: "Refresh the page if this takes too long.";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-top: 64px;
+    opacity: 0.5;
+    text-align: center;
 }
 #finetune_training_status > .wrap .meta-text-center {
     transform: none !important;
@@ -382,6 +395,19 @@
 #finetune_training_status .progress-block.is_error {
     /* background: var(--error-background-fill) !important; */
     border: 1px solid var(--error-border-color) !important;
+}
+#finetune_loss_plot {
+    padding: var(--block-padding);
+}
+#finetune_loss_plot .altair {
+    overflow: auto !important;
+}
+#finetune_loss_plot .altair > * {
+    margin: auto !important;
+}
+#finetune_loss_plot .vega-embed summary {
+    border: 0;
+    box-shadow: none;
 }
 
 #finetune_training_indicator { display: none; }

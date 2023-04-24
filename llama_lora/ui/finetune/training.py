@@ -1,11 +1,14 @@
 import os
 import json
 import time
+import math
 import datetime
 import pytz
 import socket
 import threading
 import traceback
+import altair as alt
+import pandas as pd
 import gradio as gr
 
 from huggingface_hub import try_to_load_from_cache, snapshot_download
@@ -71,7 +74,7 @@ def do_train(
     progress=gr.Progress(track_tqdm=False),
 ):
     if Global.is_training or Global.is_train_starting:
-        return render_training_status()
+        return render_training_status() + render_loss_plot()
 
     reset_training_status()
     Global.is_train_starting = True
@@ -206,6 +209,9 @@ def do_train(
                     print(message)
 
                     total_steps = 300
+                    log_history = []
+                    initial_loss = 2
+                    loss_decay_rate = 0.8
                     for i in range(300):
                         if (Global.should_stop_training):
                             break
@@ -213,11 +219,14 @@ def do_train(
                         current_step = i + 1
                         total_epochs = 3
                         current_epoch = i / 100
-                        log_history = []
 
                         if (i > 20):
-                            loss = 3 + (i - 0) * (0.5 - 3) / (300 - 0)
-                            log_history = [{'loss': loss}]
+                            loss = initial_loss * math.exp(-loss_decay_rate * current_epoch)
+                            log_history.append({
+                                'loss': loss,
+                                'learning_rate': 0.0001,
+                                'epoch': current_epoch
+                            })
 
                         update_training_states(
                             total_steps=total_steps,
@@ -295,7 +304,7 @@ def do_train(
     finally:
         Global.is_train_starting = False
 
-    return render_training_status()
+    return render_training_status() + render_loss_plot()
 
 
 def render_training_status():
@@ -409,6 +418,51 @@ def render_training_status():
     </div>
     """
     return (gr.HTML.update(value=html_content), gr.HTML.update(visible=True))
+
+
+def render_loss_plot():
+    if len(Global.training_log_history) <= 2:
+        return (gr.Column.update(visible=False), gr.Plot.update(visible=False))
+
+    training_log_history = Global.training_log_history
+
+    loss_data = [
+        {
+            'type': 'train_loss' if 'loss' in item else 'eval_loss',
+            'loss': item.get('loss') or item.get('eval_loss'),
+            'epoch': item.get('epoch')
+        } for item in training_log_history
+        if ('loss' in item or 'eval_loss' in item)
+        and 'epoch' in item
+    ]
+
+    source = pd.DataFrame(loss_data)
+
+    highlight = alt.selection(
+        type='single',  # type: ignore
+        on='mouseover', fields=['type'], nearest=True
+    )
+
+    base = alt.Chart(source).encode(  # type: ignore
+        x='epoch:Q',
+        y='loss:Q',
+        color='type:N',
+        tooltip=['type:N', 'loss:Q', 'epoch:Q']
+    )
+
+    points = base.mark_circle().encode(
+        opacity=alt.value(0)
+    ).add_selection(
+        highlight
+    ).properties(
+        width=640
+    )
+
+    lines = base.mark_line().encode(
+        size=alt.condition(~highlight, alt.value(1), alt.value(3))
+    )
+
+    return (gr.Column.update(visible=True), gr.Plot.update(points + lines, visible=True))
 
 
 def format_time(seconds):

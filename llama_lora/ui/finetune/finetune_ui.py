@@ -28,7 +28,8 @@ from .previewing import (
 )
 from .training import (
     do_train,
-    render_training_status
+    render_training_status,
+    render_loss_plot
 )
 
 register_css_style('finetune', relative_read_file(__file__, "style.css"))
@@ -773,9 +774,14 @@ def finetune_ui():
         )
 
         train_status = gr.HTML(
-            "Training results will be shown here.",
+            "",
             label="Train Output",
             elem_id="finetune_training_status")
+
+        with gr.Column(visible=False, elem_id="finetune_loss_plot_container") as loss_plot_container:
+            loss_plot = gr.Plot(
+                visible=False, show_label=False,
+                elem_id="finetune_loss_plot")
 
         training_indicator = gr.HTML(
             "training_indicator", visible=False, elem_id="finetune_training_indicator")
@@ -787,7 +793,8 @@ def finetune_ui():
                 continue_from_model,
                 continue_from_checkpoint,
             ]),
-            outputs=[train_status, training_indicator]
+            outputs=[train_status, training_indicator,
+                     loss_plot_container, loss_plot]
         )
 
         # controlled by JS, shows the confirm_abort_button
@@ -802,6 +809,12 @@ def finetune_ui():
         inputs=None,
         outputs=[train_status, training_indicator],
         every=0.2
+    )
+    loss_plot_updates = finetune_ui_blocks.load(
+        fn=render_loss_plot,
+        inputs=None,
+        outputs=[loss_plot_container, loss_plot],
+        every=10
     )
     finetune_ui_blocks.load(_js=relative_read_file(__file__, "script.js"))
 
