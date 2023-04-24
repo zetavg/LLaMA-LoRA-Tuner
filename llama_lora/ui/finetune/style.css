@@ -244,10 +244,16 @@
     border: 0;
     background: transparent;
 }
+.form:has(> #finetune_additional_training_arguments_textbox_for_label_display),
+.form:has(> #finetune_additional_lora_config_textbox_for_label_display) {
+    box-shadow: none;
+    border-radius: 0;
+    margin-bottom: -8px;
+}
 #finetune_additional_training_arguments_textbox_for_label_display,
 #finetune_additional_lora_config_textbox_for_label_display {
     padding: 0;
-    margin-bottom: -10px;
+    margin-bottom: -8px;
     background: transparent;
 }
 #finetune_additional_training_arguments_textbox_for_label_display textarea,
