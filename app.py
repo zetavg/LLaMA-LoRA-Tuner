@@ -84,6 +84,9 @@ def main(
         except ValueError:
             raise ValueError("--auth must be in the format <username>:<password>, e.g.: --auth='username:password'")
 
+    if hf_access_token is not None:
+        Config.hf_access_token = hf_access_token
+
     if wandb_api_key is not None:
         Config.wandb_api_key = wandb_api_key
 

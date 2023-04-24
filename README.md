@@ -61,31 +61,37 @@ file_mounts:
 setup: |
   conda create -q python=3.8 -n llm-tuner -y
   conda activate llm-tuner
+
   # Clone the LLaMA-LoRA Tuner repo and install its dependencies
   [ ! -d llm_tuner ] && git clone https://github.com/zetavg/LLaMA-LoRA-Tuner.git llm_tuner
   echo 'Installing dependencies...'
   pip install -r llm_tuner/requirements.lock.txt
+
   # Optional: install wandb to enable logging to Weights & Biases
   pip install wandb
+
   # Optional: patch bitsandbytes to workaround error "libbitsandbytes_cpu.so: undefined symbol: cget_col_row_stats"
   BITSANDBYTES_LOCATION="$(pip show bitsandbytes | grep 'Location' | awk '{print $2}')/bitsandbytes"
   [ -f "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so" ] && [ ! -f "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so.bak" ] && [ -f "$BITSANDBYTES_LOCATION/libbitsandbytes_cuda121.so" ] && echo 'Patching bitsandbytes for GPU support...' && mv "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so" "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so.bak" && cp "$BITSANDBYTES_LOCATION/libbitsandbytes_cuda121.so" "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so"
   conda install -q cudatoolkit -y
+
   echo 'Dependencies installed.'
+
   # Optional: Install and setup Cloudflare Tunnel to expose the app to the internet with a custom domain name
   [ -f /data/secrets/cloudflared_tunnel_token.txt ] && echo "Installing Cloudflare" && curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && sudo dpkg -i cloudflared.deb && sudo cloudflared service uninstall || : && sudo cloudflared service install "$(cat /data/secrets/cloudflared_tunnel_token.txt | tr -d '\n')"
+
   # Optional: pre-download models
   echo "Pre-downloading base models so that you won't have to wait for long once the app is ready..."
   python llm_tuner/download_base_model.py --base_model_names='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j'
 
-# Start the app. `hf_access_token`, `wandb_api_key` and `wandb_project_name` are optional.
+# Start the app. `hf_access_token`, `wandb_api_key` and `wandb_project` are optional.
 run: |
   conda activate llm-tuner
   python llm_tuner/app.py \
     --data_dir='/data' \
     --hf_access_token="$([ -f /data/secrets/hf_access_token.txt ] && cat /data/secrets/hf_access_token.txt | tr -d '\n')" \
     --wandb_api_key="$([ -f /data/secrets/wandb_api_key.txt ] && cat /data/secrets/wandb_api_key.txt | tr -d '\n')" \
-    --wandb_project_name='llm-tuner' \
+    --wandb_project='llm-tuner' \
     --timezone='Atlantic/Reykjavik' \
     --base_model='decapoda-research/llama-7b-hf' \
     --base_model_choices='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j,databricks/dolly-v2-7b' \
