@@ -23,12 +23,14 @@ def main(
     server_name: str = "127.0.0.1",
     share: bool = False,
     skip_loading_base_model: bool = False,
+    auth: Union[str, None] = None,
     load_8bit: Union[bool, None] = None,
     ui_show_sys_info: Union[bool, None] = None,
     ui_dev_mode: Union[bool, None] = None,
     wandb_api_key: Union[str, None] = None,
     wandb_project: Union[str, None] = None,
     timezone: Union[str, None] = None,
+    config: Union[str, None] = None,
 ):
     '''
     Start the LLaMA-LoRA Tuner UI.
@@ -45,15 +47,17 @@ def main(
     :param wandb_project: The default project name for Weights & Biases. Setting either this or `wandb_api_key` will enable Weights & Biases.
     '''
 
-    config_from_file = read_yaml_config()
+    config_from_file = read_yaml_config(config_path=config)
     if config_from_file:
         for key, value in config_from_file.items():
             if key == "server_name":
                 server_name = value
                 continue
             if not hasattr(Config, key):
-                available_keys = [k for k in vars(Config) if not k.startswith('__')]
-                raise ValueError(f"Invalid config key '{key}' in config.yaml. Available keys: {', '.join(available_keys)}")
+                available_keys = [k for k in vars(
+                    Config) if not k.startswith('__')]
+                raise ValueError(
+                    f"Invalid config key '{key}' in config.yaml. Available keys: {', '.join(available_keys)}")
             setattr(Config, key, value)
 
     if base_model is not None:
@@ -70,6 +74,12 @@ def main(
 
     if load_8bit is not None:
         Config.load_8bit = load_8bit
+
+    if auth is not None:
+        try:
+            [Config.auth_username, Config.auth_password] = auth.split(':')
+        except ValueError:
+            raise ValueError("--auth must be in the format <username>:<password>, e.g.: --auth='username:password'")
 
     if wandb_api_key is not None:
         Config.wandb_api_key = wandb_api_key
@@ -106,12 +116,17 @@ def main(
         main_page()
 
     demo.queue(concurrency_count=1).launch(
-        server_name=server_name, share=share)
+        server_name=server_name,
+        share=share,
+        auth=((Config.auth_username, Config.auth_password)
+              if Config.auth_username and Config.auth_password else None)
+    )
 
 
-def read_yaml_config():
-    app_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(app_dir, 'config.yaml')
+def read_yaml_config(config_path: Union[str, None] = None):
+    if not config_path:
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(app_dir, 'config.yaml')
 
     if not os.path.exists(config_path):
         return None

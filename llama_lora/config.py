@@ -18,6 +18,9 @@ class Config:
 
     timezone: Any = pytz.UTC
 
+    auth_username: Union[str, None] = None
+    auth_password: Union[str, None] = None
+
     # WandB
     enable_wandb: Union[bool, None] = None
     wandb_api_key: Union[str, None] = None
