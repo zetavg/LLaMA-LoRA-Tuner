@@ -115,6 +115,8 @@ For more options, see `python app.py --help`.
   ```bash
   python app.py --data_dir='./data' --base_model='decapoda-research/llama-7b-hf' --share --ui_dev_mode
   ```
+
+  > To use [Gradio Auto-Reloading](https://gradio.app/developing-faster-with-reload-mode/#python-ide-reload), a `config.yaml` file is required since command line arguments are not supported. There's a sample file to start with: `cp config.yaml.sample config.yaml`. Then, just run `gradio app.py`.
 </details>
 
 
