@@ -398,9 +398,15 @@ def render_training_status():
     if time_remaining >= 0:
         meta_info.append(
             f"{format_time(time_elapsed)}<{format_time(time_remaining)}")
-        meta_info.append(f"ETA: {format_timestamp(Global.training_eta)}")
     else:
         meta_info.append(format_time(time_elapsed))
+
+    current_speed = Global.training_eta_predictor.get_current_speed()
+    if current_speed is not None:
+        meta_info.append(f"{current_speed:.2f}it/s")
+
+    if time_remaining >= 0:
+        meta_info.append(f"ETA: {format_timestamp(Global.training_eta)}")
 
     params_info_html = ""
     if Global.training_params_info_text:

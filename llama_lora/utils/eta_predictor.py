@@ -52,3 +52,18 @@ class ETAPredictor:
             print("Error predicting ETA:", e)
             traceback.print_exc()
             return None
+
+    def get_current_speed(self):
+        if len(self.data) < 5:
+            return None
+
+        last = self.data[-1]
+        sample = self.data[-5]
+        if len(self.data) > 100:
+            sample = self.data[-2]
+
+        steps_completed = last[0] - sample[0]
+        time_elapsed = last[1] - sample[1]
+        steps_per_second = steps_completed / time_elapsed
+
+        return steps_per_second

@@ -315,6 +315,7 @@
     padding: var(--size-1) var(--size-2);
     font-size: var(--text-sm);
     font-family: var(--font-mono);
+    text-align: right;
 }
 #finetune_training_status .progress-block .status {
     white-space: pre-wrap;
@@ -328,6 +329,7 @@
     z-index: var(--layer-2);
     width: var(--size-full);
     padding: 8px 0;
+    text-align: center;
 }
 #finetune_training_status .progress-block .progress-level-inner {
     margin: var(--size-2) auto;
