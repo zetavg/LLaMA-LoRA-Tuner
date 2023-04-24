@@ -896,5 +896,7 @@ def inference_ui():
           attributeFilter: ['rows'],
         });
       }, 100);
+
+      return [];
     }
     """)

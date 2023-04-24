@@ -197,4 +197,6 @@ function finetune_ui_blocks_js() {
       handle_training_indicator_change();
     }, 500);
   }, 0);
+
+  return [];
 }

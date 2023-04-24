@@ -84,6 +84,7 @@ def tokenizer_ui():
 
     tokenizer_ui_blocks.load(_js="""
     function tokenizer_ui_blocks_js() {
+      return [];
     }
     """)
 
