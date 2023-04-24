@@ -70,8 +70,10 @@ setup: |
   # Optional: patch bitsandbytes to workaround error "libbitsandbytes_cpu.so: undefined symbol: cget_col_row_stats"
   BITSANDBYTES_LOCATION="$(pip show bitsandbytes | grep 'Location' | awk '{print $2}')/bitsandbytes"
   [ -f "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so" ] && [ ! -f "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so.bak" ] && [ -f "$BITSANDBYTES_LOCATION/libbitsandbytes_cuda121.so" ] && echo 'Patching bitsandbytes for GPU support...' && mv "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so" "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so.bak" && cp "$BITSANDBYTES_LOCATION/libbitsandbytes_cuda121.so" "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so"
-  conda install -n llm-tuner cudatoolkit -y
+  conda install -q cudatoolkit -y
   echo 'Dependencies installed.'
+  # Optional: Install and setup Cloudflare Tunnel to expose the app to the internet with a custom domain name
+  [ -f /data/secrets/cloudflared_tunnel_token.txt ] && echo "Installing Cloudflare" && curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && sudo dpkg -i cloudflared.deb && sudo cloudflared service uninstall || : && sudo cloudflared service install "$(cat /data/secrets/cloudflared_tunnel_token.txt | tr -d '\n')"
   # Optional: pre-download models
   echo "Pre-downloading base models so that you won't have to wait for long once the app is ready..."
   python llm_tuner/download_base_model.py --base_model_names='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j'
