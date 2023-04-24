@@ -44,10 +44,12 @@ def process_config():
         Config.timezone = pytz.timezone(Config.timezone)
 
     if Config.default_base_model_name not in Config.base_model_choices:
-        Config.base_model_choices = [Config.default_base_model_name] + Config.base_model_choices
+        Config.base_model_choices = [
+            Config.default_base_model_name] + Config.base_model_choices
 
     if Config.enable_wandb is None:
-        if Config.wandb_api_key and len(Config.wandb_api_key) > 0:
-            Config.enable_wandb = True
-        if Config.default_wandb_project and len(Config.default_wandb_project) > 0:
+        if (
+            Config.wandb_api_key and len(Config.wandb_api_key) > 0
+                and Config.default_wandb_project and len(Config.default_wandb_project) > 0
+        ):
             Config.enable_wandb = True
