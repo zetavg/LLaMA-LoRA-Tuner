@@ -5,7 +5,7 @@ import psutil
 import math
 
 from typing import Any, Dict, List, Optional, Tuple, Union
-
+from transformers import TrainingArguments
 from numba import cuda
 import nvidia_smi
 
@@ -47,6 +47,7 @@ class Global:
     training_status_text: str = ""
     training_eta_predictor = ETAPredictor()
     training_eta: Union[int, None] = None
+    training_args: Union[TrainingArguments, None] = None
     train_output: Union[None, Any] = None
     train_output_str: Union[None, str] = None
     training_params_info_text: str = ""

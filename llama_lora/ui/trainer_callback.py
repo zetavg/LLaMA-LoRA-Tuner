@@ -22,6 +22,7 @@ def reset_training_status():
     Global.training_status_text = ""
     Global.training_eta_predictor = ETAPredictor()
     Global.training_eta = None
+    Global.training_args = None
     Global.train_output = None
     Global.train_output_str = None
     Global.training_params_info_text = ""
@@ -102,6 +103,7 @@ class UiTrainerCallback(TrainerCallback):
             traceback.print_exc()
 
     def on_epoch_begin(self, args, state, control, **kwargs):
+        Global.training_args = args
         self._on_progress(args, state, control)
 
     def on_step_end(self, args, state, control, **kwargs):

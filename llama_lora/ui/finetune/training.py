@@ -12,11 +12,13 @@ import pandas as pd
 import gradio as gr
 
 from huggingface_hub import try_to_load_from_cache, snapshot_download
+from transformers import TrainingArguments
 
 from ...config import Config
 from ...globals import Global
 from ...models import clear_cache, unload_models
 from ...utils.prompter import Prompter
+from ...utils.sample_evenly import sample_evenly
 from ..trainer_callback import (
     UiTrainerCallback, reset_training_status,
     update_training_states, set_train_output
@@ -202,26 +204,31 @@ def do_train(
                 train_data = prompter.get_train_data_from_dataset(data)
 
                 if Config.ui_dev_mode:
+                    Global.training_args = TrainingArguments(
+                        logging_steps=logging_steps, output_dir=""
+                    )
+
                     message = "Currently in UI dev mode, not doing the actual training."
                     message += f"\n\nArgs: {json.dumps(finetune_args, indent=2)}"
                     message += f"\n\nTrain data (first 5):\n{json.dumps(train_data[:5], indent=2)}"
 
                     print(message)
 
-                    total_steps = 300
+                    total_epochs = epochs
+                    total_steps = len(train_data) * epochs
                     log_history = []
                     initial_loss = 2
                     loss_decay_rate = 0.8
-                    for i in range(300):
+                    for i in range(total_steps):
                         if (Global.should_stop_training):
                             break
 
                         current_step = i + 1
-                        total_epochs = 3
-                        current_epoch = i / 100
+                        current_epoch = i / (total_steps / total_epochs)
 
-                        if (i > 20):
-                            loss = initial_loss * math.exp(-loss_decay_rate * current_epoch)
+                        if (current_step % logging_steps == 0):
+                            loss = initial_loss * \
+                                math.exp(-loss_decay_rate * current_epoch)
                             log_history.append({
                                 'loss': loss,
                                 'learning_rate': 0.0001,
@@ -424,7 +431,10 @@ def render_loss_plot():
     if len(Global.training_log_history) <= 2:
         return (gr.Column.update(visible=False), gr.Plot.update(visible=False))
 
-    training_log_history = Global.training_log_history
+    max_elements = 5000
+    training_log_history = sample_evenly(
+        Global.training_log_history, max_elements=max_elements)
+    logging_steps = Global.training_args and Global.training_args.logging_steps
 
     loss_data = [
         {
@@ -436,6 +446,12 @@ def render_loss_plot():
         and 'epoch' in item
     ]
 
+    use_steps = False
+    if len(Global.training_log_history) <= max_elements and logging_steps:
+        for index, item in enumerate(loss_data):
+            item["step"] = index * logging_steps
+        use_steps = True
+
     source = pd.DataFrame(loss_data)
 
     highlight = alt.selection(
@@ -443,12 +459,20 @@ def render_loss_plot():
         on='mouseover', fields=['type'], nearest=True
     )
 
-    base = alt.Chart(source).encode(  # type: ignore
-        x='epoch:Q',
-        y='loss:Q',
-        color='type:N',
-        tooltip=['type:N', 'loss:Q', 'epoch:Q']
-    )
+    if use_steps:
+        base = alt.Chart(source).encode(  # type: ignore
+            x='step:Q',
+            y='loss:Q',
+            color='type:N',
+            tooltip=['type:N', 'loss:Q', 'step:Q', 'epoch:Q']
+        )
+    else:
+        base = alt.Chart(source).encode(  # type: ignore
+            x='epoch:Q',
+            y='loss:Q',
+            color='type:N',
+            tooltip=['type:N', 'loss:Q', 'epoch:Q']
+        )
 
     points = base.mark_circle().encode(
         opacity=alt.value(0)
