@@ -526,6 +526,11 @@ def main_page_custom_css():
         padding: 12px !important;
     }
 
+    #inference_output textarea { /* Fix the "disabled text" color for Safari */
+        -webkit-text-fill-color: var(--body-text-color);
+        opacity: 1;
+    }
+
     /* position sticky */
     #inference_output_group_container {
         display: block;
