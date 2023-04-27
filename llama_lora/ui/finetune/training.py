@@ -216,6 +216,8 @@ def do_train(
 
                     total_epochs = epochs
                     total_steps = len(train_data) * epochs
+                    if total_steps < 1500:
+                        total_steps = 1500
                     log_history = []
                     initial_loss = 2
                     loss_decay_rate = 0.8
@@ -242,11 +244,11 @@ def do_train(
                             current_epoch=current_epoch,
                             log_history=log_history
                         )
-                        time.sleep(0.1)
+                        time.sleep(0.01)
 
                     result_message = set_train_output(message)
                     print(result_message)
-                    time.sleep(1)
+                    time.sleep(3)
                     Global.is_training = False
                     return
 
