@@ -4,6 +4,7 @@ import transformers
 from .get_device import get_device
 from .streaming_generation_utils import Iteratorize, Stream
 
+
 def generate(
     # model
     model,
@@ -67,8 +68,6 @@ def generate(
             for output in generator:
                 decoded_output = tokenizer.decode(output, skip_special_tokens=skip_special_tokens)
                 yield decoded_output, output, False
-                if output[-1] in [tokenizer.eos_token_id]:
-                    break
 
         if generation_output:
             output = generation_output.sequences[0]

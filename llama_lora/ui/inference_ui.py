@@ -3,13 +3,12 @@ import os
 import time
 import json
 
-import torch
-import transformers
 from transformers import GenerationConfig
 
+from ..config import Config
 from ..globals import Global
 from ..models import get_model, get_tokenizer, get_device
-from ..lib.inference import generate
+from ..lib.csv_logger import CSVLogger
 from ..utils.data import (
     get_available_template_names,
     get_available_lora_model_names,
@@ -32,9 +31,10 @@ class LoggingItem:
 
 def prepare_inference(lora_model_name, progress=gr.Progress(track_tqdm=True)):
     base_model_name = Global.base_model_name
+    tokenizer_name = Global.tokenizer_name or Global.base_model_name
 
     try:
-        get_tokenizer(base_model_name)
+        get_tokenizer(tokenizer_name)
         get_model(base_model_name, lora_model_name)
         return ("", "", gr.Textbox.update(visible=False))
 
@@ -99,7 +99,7 @@ def do_inference(
                 'generation_config': generation_config.to_dict(),
             })
 
-        if Global.ui_dev_mode:
+        if Config.ui_dev_mode:
             message = f"Hi, I’m currently in UI-development mode and do not have access to resources to process your request. However, this behavior is similar to what will actually happen, so you can try and see how it will work!\n\nBase model: {base_model_name}\nLoRA model: {lora_model_name}\n\nThe following is your prompt:\n\n{prompt}"
             print(message)
 
@@ -178,7 +178,7 @@ def do_inference(
             'stream_output': stream_output
         }
 
-        for (decoded_output, output, completed) in generate(**generation_args):
+        for (decoded_output, output, completed) in Global.inference_generate_fn(**generation_args):
             raw_output_str = str(output)
             response = prompter.get_response(decoded_output)
 
@@ -210,11 +210,11 @@ def do_inference(
                 yield (
                     gr.Textbox.update(
                         value="Please retry", lines=1),
-                    None)
+                    None, None)
 
         return
     except Exception as e:
-        raise gr.Error(e)
+        raise gr.Error(str(e))
 
 
 def handle_stop_generate():
@@ -316,11 +316,11 @@ def update_prompt_preview(prompt_template,
 
 
 def inference_ui():
-    flagging_dir = os.path.join(Global.data_dir, "flagging", "inference")
+    flagging_dir = os.path.join(Config.data_dir, "flagging", "inference")
     if not os.path.exists(flagging_dir):
         os.makedirs(flagging_dir)
 
-    flag_callback = gr.CSVLogger()
+    flag_callback = CSVLogger()
     flag_components = [
         LoggingItem("Base Model"),
         LoggingItem("Adaptor Model"),
@@ -366,10 +366,22 @@ def inference_ui():
             json.dumps(output_for_flagging.get("generation_config", "")),
         ]
 
+    def get_flag_filename(output_for_flagging_str):
+        output_for_flagging = json.loads(output_for_flagging_str)
+        base_model = output_for_flagging.get("base_model", None)
+        adaptor_model = output_for_flagging.get("adaptor_model", None)
+        if adaptor_model == "None":
+            adaptor_model = None
+        if not base_model:
+            return "log.csv"
+        if not adaptor_model:
+            return f"log-{base_model}.csv"
+        return f"log-{base_model}#{adaptor_model}.csv"
+
     things_that_might_timeout = []
 
     with gr.Blocks() as inference_ui_blocks:
-        with gr.Row():
+        with gr.Row(elem_classes="disable_while_training"):
             with gr.Column(elem_id="inference_lora_model_group"):
                 model_prompt_template_message = gr.Markdown(
                     "", visible=False, elem_id="inference_lora_model_prompt_template_message")
@@ -390,7 +402,7 @@ def inference_ui():
             reload_selections_button.style(
                 full_width=False,
                 size="sm")
-        with gr.Row():
+        with gr.Row(elem_classes="disable_while_training"):
             with gr.Column():
                 with gr.Column(elem_id="inference_prompt_box"):
                     variable_0 = gr.Textbox(
@@ -510,7 +522,8 @@ def inference_ui():
                             lambda d: (flag_callback.flag(
                                 get_flag_callback_args(d, "Flag"),
                                 flag_option="Flag",
-                                username=None
+                                username=None,
+                                filename=get_flag_filename(d)
                             ), "")[1],
                             inputs=[output_for_flagging],
                             outputs=[flag_output],
@@ -519,7 +532,8 @@ def inference_ui():
                             lambda d: (flag_callback.flag(
                                 get_flag_callback_args(d, "👍"),
                                 flag_option="Up Vote",
-                                username=None
+                                username=None,
+                                filename=get_flag_filename(d)
                             ), "")[1],
                             inputs=[output_for_flagging],
                             outputs=[flag_output],
@@ -528,7 +542,8 @@ def inference_ui():
                             lambda d: (flag_callback.flag(
                                 get_flag_callback_args(d, "👎"),
                                 flag_option="Down Vote",
-                                username=None
+                                username=None,
+                                filename=get_flag_filename(d)
                             ), "")[1],
                             inputs=[output_for_flagging],
                             outputs=[flag_output],
@@ -541,9 +556,10 @@ def inference_ui():
                             elem_id="inference_inference_raw_output_accordion"
                     ) as raw_output_group:
                         inference_raw_output = gr.Code(
-                            label="Raw Output",
-                            show_label=False,
+                            # label="Raw Output",
+                            label="Tensor",
                             language="json",
+                            lines=8,
                             interactive=False,
                             elem_id="inference_raw_output")
 
@@ -643,7 +659,7 @@ def inference_ui():
       // Add tooltips
       setTimeout(function () {
         tippy('#inference_lora_model', {
-          placement: 'bottom-start',
+          placement: 'top-start',
           delay: [500, 0],
           animation: 'scale-subtle',
           content:
@@ -652,7 +668,7 @@ def inference_ui():
         });
 
         tippy('#inference_prompt_template', {
-          placement: 'bottom-start',
+          placement: 'top-start',
           delay: [500, 0],
           animation: 'scale-subtle',
           content:
@@ -880,5 +896,7 @@ def inference_ui():
           attributeFilter: ['rows'],
         });
       }, 100);
+
+      return [];
     }
     """)

@@ -1,0 +1,21 @@
+{
+  "num_train_epochs": 8,
+  "learning_rate": 0.0003,
+  "cutoff_len": 540,
+  "val_set_size": 0,
+  "lora_r": 16,
+  "lora_alpha": 32,
+  "lora_dropout": 0.05,
+  "lora_target_modules": [
+    "q_proj",
+    "v_proj",
+    "k_proj",
+    "o_proj"
+  ],
+  "train_on_inputs": false,
+  "group_by_length": false,
+  "save_steps": 100,
+  "save_total_limit": 10,
+  "logging_steps": 10,
+  "resume_from_checkpoint": "/data/lora_models/alpaca-lora-7b-local"
+}

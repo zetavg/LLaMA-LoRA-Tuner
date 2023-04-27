@@ -1,23 +1,33 @@
+import importlib
 import os
 import sys
 import gc
 import json
 import re
 
-import torch
 from transformers import (
     AutoModelForCausalLM, AutoModel,
     AutoTokenizer, LlamaTokenizer
 )
-from peft import PeftModel
 
+from .config import Config
 from .globals import Global
 from .lib.get_device import get_device
 
 
+def get_torch():
+    return importlib.import_module('torch')
+
+
+def get_peft_model_class():
+    return importlib.import_module('peft').PeftModel
+
+
 def get_new_base_model(base_model_name):
-    if Global.ui_dev_mode:
+    if Config.ui_dev_mode:
         return
+    if Global.is_train_starting or Global.is_training:
+        raise Exception("Cannot load new base model while training.")
 
     if Global.new_base_model_that_is_ready_to_be_used:
         if Global.name_of_new_base_model_that_is_ready_to_be_used == base_model_name:
@@ -37,7 +47,11 @@ def get_new_base_model(base_model_name):
     while True:
         try:
             model = _get_model_from_pretrained(
-                model_class, base_model_name, from_tf=from_tf, force_download=force_download)
+                model_class,
+                base_model_name,
+                from_tf=from_tf,
+                force_download=force_download
+            )
             break
         except Exception as e:
             if 'from_tf' in str(e):
@@ -73,20 +87,24 @@ def get_new_base_model(base_model_name):
     return model
 
 
-def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_download=False):
+def _get_model_from_pretrained(
+        model_class, model_name,
+        from_tf=False, force_download=False):
+    torch = get_torch()
     device = get_device()
 
     if device == "cuda":
         return model_class.from_pretrained(
             model_name,
-            load_in_8bit=Global.load_8bit,
+            load_in_8bit=Config.load_8bit,
             torch_dtype=torch.float16,
             # device_map="auto",
             # ? https://github.com/tloen/alpaca-lora/issues/21
             device_map={'': 0},
             from_tf=from_tf,
             force_download=force_download,
-            trust_remote_code=Global.trust_remote_code
+            trust_remote_code=Config.trust_remote_code,
+            use_auth_token=Config.hf_access_token
         )
     elif device == "mps":
         return model_class.from_pretrained(
@@ -95,7 +113,8 @@ def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_dow
             torch_dtype=torch.float16,
             from_tf=from_tf,
             force_download=force_download,
-            trust_remote_code=Global.trust_remote_code
+            trust_remote_code=Config.trust_remote_code,
+            use_auth_token=Config.hf_access_token
         )
     else:
         return model_class.from_pretrained(
@@ -104,13 +123,17 @@ def _get_model_from_pretrained(model_class, model_name, from_tf=False, force_dow
             low_cpu_mem_usage=True,
             from_tf=from_tf,
             force_download=force_download,
-            trust_remote_code=Global.trust_remote_code
+            trust_remote_code=Config.trust_remote_code,
+            use_auth_token=Config.hf_access_token
         )
 
 
 def get_tokenizer(base_model_name):
-    if Global.ui_dev_mode:
+    if Config.ui_dev_mode:
         return
+
+    if Global.is_train_starting or Global.is_training:
+        raise Exception("Cannot load new base model while training.")
 
     loaded_tokenizer = Global.loaded_tokenizers.get(base_model_name)
     if loaded_tokenizer:
@@ -119,13 +142,15 @@ def get_tokenizer(base_model_name):
     try:
         tokenizer = AutoTokenizer.from_pretrained(
             base_model_name,
-            trust_remote_code=Global.trust_remote_code
+            trust_remote_code=Config.trust_remote_code,
+            use_auth_token=Config.hf_access_token
         )
     except Exception as e:
         if 'LLaMATokenizer' in str(e):
             tokenizer = LlamaTokenizer.from_pretrained(
                 base_model_name,
-                trust_remote_code=Global.trust_remote_code
+                trust_remote_code=Config.trust_remote_code,
+                use_auth_token=Config.hf_access_token
             )
         else:
             raise e
@@ -138,8 +163,13 @@ def get_tokenizer(base_model_name):
 def get_model(
         base_model_name,
         peft_model_name=None):
-    if Global.ui_dev_mode:
+    if Config.ui_dev_mode:
         return
+
+    if Global.is_train_starting or Global.is_training:
+        raise Exception("Cannot load new base model while training.")
+
+    torch = get_torch()
 
     if peft_model_name == "None":
         peft_model_name = None
@@ -156,7 +186,7 @@ def get_model(
 
     if peft_model_name:
         lora_models_directory_path = os.path.join(
-            Global.data_dir, "lora_models")
+            Config.data_dir, "lora_models")
         possible_lora_model_path = os.path.join(
             lora_models_directory_path, peft_model_name)
         if os.path.isdir(possible_lora_model_path):
@@ -182,6 +212,7 @@ def get_model(
 
     if peft_model_name:
         device = get_device()
+        PeftModel = get_peft_model_class()
 
         if device == "cuda":
             model = PeftModel.from_pretrained(
@@ -190,6 +221,7 @@ def get_model(
                 torch_dtype=torch.float16,
                 # ? https://github.com/tloen/alpaca-lora/issues/21
                 device_map={'': 0},
+                use_auth_token=Config.hf_access_token
             )
         elif device == "mps":
             model = PeftModel.from_pretrained(
@@ -197,12 +229,14 @@ def get_model(
                 peft_model_name_or_path,
                 device_map={"": device},
                 torch_dtype=torch.float16,
+                use_auth_token=Config.hf_access_token
             )
         else:
             model = PeftModel.from_pretrained(
                 model,
                 peft_model_name_or_path,
                 device_map={"": device},
+                use_auth_token=Config.hf_access_token
             )
 
     if re.match("[^/]+/llama", base_model_name):
@@ -211,7 +245,7 @@ def get_model(
         model.config.bos_token_id = 1
         model.config.eos_token_id = 2
 
-    if not Global.load_8bit:
+    if not Config.load_8bit:
         model.half()  # seems to fix bugs for some users.
 
     model.eval()
@@ -224,7 +258,7 @@ def get_model(
     return model
 
 
-def prepare_base_model(base_model_name=Global.default_base_model_name):
+def prepare_base_model(base_model_name=Config.default_base_model_name):
     Global.new_base_model_that_is_ready_to_be_used = get_new_base_model(
         base_model_name)
     Global.name_of_new_base_model_that_is_ready_to_be_used = base_model_name
@@ -233,6 +267,7 @@ def prepare_base_model(base_model_name=Global.default_base_model_name):
 def clear_cache():
     gc.collect()
 
+    torch = get_torch()
     # if not shared.args.cpu: # will not be running on CPUs anyway
     with torch.no_grad():
         torch.cuda.empty_cache()

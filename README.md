@@ -65,10 +65,10 @@ After approximately 5 minutes of running, you will see the public URL in the out
 After following the [installation guide of SkyPilot](https://skypilot.readthedocs.io/en/latest/getting-started/installation.html), create a `.yaml` to define a task for running the app:
 
 ```yaml
-# llama-lora-tuner.yaml
+# llm-tuner.yaml
 
 resources:
-  accelerators: A10:1  # 1x NVIDIA A10 GPU, about US$ 0.6 / hr on Lambda Cloud.
+  accelerators: A10:1  # 1x NVIDIA A10 GPU, about US$ 0.6 / hr on Lambda Cloud. Run `sky show-gpus` for supported GPU types, and `sky show-gpus [GPU_NAME]` for the detailed information of a GPU type.
   cloud: lambda  # Optional; if left out, SkyPilot will automatically pick the cheapest cloud.
 
 file_mounts:
@@ -76,30 +76,55 @@ file_mounts:
   # (to store train datasets trained models)
   # See https://skypilot.readthedocs.io/en/latest/reference/storage.html for details.
   /data:
-    name: llama-lora-tuner-data  # Make sure this name is unique or you own this bucket. If it does not exists, SkyPilot will try to create a bucket with this name.
+    name: llm-tuner-data  # Make sure this name is unique or you own this bucket. If it does not exists, SkyPilot will try to create a bucket with this name.
     store: s3  # Could be either of [s3, gcs]
     mode: MOUNT
 
 # Clone the LLaMA-LoRA Tuner repo and install its dependencies.
 setup: |
-  git clone https://github.com/zetavg/LLaMA-LoRA-Tuner.git llama_lora_tuner
-  cd llama_lora_tuner && pip install -r requirements.lock.txt
-  pip install wandb
-  cd ..
-  echo 'Dependencies installed.'
-  echo 'Pre-downloading base models so that you won't have to wait for long once the app is ready...'
-  python llama_lora_tuner/download_base_model.py --base_model_names='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j,databricks/dolly-v2-7b'
+  conda create -q python=3.8 -n llm-tuner -y
+  conda activate llm-tuner
 
-# Start the app.
+  # Clone the LLaMA-LoRA Tuner repo and install its dependencies
+  [ ! -d llm_tuner ] && git clone https://github.com/zetavg/LLaMA-LoRA-Tuner.git llm_tuner
+  echo 'Installing dependencies...'
+  pip install -r llm_tuner/requirements.lock.txt
+
+  # Optional: install wandb to enable logging to Weights & Biases
+  pip install wandb
+
+  # Optional: patch bitsandbytes to workaround error "libbitsandbytes_cpu.so: undefined symbol: cget_col_row_stats"
+  BITSANDBYTES_LOCATION="$(pip show bitsandbytes | grep 'Location' | awk '{print $2}')/bitsandbytes"
+  [ -f "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so" ] && [ ! -f "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so.bak" ] && [ -f "$BITSANDBYTES_LOCATION/libbitsandbytes_cuda121.so" ] && echo 'Patching bitsandbytes for GPU support...' && mv "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so" "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so.bak" && cp "$BITSANDBYTES_LOCATION/libbitsandbytes_cuda121.so" "$BITSANDBYTES_LOCATION/libbitsandbytes_cpu.so"
+  conda install -q cudatoolkit -y
+
+  echo 'Dependencies installed.'
+
+  # Optional: Install and setup Cloudflare Tunnel to expose the app to the internet with a custom domain name
+  [ -f /data/secrets/cloudflared_tunnel_token.txt ] && echo "Installing Cloudflare" && curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && sudo dpkg -i cloudflared.deb && sudo cloudflared service uninstall || : && sudo cloudflared service install "$(cat /data/secrets/cloudflared_tunnel_token.txt | tr -d '\n')"
+
+  # Optional: pre-download models
+  echo "Pre-downloading base models so that you won't have to wait for long once the app is ready..."
+  python llm_tuner/download_base_model.py --base_model_names='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j'
+
+# Start the app. `hf_access_token`, `wandb_api_key` and `wandb_project` are optional.
 run: |
-  echo 'Starting...'
-  python llama_lora_tuner/app.py --data_dir='/data' --wandb_api_key="$([ -f /data/secrets/wandb_api_key ] && cat /data/secrets/wandb_api_key | tr -d '\n')" --base_model=decapoda-research/llama-7b-hf --base_model_choices='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j,databricks/dolly-v2-7b --share
+  conda activate llm-tuner
+  python llm_tuner/app.py \
+    --data_dir='/data' \
+    --hf_access_token="$([ -f /data/secrets/hf_access_token.txt ] && cat /data/secrets/hf_access_token.txt | tr -d '\n')" \
+    --wandb_api_key="$([ -f /data/secrets/wandb_api_key.txt ] && cat /data/secrets/wandb_api_key.txt | tr -d '\n')" \
+    --wandb_project='llm-tuner' \
+    --timezone='Atlantic/Reykjavik' \
+    --base_model='decapoda-research/llama-7b-hf' \
+    --base_model_choices='decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j,databricks/dolly-v2-7b' \
+    --share
 ```
 
 Then launch a cluster to run the task:
 
 ```
-sky launch -c llama-lora-tuner llama-lora-tuner.yaml
+sky launch -c llm-tuner llm-tuner.yaml
 ```
 
 `-c ...` is an optional flag to specify a cluster name. If not specified, SkyPilot will automatically generate one.
@@ -110,20 +135,34 @@ Note that exiting `sky launch` will only exit log streaming and will not stop th
 
 When you are done, run `sky stop <cluster_name>` to stop the cluster. To terminate a cluster instead, run `sky down <cluster_name>`.
 
+**Remember to stop or shutdown the cluster when you are done to avoid incurring unexpected charges.** Run `sky cost-report` to see the cost of your clusters.
+
+<details>
+  <summary>Log into the cloud machine or mount the filesystem of the cloud machine on your local computer</summary>
+
+  To log into the cloud machine, run `ssh <cluster_name>`, such as `ssh llm-tuner`.
+
+  If you have `sshfs` installed on your local machine, you can mount the filesystem of the cloud machine on your local computer by running a command like the following:
+
+  ```bash
+  mkdir -p /tmp/llm_tuner_server && umount /tmp/llm_tuner_server || : && sshfs llm-tuner:/ /tmp/llm_tuner_server
+  ```
+</details>
+
 ### Run locally
 
 <details>
   <summary>Prepare environment with conda</summary>
 
   ```bash
-  conda create -y python=3.8 -n llama-lora-tuner
-  conda activate llama-lora-tuner
+  conda create -y python=3.8 -n llm-tuner
+  conda activate llm-tuner
   ```
 </details>
 
 ```bash
 pip install -r requirements.lock.txt
-python app.py --data_dir='./data' --base_model='decapoda-research/llama-7b-hf' --share
+python app.py --data_dir='./data' --base_model='decapoda-research/llama-7b-hf' --timezone='Atlantic/Reykjavik' --share
 ```
 
 You will see the local and public URLs of the app in the terminal. Open the URL in your browser to use the app.
@@ -138,6 +177,8 @@ For more options, see `python app.py --help`.
   ```bash
   python app.py --data_dir='./data' --base_model='decapoda-research/llama-7b-hf' --share --ui_dev_mode
   ```
+
+  > To use [Gradio Auto-Reloading](https://gradio.app/developing-faster-with-reload-mode/#python-ide-reload), a `config.yaml` file is required since command line arguments are not supported. There's a sample file to start with: `cp config.yaml.sample config.yaml`. Then, just run `gradio app.py`.
 </details>
 
 

@@ -1,7 +1,8 @@
-import torch
+import importlib
 
 
 def get_device():
+    torch = importlib.import_module('torch')
     device ="cpu"
     if torch.cuda.is_available():
         device = "cuda"

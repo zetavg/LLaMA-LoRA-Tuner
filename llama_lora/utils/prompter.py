@@ -7,8 +7,9 @@ import json
 import os.path as osp
 import importlib
 import itertools
-from typing import Union, List
+from typing import Union, List, Dict
 
+from ..config import Config
 from ..globals import Global
 
 
@@ -31,15 +32,16 @@ class Prompter(object):
         else:
             filename = base_filename + ext
 
-        file_path = osp.join(Global.data_dir, "templates", filename)
+        file_path = osp.join(Config.data_dir, "templates", filename)
 
         if not osp.exists(file_path):
             raise ValueError(f"Can't read {file_path}")
 
         if ext == ".py":
-            template_module_spec = importlib.util.spec_from_file_location(
+            importlib_util = importlib.util  # type: ignore
+            template_module_spec = importlib_util.spec_from_file_location(
                 "template_module", file_path)
-            template_module = importlib.util.module_from_spec(
+            template_module = importlib_util.module_from_spec(
                 template_module_spec)
             template_module_spec.loader.exec_module(template_module)
             self.template_module = template_module
@@ -66,7 +68,7 @@ class Prompter(object):
 
     def generate_prompt(
         self,
-        variables: List[Union[None, str]] = [],
+        variables: Union[Dict[str, str], List[Union[None, str]]] = [],
         # instruction: str,
         # input: Union[None, str] = None,
         label: Union[None, str] = None,
@@ -74,10 +76,14 @@ class Prompter(object):
         if self.template_name == "None":
             if type(variables) == list:
                 res = get_val(variables, 0, "")
-            else:
+            elif type(variables) == dict:
                 res = variables.get("prompt", "")
+            else:
+                raise ValueError(f"Invalid variables type: {type(variables)}")
         elif "variables" in self.template:
             variable_names = self.template.get("variables")
+            # if type(variable_names) != list:
+            #     raise ValueError(f"Invalid variable_names type {type(variable_names)} defined in template {self.template_name}, expecting list.")
             if self.template_module:
                 if type(variables) == list:
                     variables = {k: v for k, v in zip(

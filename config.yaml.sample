@@ -1,0 +1,29 @@
+server_name: 0.0.0.0
+
+# Basic Configurations
+data_dir: ./data
+default_base_model_name: decapoda-research/llama-7b-hf
+base_model_choices:
+  - decapoda-research/llama-7b-hf
+  - nomic-ai/gpt4all-j
+load_8bit: false
+trust_remote_code: false
+
+# timezone: Atlantic/Reykjavik
+
+# auth_username: username
+# auth_password: password
+
+# UI Customization
+# ui_title: LLM Tuner
+# ui_emoji: 🦙🎛️
+# ui_subtitle: Have fun!
+# ui_show_sys_info: true
+
+# WandB
+# enable_wandb: false
+# wandb_api_key: ""
+# default_wandb_project: LLM-Tuner
+
+# Special Modes
+ui_dev_mode: false
