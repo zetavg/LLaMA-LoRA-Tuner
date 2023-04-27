@@ -1,0 +1,32 @@
+server_name: 0.0.0.0
+
+# Basic Configurations
+data_dir: ./data
+default_base_model_name: decapoda-research/llama-7b-hf
+base_model_choices:
+  - decapoda-research/llama-7b-hf
+  - nomic-ai/gpt4all-j
+  - databricks/dolly-v2-7b
+  - databricks/dolly-v2-12b
+load_8bit: false
+trust_remote_code: false
+
+# timezone: Atlantic/Reykjavik
+
+# auth_username: username
+# auth_password: password
+
+# UI Customization
+ui_title: LLM Tuner (UI Demo Mode)
+# ui_emoji: 🦙🎛️
+ui_subtitle: "This is a UI demo of <a href=\"https://github.com/zetavg/LLaMA-LoRA\" target=\"_blank\">LLaMA-LoRA</a>, toolkit for evaluating and fine-tuning LLaMA models. Run the actual one: <a href=\"https://colab.research.google.com/github/zetavg/LLaMA-LoRA/blob/main/LLaMA_LoRA.ipynb\" target=\"_parent\"><img style=\"display: inline;\" src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+ui_dev_mode_title_prefix: ""
+ui_show_sys_info: false
+
+# WandB
+# enable_wandb: false
+# wandb_api_key: ""
+# default_wandb_project: LLM-Tuner
+
+# Special Modes
+ui_dev_mode: true

@@ -132,7 +132,7 @@ def main(
 def read_yaml_config(config_path: Union[str, None] = None):
     if not config_path:
         app_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(app_dir, 'config.yaml')
+        config_path = os.path.join(app_dir, 'config-ui-demo.yaml')
 
     if not os.path.exists(config_path):
         return None

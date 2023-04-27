@@ -1,13 +1,13 @@
 ---
-title: LLaMA-LoRA UI Demo
+title: LLM Tuner - UI Demo
 emoji: 🦙🎛️
 colorFrom: pink
 colorTo: gray
 sdk: gradio
 sdk_version: 3.24.1
 python_version: 3.8.9
-app_file: app_hf_ui_demo.py
-pinned: false
+app_file: app.py
+pinned: true
 ---
 
 # HF UI DEMO
