@@ -5,14 +5,14 @@ import fire
 import os
 import yaml
 
-from llama_lora.config import Config, process_config
-from llama_lora.globals import initialize_global
-from llama_lora.utils.data import init_data_dir
-from llama_lora.models import prepare_base_model
-from llama_lora.ui.main_page import (
+from llm_tuner.config import Config, process_config
+from llm_tuner.globals import initialize_global
+from llm_tuner.utils.data import init_data_dir
+from llm_tuner.models import prepare_base_model
+from llm_tuner.ui.main_page import (
     main_page, get_page_title
 )
-from llama_lora.ui.css_styles import get_css_styles
+from llm_tuner.ui.css_styles import get_css_styles
 
 
 def main(
@@ -34,7 +34,7 @@ def main(
     config: Union[str, None] = None,
 ):
     '''
-    Start the LLaMA-LoRA Tuner UI.
+    Start the LLM Tuner UI.
 
     :param base_model: (required) The name of the default base model to use.
     :param data_dir: (required) The path to the directory to store data.
