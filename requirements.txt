@@ -3,7 +3,7 @@ altair==4.2.2
 datasets
 fire
 fire==0.5.0
-gradio==3.31.0
+gradio==3.30.0
 huggingface_hub
 numba
 nvidia-ml-py3
