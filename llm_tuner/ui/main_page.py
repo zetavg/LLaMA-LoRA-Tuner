@@ -122,27 +122,6 @@ def main_page():
         {popperjs_core_code()}
         {tippy_js_code()}
     """ + """
-        // Sync theme to body.
-        setTimeout(function () {
-          const gradio_container_element = document.querySelector(
-            ".gradio-container"
-          );
-          function handle_gradio_container_element_class_change() {
-            if (Array.from(gradio_container_element.classList).includes("dark")) {
-              document.body.classList.add("dark");
-            } else {
-              document.body.classList.remove("dark");
-            }
-          }
-          new MutationObserver(function (mutationsList, observer) {
-            handle_gradio_container_element_class_change();
-          }).observe(gradio_container_element, {
-            attributes: true,
-            attributeFilter: ["class"],
-          });
-          handle_gradio_container_element_class_change();
-        }, 500);
-    """ + """
         setTimeout(function () {
           // Workaround default value not shown.
           const current_base_model_hint_elem = document.querySelector('#current_base_model_hint > p');
