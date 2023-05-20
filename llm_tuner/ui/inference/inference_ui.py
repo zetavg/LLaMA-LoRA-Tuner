@@ -5,15 +5,15 @@ import json
 
 from transformers import GenerationConfig
 
-from ..config import Config
-from ..globals import Global
-from ..models import get_model, get_tokenizer, get_device
-from ..lib.csv_logger import CSVLogger
-from ..utils.data import (
+from ...config import Config
+from ...globals import Global
+from ...models import get_model, get_tokenizer, get_device
+from ...lib.csv_logger import CSVLogger
+from ...utils.data import (
     get_available_template_names,
     get_available_lora_model_names,
     get_info_of_available_lora_model)
-from ..utils.prompter import Prompter
+from ...utils.prompter import Prompter
 
 device = get_device()
 
