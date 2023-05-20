@@ -3,7 +3,7 @@ import gradio as gr
 from ..config import Config
 from ..globals import Global
 
-from .inference_ui import inference_ui
+from .inference.inference_ui import inference_ui
 from .finetune.finetune_ui import finetune_ui
 from .tokenizer_ui import tokenizer_ui
 
@@ -388,181 +388,7 @@ def main_page_custom_css():
         /* text-transform: uppercase; */
     }
 
-    #inference_reload_selected_models_btn {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 0;
-        height: 0;
-        padding: 0;
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    #inference_lora_model_group {
-        border-radius: var(--block-radius);
-        background: var(--block-background-fill);
-    }
-    #inference_lora_model_group #inference_lora_model {
-        background: transparent;
-    }
-    #inference_lora_model_prompt_template_message:not(.hidden) + #inference_lora_model {
-        padding-bottom: 28px;
-    }
-    #inference_lora_model_group {
-        flex-direction: column-reverse;
-        border-width: var(--block-border-width);
-        border-color: var(--block-border-color);
-    }
-    #inference_lora_model_group #inference_lora_model {
-        border: 0;
-    }
-    #inference_lora_model_group > #inference_lora_model_prompt_template_message {
-        padding: var(--block-padding) !important;
-        padding-bottom: 5px !important;
-        margin-top: -50px !important;
-        margin-left: 4px !important;
-        font-size: 12px;
-        opacity: 0.7;
-    }
-    #inference_lora_model_group > #inference_lora_model_prompt_template_message p {
-        font-size: 12px;
-    }
-    #inference_lora_model_prompt_template_message > .wrap {
-        display: none;
-    }
-    #inference_lora_model > .wrap:first-child:not(.hide),
-    #inference_prompt_template > .wrap:first-child:not(.hide) {
-        opacity: 0.5;
-    }
-    #inference_lora_model_group, #inference_lora_model {
-        z-index: 60;
-    }
-    #inference_prompt_template {
-        z-index: 55;
-    }
-
-    #inference_prompt_box > *:first-child {
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
-    }
-    #inference_prompt_box > *:last-child {
-        margin-top: -16px;
-        border-top: 0;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-    }
-
-    #inference_prompt_box {
-        flex-grow: 0 !important;
-    }
-
-    #inference_options_accordion {
-        padding: 0;
-    }
-    #inference_options_accordion > .label-wrap {
-        user-select: none;
-        padding: var(--block-padding);
-        margin-bottom: 0;
-    }
-    #inference_options_accordion > *:last-child > .form {
-        border-left: 0;
-        border-right: 0;
-        border-bottom: 0;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-        box-shadow: none;
-    }
-
-    .inference_options_group {
-        margin-top: -16px;
-        margin-bottom: -16px;
-    }
-    .inference_options_group > .form {
-        border-radius: 0;
-        border-left: 0;
-        border-right: 0;
-        border-bottom: 0;
-        box-shadow: none;
-    }
-
-    #inference_options_bottom_group {
-        margin-top: -12px;
-    }
-    #inference_options_bottom_group > .form {
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-        border-left: 0;
-        border-right: 0;
-        border-bottom: 0;
-    }
-
-    #inference_output > .wrap:first-child,
-    #inference_raw_output > .wrap:first-child {
-        /* allow users to select text while generation is still in progress */
-        pointer-events: none;
-
-        padding: 12px !important;
-    }
-
-    #inference_output textarea { /* Fix the "disabled text" color for Safari */
-        -webkit-text-fill-color: var(--body-text-color);
-        opacity: 1;
-    }
-
-    /* position sticky */
-    #inference_output_group_container {
-        display: block;
-    }
-    #inference_output_group {
-        position: -webkit-sticky;
-        position: sticky;
-        top: 16px;
-        bottom: 16px;
-    }
-
-    #inference_flagging_group {
-        position: relative;
-        margin-top: -8px;
-        margin-bottom: -8px;
-        gap: calc(var(--layout-gap) / 2);
-    }
-    #inference_flag_output {
-        min-height: 1px !important;
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        right: 0;
-        pointer-events: none;
-        opacity: 0.5;
-    }
-    #inference_flag_output .wrap {
-        top: 0;
-        bottom: 0;
-        right: 0;
-        justify-content: center;
-        align-items: flex-end;
-        padding: 4px !important;
-    }
-    #inference_flag_output .wrap svg {
-        display: none;
-    }
-    .form:has(> #inference_output_for_flagging),
-    #inference_output_for_flagging {
-        display: none;
-    }
-    #inference_flagging_group:has(#inference_output_for_flagging.hidden) {
-        opacity: 0.5;
-        pointer-events: none;
-    }
-    #inference_flag_up_btn, #inference_flag_down_btn {
-        min-width: 44px;
-        flex-grow: 1;
-    }
-    #inference_flag_btn {
-        flex-grow: 2;
-    }
-
+    /*
     #dataset_plain_text_input_variables_separator textarea,
     #dataset_plain_text_input_and_output_separator textarea,
     #dataset_plain_text_data_separator textarea {
@@ -571,34 +397,6 @@ def main_page_custom_css():
     #dataset_plain_text_input_and_output_separator,
     #dataset_plain_text_data_separator {
         margin-top: -8px;
-    }
-
-    #inference_preview_prompt_container .label-wrap {
-        user-select: none;
-    }
-
-    #inference_preview_prompt {
-        padding: 0;
-    }
-    #inference_preview_prompt textarea {
-        border: 0;
-    }
-    #inference_preview_prompt > .wrap {
-        pointer-events: none;
-        background: transparent;
-        opacity: 0.8;
-    }
-
-    #inference_update_prompt_preview_btn {
-        position: absolute;
-        z-index: 1;
-        right: 0;
-        bottom: 0;
-        width: 32px;
-        border-top-right-radius: 0;
-        border-bottom-left-radius: 0;
-        box-shadow: none;
-        opacity: 0.8;
     }
 
     @media screen and (min-width: 640px) {
@@ -658,6 +456,7 @@ def main_page_custom_css():
             margin-top: -16px;
         }
     }
+    */
 
     /*
     #tokenizer_encoded_tokens_input_textbox .codemirror-wrapper,
