@@ -1,4 +1,9 @@
 function models_ui_js() {
+  // Load data
+  setTimeout(function () {
+    document.getElementById('models_preset_list_reload_button').click();
+  }, 100);
+
   // Tooltips
   setTimeout(function () {
     tippy('#models_ui', {

@@ -11,6 +11,8 @@ from .tokenizer_ui import tokenizer_ui
 from .js_scripts import popperjs_core_code, tippy_js_code
 from .css_styles import get_css_styles, register_css_style
 
+from . import styles as styles
+
 
 def main_page():
     title = get_page_title()

@@ -1,0 +1,13 @@
+.form-box {
+    padding: 0 !important;
+    gap: 0;
+}
+
+.form-box .gap {
+    gap: 0 !important;
+}
+
+.form-box .form, .form-box .block {
+    border: 0;
+    box-shadow: none;
+}

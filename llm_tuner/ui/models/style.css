@@ -1,3 +1,144 @@
 #models_ui {
   border: 1px solid var(--border-color-accent);
 }
+
+.model-preset-list {
+  border-radius: var(--container-radius);
+  background: var(--background-fill-secondary);
+  padding: var(--size-2);
+}
+
+.model-preset-list .item {
+    box-shadow: var(--block-shadow);
+    border-width: var(--block-border-width);
+    border-color: var(--block-border-color);
+    border-radius: var(--block-radius);
+    background: var(--block-background-fill);
+    padding: var(--block-padding);
+    margin-bottom: calc(var(--layout-gap) / 2);
+    position: relative;
+    cursor: pointer;
+}
+.model-preset-list .item:hover {
+    background: var(--block-border-color);
+}
+.model-preset-list .item:active {
+    /* background: var(--block-background-fill); */
+}
+
+.model-preset-list .item .name-and-uid {
+    display: flex;
+    flex-direction: row;
+}
+.model-preset-list .item .name {
+    flex-grow: 1;
+    font-size: var(--text-lg);
+    font-weight: var(--prose-header-text-weight)
+}
+.model-preset-list .item .uid {
+    border: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.model-preset-list .item button {
+    border-radius: var(--radius-md);
+    padding: var(--spacing-xs) calc(2 * var(--spacing-xs));
+    font-weight: var(--button-small-text-weight);
+    font-size: var(--button-small-text-size);
+    border: var(--button-border-width) solid var(--button-secondary-border-color);
+    background: var(--button-secondary-background-fill);
+    color: var(--button-secondary-text-color);
+}
+
+.model-preset-list .item .info-and-actions {
+    display: flex;
+    flex-direction: row;
+}
+.model-preset-list .item .info {
+    flex-grow: 1;
+}
+.model-preset-list .item .actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: flex-start;
+    margin-top: var(--spacing-sm);
+}
+.model-preset-list .item .actions > * {
+    margin-left: var(--spacing-sm);
+    margin-bottom: 0;
+}
+
+.model-preset-list .item .info,
+.model-preset-list .item .info * {
+    color: var(--block-info-text-color);
+    font-size: var(--block-info-text-size);
+}
+.model-preset-list .item .info code {
+    border: 0;
+    background-color: transparent;
+}
+
+.models_right_column_container > * {
+    flex-grow: 0 !important;
+}
+
+.models-ui-empty {
+    display: flex;
+    justify-content: stretch;
+    align-items: stretch;
+}
+.models-ui-empty div:not(.wrap) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+}
+.models-ui-empty div:not(.wrap) p {
+    font-size: var(--text-lg);
+    text-transform: uppercase;
+    opacity: 0.2;
+}
+
+.models-ui-block-actions {
+    float: right;
+}
+.models-ui-block-actions button {
+    margin-left: var(--spacing-md);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) calc(2 * var(--spacing-sm));
+    font-weight: var(--button-small-text-weight);
+    font-size: var(--button-small-text-size);
+    border: var(--button-border-width) solid var(--button-secondary-border-color);
+    background: var(--button-secondary-background-fill);
+    color: var(--button-secondary-text-color);
+}
+.models-ui-block-actions button:hover {
+    border-color: var(--button-secondary-border-color-hover);
+    background: var(--button-secondary-background-fill-hover);
+    color: var(--button-secondary-text-color-hover);
+}
+.models-ui-block-actions button:active {
+    box-shadow: var(--button-shadow-active);
+}
+.models-ui-block-actions + * {
+    margin-top: 0 !important;
+}
+
+.models-ui-box-actions {
+    flex-grow: 0 !important;
+    justify-content: flex-end;
+    flex-wrap: nowrap !important;
+}
+
+.models-ui-box-actions button {
+    min-width: fit-content;
+    flex-grow: 0;
+}
+
+.models-ui-save-message .error {
+    color: var(--error-text-color);
+    text-align: right;
+}

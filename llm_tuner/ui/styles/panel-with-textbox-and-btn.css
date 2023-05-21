@@ -1,0 +1,20 @@
+.panel-with-textbox-and-btn {
+    justify-content: flex-end;
+    align-items: stretch;
+    gap: calc(var(--layout-gap) / 2) !important;
+}
+.panel-with-textbox-and-btn > .form {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+.panel-with-textbox-and-btn > .form > * {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+}
+.panel-with-textbox-and-btn button {
+    margin-top: 28px;
+    min-width: fit-content;
+    flex-grow: 0;
+}

@@ -1,0 +1,23 @@
+from ...utils.relative_read_file import relative_read_file
+from ..css_styles import get_css_styles, register_css_style
+
+register_css_style(
+    'accordion',
+    relative_read_file(__file__, 'accordion.css')
+)
+register_css_style(
+    'form-box',
+    relative_read_file(__file__, 'form-box.css')
+)
+register_css_style(
+    'json-code-block',
+    relative_read_file(__file__, 'json-code-block.css')
+)
+register_css_style(
+    'panel-with-textbox-and-btn',
+    relative_read_file(__file__, 'panel-with-textbox-and-btn.css')
+)
+register_css_style(
+    'utility-classes',
+    relative_read_file(__file__, 'utility-classes.css')
+)

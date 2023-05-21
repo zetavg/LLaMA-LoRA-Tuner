@@ -1,0 +1,5 @@
+.json-code-block-error-message {
+    color: var(--error-text-color) !important;
+    padding: 1px 2px;
+    padding-top: 4px;
+}
