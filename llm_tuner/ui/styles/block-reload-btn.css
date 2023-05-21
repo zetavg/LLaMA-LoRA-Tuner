@@ -1,0 +1,9 @@
+.block-reload-btn {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    border-top-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    min-width: fit-content !important;
+    padding: 2px 8px !important;
+}

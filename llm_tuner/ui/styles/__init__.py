@@ -6,6 +6,10 @@ register_css_style(
     relative_read_file(__file__, 'accordion.css')
 )
 register_css_style(
+    'block-reload-btn',
+    relative_read_file(__file__, 'block-reload-btn.css')
+)
+register_css_style(
     'form-box',
     relative_read_file(__file__, 'form-box.css')
 )

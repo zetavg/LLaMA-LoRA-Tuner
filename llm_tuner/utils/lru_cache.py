@@ -26,6 +26,6 @@ class LRUCache:
     def clear(self):
         self.cache.clear()
 
-    def prepare_to_set(self):
+    def make_space(self):
         if len(self.cache) >= self.capacity:
             self.cache.popitem(last=False)

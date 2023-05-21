@@ -6,12 +6,14 @@ import traceback
 import gradio as gr
 from textwrap import dedent
 
-from ...utils.data import (
+from ....data import (
     get_model_presets,
     get_model_preset,
     get_new_model_preset,
     save_model_preset,
     delete_model_preset,
+    get_model_preset_settings,
+    update_model_preset_settings,
 )
 
 from .html_templates import model_preset_list_item_html
@@ -28,13 +30,19 @@ def handle_load_model_presets():
             </div>
         ''').strip()
 
-        return gr.HTML.update(value=html_content)
+        return (
+            gr.HTML.update(value=html_content),
+            gr.HTML.update(visible=False),
+        )
     except Exception as e:
         raise gr.Error(str(e)) from e
 
 
 def handle_show_model_preset(preset_uid):
     try:
+        model_preset_settings = get_model_preset_settings()
+        default_preset_uid = model_preset_settings.get('default_preset_uid')
+
         model_preset = get_model_preset(preset_uid)
         html_content = ''
 
@@ -57,9 +65,24 @@ def handle_show_model_preset(preset_uid):
             }}
         """).strip().replace('\n', ' ')
 
+        on_set_as_default_click = [
+            f"document.querySelector('#models_model_preset_uid_to_set_as_default input').value = '{model_preset.uid}'",
+            "document.querySelector('#models_model_preset_uid_to_set_as_default input').dispatchEvent(new Event('input', {'bubbles': true, 'cancelable': true }))",
+            "document.getElementById('models_set_as_default_model_preset_btn').click()",
+        ]
+        on_set_as_default_click = ';'.join(on_set_as_default_click)
+
         html_content += dedent(f'''
             <div class="models-ui-block-actions">
                 <button onclick="{on_delete_click}">Delete</button>
+        ''').strip()
+
+        if model_preset.uid != default_preset_uid:
+            html_content += dedent(f'''
+                <button onclick="{on_set_as_default_click}">Set as Default</button>
+            ''').strip()
+
+        html_content += dedent(f'''
                 <button onclick="{on_edit_click}">Edit</button>
             </div>
         ''').strip()
@@ -88,8 +111,7 @@ def handle_edit_model_preset(preset_uid):
 def handle_delete_model_preset(preset_uid):
     try:
         delete_model_preset(preset_uid)
-        return (
-            handle_load_model_presets(),
+        return handle_load_model_presets() + (
             gr.Column.update(visible=True),
             gr.Column.update(visible=True),
             gr.Box.update(visible=False),
@@ -157,3 +179,8 @@ def handle_discard_edit():
         gr.Row.update(visible=True),
         gr.Box.update(visible=False),
     )
+
+
+def handle_set_model_preset_as_default(uid):
+    update_model_preset_settings({'default_preset_uid': uid})
+    return handle_load_model_presets() + handle_show_model_preset(uid)

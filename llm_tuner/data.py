@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, Dict, List
 
 import os
 import re
@@ -8,8 +8,10 @@ import json
 import jsonschema
 import hashlib
 
-from ..config import Config
-from ..dataclasses import ModelPreset
+from .utils.data_processing import deep_merge_dicts
+
+from .config import Config
+from .dataclasses import ModelPreset
 
 
 def init_data_dir():
@@ -41,28 +43,75 @@ def copy_sample_data_if_not_exists(source, destination):
     shutil.copytree(source, destination)
 
 
-def get_model_presets_directory_path():
-    return os.path.join(Config.data_dir, "model_presets")
+def get_model_preset_settings() -> Dict[str, Any]:
+    settings_file_path = os.path.join(
+        Config.model_presets_path, '_settings.json')
+    if not os.path.isfile(settings_file_path):
+        return {}
+    with open(settings_file_path, 'r') as f:
+        settings = json.load(f)
+    return settings
+
+
+def update_model_preset_settings(new_settings):
+    old_settings = get_model_preset_settings()
+    settings = deep_merge_dicts(old_settings, new_settings)
+    settings_file_path = os.path.join(
+        Config.model_presets_path, '_settings.json')
+    with open(settings_file_path, 'w') as f:
+        json.dump(settings, f, indent=2, ensure_ascii=False)
 
 
 def get_model_presets() -> List[ModelPreset]:
-    all_files = os.listdir(get_model_presets_directory_path())
-    json_files = [name for name in all_files if name.endswith('.json')]
+    all_files = os.listdir(Config.model_presets_path)
+    json_files = [
+        name for name in all_files
+        if name.endswith('.json') and not name.startswith('_')
+    ]
     data = []
     for json_file in json_files:
         data.append(_get_validated_model_preset(json_file))
     sorted_data = sorted(data, key=lambda x: x.get('name'))
-    return [ModelPreset(d) for d in sorted_data]
+
+    model_preset_settings = get_model_preset_settings()
+    default_preset_uid = model_preset_settings.get('default_preset_uid')
+
+    model_presets = []
+    default_model_presets = []
+
+    for d in sorted_data:
+        model_preset = ModelPreset(d)
+        if model_preset.uid == default_preset_uid:
+            default_model_presets.append(model_preset)
+        else:
+            model_presets.append(model_preset)
+
+    return default_model_presets + model_presets
+
+
+def get_model_preset_choices() -> List[str]:
+    return [
+        f"{p.name} ({p.uid})"
+        for p in get_model_presets()
+    ]
 
 
 def get_model_preset(uid) -> ModelPreset:
-    all_files = os.listdir(get_model_presets_directory_path())
+    all_files = os.listdir(Config.model_presets_path)
     json_files = [name for name in all_files if name.endswith(f'-{uid}.json')]
     if not json_files:
         raise ValueError(f"Model preset with uid \"{uid}\" not found.")
     json_file = json_files[0]
     data = _get_validated_model_preset(json_file)
     return ModelPreset(data)
+
+
+def get_model_preset_from_choice(choice) -> ModelPreset:
+    match = re.search(r'\(([^()]+)\)$', choice)
+    if not match:
+        raise ValueError(f"Invalid model preset choice: \"{choice}\".")
+    uid = match.group(1)
+    return get_model_preset(uid)
 
 
 def save_model_preset(uid, data, original_file_name):
@@ -72,9 +121,10 @@ def save_model_preset(uid, data, original_file_name):
     file_name = file_name.lower()
     file_name = re.sub(r'[^a-z0-9_]+', '-', file_name)
     file_name = file_name[:40]
+    file_name = file_name.strip('-_')
     file_name = f"{file_name}-{uid}.json"
     file_path = os.path.join(
-        get_model_presets_directory_path(), file_name)
+        Config.model_presets_path, file_name)
 
     with open(file_path, 'w') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
@@ -83,25 +133,26 @@ def save_model_preset(uid, data, original_file_name):
 
     if original_file_name and file_name != original_file_name:
         original_file_path = os.path.join(
-            get_model_presets_directory_path(), original_file_name
+            Config.model_presets_path, original_file_name
         )
         os.remove(original_file_path)
         print(f"Removed old model preset file \"{original_file_path}\".")
 
 
 def delete_model_preset(uid):
-    all_files = os.listdir(get_model_presets_directory_path())
+    all_files = os.listdir(Config.model_presets_path)
     json_files = [name for name in all_files if name.endswith(f'-{uid}.json')]
     if not json_files:
         raise ValueError(f"Model preset with uid \"{uid}\" not found.")
 
     if len(json_files) > 1:
-        raise ValueError(f"Multiple model presets matches uid \"{uid}\": {json_files}, you'll have to delete them manually.")
+        raise ValueError(
+            f"Multiple model presets matches uid \"{uid}\": {json_files}, you'll have to delete them manually.")
 
     json_file = json_files[0]
 
     json_file_path = os.path.join(
-        get_model_presets_directory_path(), json_file
+        Config.model_presets_path, json_file
     )
     os.remove(json_file_path)
     print(f"Deleted model preset file \"{json_file_path}\".")
@@ -114,7 +165,9 @@ def get_new_model_preset():
         'name': 'New Model Preset',
         'model': {
             'name_or_path': 'huggyllama/llama-7b',
-            'args': {},
+            'args': {
+                'torch_dtype': 'auto',
+            },
         }
     }
 
@@ -229,7 +282,7 @@ def _get_validated_model_preset(json_file_name):
     uid = f_match.group(1)
     try:
         json_file_path = os.path.join(
-            get_model_presets_directory_path(), json_file_name)
+            Config.model_presets_path, json_file_name)
         with open(json_file_path, 'r') as file:
             json_data = json.load(file)
             jsonschema.validate(instance=json_data, schema=model_preset_schema)

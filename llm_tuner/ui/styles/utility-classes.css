@@ -5,6 +5,9 @@
 .gap-0 { gap: 0 !important; }
 .gap-0 .gap { gap: 0 !important; }
 
+.gap-block-padding { gap: var(--block-padding) !important; }
+.gap-block-padding .gap { gap: var(--block-padding) !important; }
+
 .gap-half {
     gap: calc(var(--layout-gap) / 2) !important;
 }
@@ -25,6 +28,8 @@
 .flex-10 { flex: 10 !important; }
 .flex-11 { flex: 11 !important; }
 .flex-12 { flex: 12 !important; }
+
+.flex-grow-0 { flex-grow: 0 !important; }
 
 .mt-gap { margin-top: var(--layout-gap) !important; }
 .mt-xxs { margin-top: var(--spacing-xxs) !important; }
@@ -59,4 +64,17 @@
 }
 .bbw-1 {
     border-bottom-width: 1px !important;
+}
+
+.t-bg { background: none !important }
+.t-bg::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--block-background-fill);
+    opacity: 0.5;
 }

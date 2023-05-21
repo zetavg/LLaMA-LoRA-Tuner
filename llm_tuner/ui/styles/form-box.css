@@ -1,3 +1,4 @@
+/*
 .form-box {
     padding: 0 !important;
     gap: 0;
@@ -11,3 +12,18 @@
     border: 0;
     box-shadow: none;
 }
+*/
+
+.form-box {
+    display: flex;
+    flex-direction: column;
+    gap: var(--block-padding);
+}
+
+.form-box .form, .form-box .block {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+}
+

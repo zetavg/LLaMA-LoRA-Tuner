@@ -1,15 +1,18 @@
 from collections import OrderedDict
 import gc
-import torch
+
+from ..lazy_import import get_torch
 from ..lib.get_device import get_device
+
+from .lru_cache import LRUCache
 
 device_type = get_device()
 
 
-class ModelLRUCache:
-    def __init__(self, capacity=5):
-        self.cache = OrderedDict()
-        self.capacity = capacity
+class ModelLRUCache(LRUCache):
+    # def __init__(self, capacity=5):
+    #     self.cache = OrderedDict()
+    #     self.capacity = capacity
 
     def get(self, key):
         if key in self.cache:
@@ -24,7 +27,7 @@ class ModelLRUCache:
 
             if models_did_move:
                 gc.collect()
-                # if not shared.args.cpu: # will not be running on CPUs anyway
+                torch = get_torch()
                 with torch.no_grad():
                     torch.cuda.empty_cache()
 
@@ -50,8 +53,12 @@ class ModelLRUCache:
 
     def clear(self):
         self.cache.clear()
+        gc.collect()
+        torch = get_torch()
+        with torch.no_grad():
+            torch.cuda.empty_cache()
 
-    def prepare_to_set(self):
+    def make_space(self):
         if len(self.cache) >= self.capacity:
             self.cache.popitem(last=False)
 
@@ -63,6 +70,6 @@ class ModelLRUCache:
 
         if models_did_move:
             gc.collect()
-            # if not shared.args.cpu: # will not be running on CPUs anyway
+            torch = get_torch()
             with torch.no_grad():
                 torch.cuda.empty_cache()

@@ -9,8 +9,8 @@ from transformers import TrainingArguments
 from numba import cuda
 import nvidia_smi
 
-from .dynamic_import import dynamic_import
 from .config import Config
+from .utils.dynamic_import import dynamic_import
 from .utils.lru_cache import LRUCache
 from .utils.eta_predictor import ETAPredictor
 

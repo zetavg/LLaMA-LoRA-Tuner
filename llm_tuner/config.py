@@ -3,6 +3,14 @@ import pytz
 from typing import List, Union, Any
 
 
+class ClassProperty:
+    def __init__(self, getter):
+        self.getter = getter
+
+    def __get__(self, instance, owner):
+        return self.getter(owner)
+
+
 class Config:
     """
     Stores the application configuration. This is a singleton class.
@@ -39,6 +47,14 @@ class Config:
     ui_show_sys_info: bool = True
     ui_dev_mode: bool = False
     ui_dev_mode_title_prefix: str = "[UI DEV MODE] "
+
+    @ClassProperty
+    def model_presets_path(self) -> str:
+        return os.path.join(self.data_dir, 'model_presets')
+
+    @ClassProperty
+    def models_path(self) -> str:
+        return os.path.join(self.data_dir, 'models')
 
 
 def process_config():

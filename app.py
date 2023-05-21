@@ -7,8 +7,8 @@ import yaml
 
 from llm_tuner.config import Config, process_config
 from llm_tuner.globals import initialize_global
-from llm_tuner.utils.data import init_data_dir
-from llm_tuner.models import prepare_base_model
+from llm_tuner.data import init_data_dir
+# from llm_tuner.models import prepare_base_model
 from llm_tuner.ui.main_page import (
     main_page, get_page_title
 )
@@ -115,8 +115,8 @@ def main(
 
     init_data_dir()
 
-    if (not skip_loading_base_model) and (not Config.ui_dev_mode):
-        prepare_base_model(Config.default_base_model_name)
+    # if (not skip_loading_base_model) and (not Config.ui_dev_mode):
+    #     prepare_base_model(Config.default_base_model_name)
 
     with gr.Blocks(title=get_page_title(), css=get_css_styles()) as demo:
         main_page()

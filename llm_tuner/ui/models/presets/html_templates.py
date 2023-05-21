@@ -1,13 +1,21 @@
 from textwrap import dedent
 
 
-from ...dataclasses import ModelPreset
+from ....dataclasses import ModelPreset
 
 
 def model_preset_list_item_html(model_preset: ModelPreset):
     info = []
 
     info.append(f"Model: <code>{model_preset.model_name_or_path}</code>")
+
+    if (
+        model_preset.tokenizer_name_or_path
+        and model_preset.tokenizer_name_or_path != model_preset.model_name_or_path
+    ):
+        info.append(
+            f"Tokenizer: <code>{model_preset.tokenizer_name_or_path}</code>")
+
     if model_preset.adapter_model_name_or_path:
         info.append(
             f"Adapter Model: <code>{model_preset.adapter_model_name_or_path}</code>")

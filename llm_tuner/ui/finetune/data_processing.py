@@ -1,5 +1,5 @@
 import json
-from ...utils.data import get_dataset_content
+from ...data import get_dataset_content
 
 from .values import (
     default_dataset_plain_text_input_variables_separator,

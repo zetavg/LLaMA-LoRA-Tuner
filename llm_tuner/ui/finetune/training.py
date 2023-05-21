@@ -16,7 +16,7 @@ from transformers import TrainingArguments
 
 from ...config import Config
 from ...globals import Global
-from ...models import clear_cache, unload_models
+# from ...models import clear_cache, unload_models
 from ...utils.prompter import Prompter
 from ...utils.sample_evenly import sample_evenly
 from ..trainer_callback import (

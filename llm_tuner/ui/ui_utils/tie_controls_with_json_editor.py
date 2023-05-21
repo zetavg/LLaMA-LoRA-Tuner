@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict
 
 import gradio as gr
 from textwrap import dedent
@@ -7,7 +7,7 @@ from textwrap import dedent
 ControlDefn = Tuple[
     Union[gr.Textbox, gr.Slider, gr.Checkbox, gr.Dropdown],
     Union[str, List[str]],
-    str,
+    Union[str, Dict[str, str]],
 ]
 
 ControlsDefn = List[ControlDefn]
@@ -50,6 +50,23 @@ def tie_controls_with_json_editor(
                     value = null;
                 }}
                 {get_js_property_accessor('json', path)} = value;
+            """).strip()
+        elif isinstance(t, dict):
+            js_code_to_assign_value = dedent(f"""
+                {get_js_code_to_ensure_path_can_be_accessed('json', path)}
+                var v = null;
+                switch (value) {{
+            """).strip()
+            for k, v in t.items():
+                js_code_to_assign_value += dedent(f"""
+                    case '{k}':
+                        v = {v};
+                        break;
+                """).strip()
+            js_code_to_assign_value += dedent(f"""
+                }}
+
+                {get_js_property_accessor('json', path)} = v;
             """).strip()
         else:
             raise ValueError(f"Unknown type: '{t}")
@@ -122,6 +139,26 @@ def tie_controls_with_json_editor(
                     values.push('No');
                 }} else {{
                     values.push('Default');
+                }}
+            '''
+        elif isinstance(t, dict):
+            js_code += f'''
+                var v = {get_js_property_accessor('json', path)};
+                switch (v) {{
+            '''
+            default_value = 'undefined'
+            for k, v in t.items():
+                if v == "'default'" or v == '"default"':
+                    default_value = k
+                js_code += f'''
+                        case {v}:
+                            values.push('{k}');
+                            break;
+                '''
+            js_code += f'''
+                    default:
+                        values.push('{default_value}');
+                        break;
                 }}
             '''
         else:

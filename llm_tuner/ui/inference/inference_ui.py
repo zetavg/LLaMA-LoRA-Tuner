@@ -7,9 +7,9 @@ from transformers import GenerationConfig
 
 from ...config import Config
 from ...globals import Global
-from ...models import get_model, get_tokenizer, get_device
+# from ...models import get_model, get_tokenizer, get_device
 from ...lib.csv_logger import CSVLogger
-from ...utils.data import (
+from ...data import (
     get_available_template_names,
     get_available_lora_model_names,
     get_info_of_available_lora_model)
@@ -19,7 +19,7 @@ from ..css_styles import register_css_style
 
 register_css_style('finetune', relative_read_file(__file__, "style.css"))
 
-device = get_device()
+# device = get_device()
 
 default_show_raw = True
 inference_output_lines = 12
@@ -38,8 +38,8 @@ def prepare_inference(lora_model_name, progress=gr.Progress(track_tqdm=True)):
     tokenizer_name = Global.tokenizer_name or Global.base_model_name
 
     try:
-        get_tokenizer(tokenizer_name)
-        get_model(base_model_name, lora_model_name)
+        # get_tokenizer(tokenizer_name)
+        # get_model(base_model_name, lora_model_name)
         return ("", "", gr.Textbox.update(visible=False))
 
     except Exception as e:
