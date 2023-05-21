@@ -6,7 +6,7 @@ from ..globals import Global
 from .inference.inference_ui import inference_ui
 from .finetune.finetune_ui import finetune_ui
 from .models.models_ui import models_ui
-from .tokenizer_ui import tokenizer_ui
+from .tools import tools_ui
 
 from .js_scripts import popperjs_core_code, tippy_js_code
 from .css_styles import get_css_styles, register_css_style
@@ -67,8 +67,8 @@ def main_page():
                     finetune_ui()
                 with gr.Tab("Models"):
                     models_ui()
-                with gr.Tab("Tokenizer"):
-                    tokenizer_ui()
+                with gr.Tab("Tools"):
+                    tools_ui()
             please_select_a_base_model_message = gr.Markdown(
                 "Please select a base model.", visible=False)
             current_base_model_hint = gr.Markdown(

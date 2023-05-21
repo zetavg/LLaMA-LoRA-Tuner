@@ -11,6 +11,7 @@ from .event_handlers import (
     handle_edit_model_preset,
     handle_delete_model_preset,
     handle_set_model_preset_as_default,
+    handle_toggle_model_preset_star,
     handle_save_edit,
     handle_discard_edit,
 )
@@ -95,8 +96,19 @@ def model_presets_ui():
                                 "Set as Default",
                                 elem_id="models_set_as_default_model_preset_btn"
                             )
+                        with gr.Row(
+                                variant="panel",
+                                elem_classes="panel-with-textbox-and-btn"):
+                            model_preset_uid_to_toggle_star = gr.Textbox(
+                                label="Preset UID to Toggle Star", lines=1, max_lines=1,
+                                elem_id="models_model_preset_uid_to_toggle_star"
+                            )
+                            toggle_model_preset_star_btn = gr.Button(
+                                "Toggle Star",
+                                elem_id="models_toggle_model_preset_star_btn"
+                            )
 
-                with gr.Column(scale=3,
+                with gr.Column(scale=2,
                                elem_id="models_right_column_container",
                                elem_classes="models_right_column_container"):
                     with gr.Column(
@@ -386,6 +398,13 @@ def model_presets_ui():
             set_model_preset_as_default_btn.click(
                 fn=handle_set_model_preset_as_default,
                 inputs=[model_preset_uid_to_set_as_default],
+                outputs=load_model_presets_outputs + show_model_preset_outputs
+            )
+        )
+        things_that_might_hang.append(
+            toggle_model_preset_star_btn.click(
+                fn=handle_toggle_model_preset_star,
+                inputs=[model_preset_uid_to_toggle_star],
                 outputs=load_model_presets_outputs + show_model_preset_outputs
             )
         )

@@ -5,6 +5,7 @@ import re
 import shutil
 import fnmatch
 import json
+import time
 import jsonschema
 import hashlib
 
@@ -75,18 +76,29 @@ def get_model_presets() -> List[ModelPreset]:
 
     model_preset_settings = get_model_preset_settings()
     default_preset_uid = model_preset_settings.get('default_preset_uid')
+    starred_preset_uids = model_preset_settings.get('starred_preset_uids', [])
 
     model_presets = []
     default_model_presets = []
+    starred_model_presets = []
 
     for d in sorted_data:
         model_preset = ModelPreset(d)
-        if model_preset.uid == default_preset_uid:
+
+        is_default = model_preset.uid == default_preset_uid
+        is_starred = model_preset.uid in starred_preset_uids
+
+        model_preset.data['_is_default'] = is_default
+        model_preset.data['_is_starred'] = is_starred
+
+        if is_default:
             default_model_presets.append(model_preset)
+        elif is_starred:
+            starred_model_presets.append(model_preset)
         else:
             model_presets.append(model_preset)
 
-    return default_model_presets + model_presets
+    return default_model_presets + starred_model_presets + model_presets
 
 
 def get_model_preset_choices() -> List[str]:

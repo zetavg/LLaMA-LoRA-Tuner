@@ -1,3 +1,5 @@
+from typing import List
+
 from textwrap import dedent
 
 
@@ -28,9 +30,17 @@ def model_preset_list_item_html(model_preset: ModelPreset):
     ]
     on_click = ';'.join(on_click)
 
+    additional_classes = ''
+
+    if model_preset.data.get('_is_default'):
+        additional_classes += ' is-default'
+
+    if model_preset.data.get('_is_starred'):
+        additional_classes += ' is-starred'
+
     html_content = dedent(
         f'''
-        <div class="item" onclick="{on_click}">
+        <div class="item{additional_classes}" onclick="{on_click}">
             <div class="name-and-uid">
                 <div class="name">
                     {model_preset.name}
@@ -45,4 +55,15 @@ def model_preset_list_item_html(model_preset: ModelPreset):
         </div>
         '''
     ).strip()
+    return html_content
+
+
+def model_preset_list_html(model_presets: List[ModelPreset]):
+    items_html = [model_preset_list_item_html(p) for p in model_presets]
+    items_html = '\n'.join(items_html)
+    html_content = dedent(f'''
+        <div class="list">
+        {items_html}
+        </div>
+    ''').strip()
     return html_content

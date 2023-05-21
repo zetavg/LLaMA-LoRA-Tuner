@@ -16,19 +16,16 @@ from ....data import (
     update_model_preset_settings,
 )
 
-from .html_templates import model_preset_list_item_html
+from .html_templates import (
+    model_preset_list_item_html,
+    model_preset_list_html,
+)
 
 
 def handle_load_model_presets():
     try:
         model_presets = get_model_presets()
-        items_html = [model_preset_list_item_html(p) for p in model_presets]
-        items_html = '\n'.join(items_html)
-        html_content = dedent(f'''
-            <div class="list">
-            {items_html}
-            </div>
-        ''').strip()
+        html_content = model_preset_list_html(model_presets)
 
         return (
             gr.HTML.update(value=html_content),
@@ -42,6 +39,7 @@ def handle_show_model_preset(preset_uid):
     try:
         model_preset_settings = get_model_preset_settings()
         default_preset_uid = model_preset_settings.get('default_preset_uid')
+        starred_preset_uids = model_preset_settings.get('starred_preset_uids', [])
 
         model_preset = get_model_preset(preset_uid)
         html_content = ''
@@ -72,6 +70,13 @@ def handle_show_model_preset(preset_uid):
         ]
         on_set_as_default_click = ';'.join(on_set_as_default_click)
 
+        on_star_click = [
+            f"document.querySelector('#models_model_preset_uid_to_toggle_star input').value = '{model_preset.uid}'",
+            "document.querySelector('#models_model_preset_uid_to_toggle_star input').dispatchEvent(new Event('input', {'bubbles': true, 'cancelable': true }))",
+            "document.getElementById('models_toggle_model_preset_star_btn').click()",
+        ]
+        on_star_click = ';'.join(on_star_click)
+
         html_content += dedent(f'''
             <div class="models-ui-block-actions">
                 <button onclick="{on_delete_click}">Delete</button>
@@ -80,6 +85,15 @@ def handle_show_model_preset(preset_uid):
         if model_preset.uid != default_preset_uid:
             html_content += dedent(f'''
                 <button onclick="{on_set_as_default_click}">Set as Default</button>
+            ''').strip()
+
+        if model_preset.uid in starred_preset_uids:
+            html_content += dedent(f'''
+                <button onclick="{on_star_click}">★</button>
+            ''').strip()
+        else:
+            html_content += dedent(f'''
+                <button onclick="{on_star_click}">☆</button>
             ''').strip()
 
         html_content += dedent(f'''
@@ -183,4 +197,16 @@ def handle_discard_edit():
 
 def handle_set_model_preset_as_default(uid):
     update_model_preset_settings({'default_preset_uid': uid})
+    return handle_load_model_presets() + handle_show_model_preset(uid)
+
+
+def handle_toggle_model_preset_star(uid):
+    settings = get_model_preset_settings()
+    starred_preset_uids = settings.get('starred_preset_uids', [])
+    if uid in starred_preset_uids:
+        starred_preset_uids = [i for i in starred_preset_uids if i != uid]
+    else:
+        starred_preset_uids.append(uid)
+
+    update_model_preset_settings({'starred_preset_uids': starred_preset_uids})
     return handle_load_model_presets() + handle_show_model_preset(uid)

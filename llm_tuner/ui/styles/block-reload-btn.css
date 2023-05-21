@@ -1,5 +1,6 @@
 .block-reload-btn {
     position: absolute;
+    z-index: 50;
     top: -1px;
     right: -1px;
     border-top-left-radius: 0 !important;

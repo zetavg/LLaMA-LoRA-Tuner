@@ -7,12 +7,12 @@ import json
 from textwrap import dedent
 from json5 import loads as json_loads
 
-from ..config import Config
-from ..globals import Global
-from ..models import get_tokenizer
-from ..data import get_model_preset_choices, get_model_preset_from_choice
-from ..lib.tokenize import tokenize
-from ..utils.data_processing import comparing_lists
+from ...config import Config
+from ...globals import Global
+from ...models import get_tokenizer
+from ...data import get_model_preset_choices, get_model_preset_from_choice
+from ...lib.tokenize import tokenize
+from ...utils.data_processing import comparing_lists
 
 
 default_tokenizer_from_hf = "huggyllama/llama-7b"
@@ -39,8 +39,9 @@ def handle_tokenize(text, *args):
         tokenize_results = tokenize(text, tokenizer)
         text = comparing_lists(
             [
-                [f"{i},"for i in tokenize_results['ids']],
-                [f"{i} "for i in tokenize_results['tokens']],
+                [f"{i}," if c < len(tokenize_results['ids']) - 1 else f"{i}"
+                 for c, i in enumerate(tokenize_results['ids'])],
+                [f"{i}" for i in tokenize_results['tokens']],
             ],
             labels=['', '//'],
             max_width=42)
@@ -196,11 +197,13 @@ def tokenizer_ui():
 
 sample_tokens_value = """
 [
-   1,   15043, 3186,  29889,
-// <s>  Hello  world  .
+   510, 3158,  8516,  30013, 27287, 689,
+// The   quick  brown  fox    jumps  over
+   253, 22658, 4370, 15
+//  the  lazy   dog  .
 ]
 """
 
 sample_text_value = """
-Hello world.
+The quick brown fox jumps over the lazy dog.
 """
