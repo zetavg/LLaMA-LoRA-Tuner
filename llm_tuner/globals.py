@@ -22,9 +22,6 @@ class Global:
 
     version: Union[str, None] = None
 
-    base_model_name: str = ""
-    tokenizer_name: Union[str, None] = None
-
     # Functions
     inference_generate_fn: Any
     finetune_train_fn: Any
@@ -70,7 +67,6 @@ class Global:
 
 
 def initialize_global():
-    Global.base_model_name = Config.default_base_model_name
     commit_hash = get_git_commit_hash()
 
     if commit_hash:
@@ -176,4 +172,4 @@ def load_gpu_info():
     except Exception as e:
         print(f"Notice: cannot get GPU info: {e}")
 
-    print("")
+    print()

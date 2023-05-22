@@ -32,82 +32,20 @@ def main_page():
                     """,
                     elem_id="page_title",
                 )
-                with gr.Column(
-                    elem_id="global_base_model_select_group",
-                    elem_classes="disable_while_training without_message"
-                ):
-                    global_base_model_select = gr.Dropdown(
-                        label="Base Model",
-                        elem_id="global_base_model_select",
-                        choices=Config.base_model_choices,
-                        value=lambda: Global.base_model_name,
-                        allow_custom_value=True,
-                    )
-                    use_custom_tokenizer_btn = gr.Button(
-                        "Use custom tokenizer",
-                        elem_id="use_custom_tokenizer_btn")
-                    global_tokenizer_select = gr.Dropdown(
-                        label="Tokenizer",
-                        elem_id="global_tokenizer_select",
-                        # choices=[],
-                        value=lambda: Global.base_model_name,
-                        visible=False,
-                        allow_custom_value=True,
-                    )
-                    use_custom_tokenizer_btn.click(
-                        fn=lambda: gr.Dropdown.update(visible=True),
-                        inputs=None,
-                        outputs=[global_tokenizer_select])
-            # global_base_model_select_loading_status = gr.Markdown("", elem_id="global_base_model_select_loading_status")
 
-            with gr.Column(elem_id="main_page_tabs_container") as main_page_tabs_container:
+            with gr.Column(
+                elem_id="main_page_tabs_container"
+            ) as main_page_tabs_container:
                 with gr.Tab("Inference"):
                     inference_ui()
-                with gr.Tab("Fine-tuning"):
-                    finetune_ui()
                 with gr.Tab("Models"):
                     models_ui()
+                with gr.Tab("Fine-tuning"):
+                    finetune_ui()
                 with gr.Tab("Tools"):
                     tools_ui()
-            please_select_a_base_model_message = gr.Markdown(
-                "Please select a base model.", visible=False)
-            current_base_model_hint = gr.Markdown(
-                lambda: Global.base_model_name, elem_id="current_base_model_hint")
-            current_tokenizer_hint = gr.Markdown(
-                lambda: Global.tokenizer_name, elem_id="current_tokenizer_hint")
+
             foot_info = gr.Markdown(get_foot_info)
-
-    global_base_model_select.change(
-        fn=pre_handle_change_base_model,
-        inputs=[global_base_model_select],
-        outputs=[main_page_tabs_container]
-    ).then(
-        fn=handle_change_base_model,
-        inputs=[global_base_model_select],
-        outputs=[
-            main_page_tabs_container,
-            please_select_a_base_model_message,
-            current_base_model_hint,
-            current_tokenizer_hint,
-            # global_base_model_select_loading_status,
-            foot_info
-        ]
-    )
-
-    global_tokenizer_select.change(
-        fn=pre_handle_change_tokenizer,
-        inputs=[global_tokenizer_select],
-        outputs=[main_page_tabs_container]
-    ).then(
-        fn=handle_change_tokenizer,
-        inputs=[global_tokenizer_select],
-        outputs=[
-            global_tokenizer_select,
-            main_page_tabs_container,
-            current_tokenizer_hint,
-            foot_info
-        ]
-    )
 
     main_page_blocks.load(
         fn=lambda: gr.HTML.update(
@@ -161,7 +99,7 @@ def get_page_title():
 
 def main_page_custom_css():
     css = """
-    /* to make position stick work */
+    /* to make position sticky work */
     .gradio-container {
         overflow-x: initial !important;
         overflow-y: clip !important;
@@ -441,61 +379,10 @@ def main_page_custom_css():
 register_css_style('main', main_page_custom_css())
 
 
-def pre_handle_change_base_model(selected_base_model_name):
-    if Global.base_model_name != selected_base_model_name:
-        return gr.Column.update(visible=False)
-    if Global.tokenizer_name and Global.tokenizer_name != selected_base_model_name:
-        return gr.Column.update(visible=False)
-    return gr.Column.update(visible=True)
-
-
-def handle_change_base_model(selected_base_model_name):
-    Global.base_model_name = selected_base_model_name
-    Global.tokenizer_name = selected_base_model_name
-
-    is_base_model_selected = False
-    if Global.base_model_name:
-        is_base_model_selected = True
-
-    return (
-        gr.Column.update(visible=is_base_model_selected),
-        gr.Markdown.update(visible=not is_base_model_selected),
-        Global.base_model_name,
-        Global.tokenizer_name,
-        get_foot_info())
-
-
-def pre_handle_change_tokenizer(selected_tokenizer_name):
-    if Global.tokenizer_name != selected_tokenizer_name:
-        return gr.Column.update(visible=False)
-    return gr.Column.update(visible=True)
-
-
-def handle_change_tokenizer(selected_tokenizer_name):
-    Global.tokenizer_name = selected_tokenizer_name
-
-    show_tokenizer_select = True
-    if not Global.tokenizer_name:
-        show_tokenizer_select = False
-    if Global.tokenizer_name == Global.base_model_name:
-        show_tokenizer_select = False
-
-    return (
-        gr.Dropdown.update(visible=show_tokenizer_select),
-        gr.Column.update(visible=True),
-        Global.tokenizer_name,
-        get_foot_info()
-    )
-
-
 def get_foot_info():
     info = []
     if Global.version:
         info.append(f"LLaMA-LoRA Tuner `{Global.version}`")
-    if Global.base_model_name:
-        info.append(f"Base model: `{Global.base_model_name}`")
-    if Global.tokenizer_name and Global.tokenizer_name != Global.base_model_name:
-        info.append(f"Tokenizer: `{Global.tokenizer_name}`")
     if Config.ui_show_sys_info:
         info.append(f"Data dir: `{Config.data_dir}`")
     return f"""\

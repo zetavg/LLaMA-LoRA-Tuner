@@ -124,10 +124,10 @@ class ModelPreset:
             args = {}
 
         if args.get('load_in_8bit') is None:
-            args['load_in_8bit'] = Config.load_in_8bit
+            args['load_in_8bit'] = Config.default_load_in_8bit
 
         if args.get('torch_dtype') is None:
-            args['torch_dtype'] = Config.torch_dtype
+            args['torch_dtype'] = Config.default_torch_dtype
 
         if args.get('device_map') is None:
             args['device_map'] = 'auto'

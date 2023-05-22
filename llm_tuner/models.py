@@ -38,15 +38,13 @@ def get_tokenizer(name_or_path: str) -> PreTrainedTokenizerBase:
     try:
         tokenizer = AutoTokenizer.from_pretrained(
             name_or_path,
-            trust_remote_code=Config.trust_remote_code,
-            use_auth_token=Config.hf_access_token
+            # use_auth_token=Config.hf_access_token
         )
     except Exception as e:
         if 'LLaMATokenizer' in str(e):
             tokenizer = LlamaTokenizer.from_pretrained(
                 name_or_path,
-                trust_remote_code=Config.trust_remote_code,
-                use_auth_token=Config.hf_access_token
+                # use_auth_token=Config.hf_access_token
             )
         else:
             raise e

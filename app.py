@@ -1,46 +1,37 @@
 from typing import Union
 
-import gradio as gr
-import fire
 import os
+import fire
 import yaml
+import gradio as gr
 
-from llm_tuner.config import Config, process_config
-from llm_tuner.globals import initialize_global
-from llm_tuner.data import init_data_dir
-# from llm_tuner.models import prepare_base_model
-from llm_tuner.ui.main_page import (
-    main_page, get_page_title
+from llm_tuner.config import Config, set_config
+from llm_tuner.initialization import initialize
+from llm_tuner.ui import (
+    main_page, get_page_title, get_css_styles
 )
-from llm_tuner.ui.css_styles import get_css_styles
 
 
 def main(
-    base_model: Union[str, None] = None,
     data_dir: Union[str, None] = None,
-    base_model_choices: Union[str, None] = None,
-    trust_remote_code: Union[bool, None] = None,
-    server_name: str = "127.0.0.1",
+    server_name: Union[str, None] = None,
     share: bool = False,
-    skip_loading_base_model: bool = False,
+    skip_loading_default_model: bool = False,
     auth: Union[str, None] = None,
-    load_in_8bit: Union[bool, None] = None,
-    torch_dtype: Union[str, None] = None,
+    default_load_in_8bit: Union[bool, None] = None,
+    default_torch_dtype: Union[str, None] = None,
     ui_show_sys_info: Union[bool, None] = None,
     ui_dev_mode: Union[bool, None] = None,
     wandb_api_key: Union[str, None] = None,
     wandb_project: Union[str, None] = None,
-    hf_access_token: Union[str, None] = None,
+    # hf_access_token: Union[str, None] = None,
     timezone: Union[str, None] = None,
     config: Union[str, None] = None,
 ):
     '''
     Start the LLM Tuner UI.
 
-    :param base_model: (required) The name of the default base model to use.
-    :param data_dir: (required) The path to the directory to store data.
-
-    :param base_model_choices: Base model selections to display on the UI, seperated by ",". For example: 'decapoda-research/llama-7b-hf,nomic-ai/gpt4all-j'.
+    :param data_dir: The path to the directory to store data.
 
     :param server_name: Allows to listen on all interfaces by providing '0.0.0.0'.
     :param share: Create a public Gradio URL.
@@ -51,36 +42,28 @@ def main(
     :param hf_access_token: Provide an access token to load private models form Hugging Face Hub. An access token can be created at https://huggingface.co/settings/tokens.
     '''
 
-    config_from_file = read_yaml_config(config_path=config)
+    config_path = config
+    if not config_path:
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(app_dir, 'config.yaml')
+    config_from_file = read_yaml_config(config_path)
     if config_from_file:
-        for key, value in config_from_file.items():
-            if key == "server_name":
-                server_name = value
-                continue
-            if not hasattr(Config, key):
-                available_keys = [k for k in vars(
-                    Config) if not k.startswith('__')]
-                raise ValueError(
-                    f"Invalid config key '{key}' in config.yaml. Available keys: {', '.join(available_keys)}")
-            setattr(Config, key, value)
+        try:
+            set_config(config_from_file)
+        except ValueError as e:
+            raise ValueError(f"{str(e)} Check {config_path}.") from e
 
-    if base_model is not None:
-        Config.default_base_model_name = base_model
-
-    if base_model_choices is not None:
-        Config.base_model_choices = base_model_choices
-
-    if trust_remote_code is not None:
-        Config.trust_remote_code = trust_remote_code
+    if server_name is not None:
+        Config.server_name = server_name
 
     if data_dir is not None:
         Config.data_dir = data_dir
 
-    if load_in_8bit is not None:
-        Config.load_in_8bit = load_in_8bit
+    if default_load_in_8bit is not None:
+        Config.default_load_in_8bit = default_load_in_8bit
 
-    if torch_dtype is not None:
-        Config.torch_dtype = torch_dtype
+    if default_torch_dtype is not None:
+        Config.default_torch_dtype = default_torch_dtype
 
     if auth is not None:
         try:
@@ -88,8 +71,8 @@ def main(
         except ValueError:
             raise ValueError("--auth must be in the format <username>:<password>, e.g.: --auth='username:password'")
 
-    if hf_access_token is not None:
-        Config.hf_access_token = hf_access_token
+    # if hf_access_token is not None:
+    #     Config.hf_access_token = hf_access_token
 
     if wandb_api_key is not None:
         Config.wandb_api_key = wandb_api_key
@@ -106,21 +89,7 @@ def main(
     if ui_show_sys_info is not None:
         Config.ui_show_sys_info = ui_show_sys_info
 
-    process_config()
-    initialize_global()
-
-    assert (
-        Config.default_base_model_name
-    ), "Please specify a --base_model, e.g. --base_model='decapoda-research/llama-7b-hf'"
-
-    assert (
-        Config.data_dir
-    ), "Please specify a --data_dir, e.g. --data_dir='./data'"
-
-    init_data_dir()
-
-    # if (not skip_loading_base_model) and (not Config.ui_dev_mode):
-    #     prepare_base_model(Config.default_base_model_name)
+    initialize(skip_loading_default_model=skip_loading_default_model)
 
     with gr.Blocks(title=get_page_title(), css=get_css_styles()) as demo:
         main_page()
@@ -133,11 +102,7 @@ def main(
     )
 
 
-def read_yaml_config(config_path: Union[str, None] = None):
-    if not config_path:
-        app_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(app_dir, 'config.yaml')
-
+def read_yaml_config(config_path: str):
     if not os.path.exists(config_path):
         return None
 

@@ -1,6 +1,7 @@
+from typing import Dict, Union, Any
+
 import os
 import pytz
-from typing import List, Union, Any
 
 
 class ClassProperty:
@@ -16,25 +17,24 @@ class Config:
     Stores the application configuration. This is a singleton class.
     """
 
-    # Where data is stored
-    data_dir: str = ""
+    server_name: str = "127.0.0.1"
 
-    # Model Related
-    default_base_model_name: str = ""
-    base_model_choices: Union[List[str], str] = []
-    load_in_8bit: bool = False
-    torch_dtype: str = 'float16'
-    trust_remote_code: bool = False
+    # Where data is stored
+    data_dir: str = "./data"
 
     # Application Settings
     timezone: Any = pytz.UTC
+
+    # Model Related
+    default_load_in_8bit: bool = False
+    default_torch_dtype: str = 'float16'
 
     # Authentication
     auth_username: Union[str, None] = None
     auth_password: Union[str, None] = None
 
     # Hugging Face
-    hf_access_token: Union[str, None] = None
+    # hf_access_token: Union[str, None] = None
 
     # WandB
     enable_wandb: Union[bool, None] = None
@@ -62,20 +62,21 @@ class Config:
         return os.path.join(self.data_dir, 'adapter_models')
 
 
+def set_config(config_dict: Dict[str, Any]):
+    for key, value in config_dict.items():
+        if not hasattr(Config, key):
+            available_keys = [k for k in vars(
+                Config) if not k.startswith('__')]
+            raise ValueError(
+                f"Invalid config key '{key}' in config. Available keys: {', '.join(available_keys)}.")
+        setattr(Config, key, value)
+
+
 def process_config():
     Config.data_dir = os.path.abspath(Config.data_dir)
 
-    if isinstance(Config.base_model_choices, str):
-        base_model_choices = Config.base_model_choices.split(',')
-        base_model_choices = [name.strip() for name in base_model_choices]
-        Config.base_model_choices = base_model_choices
-
     if isinstance(Config.timezone, str):
         Config.timezone = pytz.timezone(Config.timezone)
-
-    if Config.default_base_model_name not in Config.base_model_choices:
-        Config.base_model_choices = [
-            Config.default_base_model_name] + Config.base_model_choices
 
     if Config.enable_wandb is None:
         if (

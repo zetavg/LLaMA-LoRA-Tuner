@@ -506,7 +506,7 @@ def finetune_ui():
                 with gr.Accordion("Advanced Options", open=False, elem_id="finetune_advance_options_accordion"):
                     with gr.Row(elem_id="finetune_advanced_options_checkboxes"):
                         load_in_8bit = gr.Checkbox(
-                            label="8bit", value=Config.load_in_8bit)
+                            label="8bit", value=Config.default_load_in_8bit)
                         fp16 = gr.Checkbox(label="FP16", value=True)
                         bf16 = gr.Checkbox(label="BF16", value=False)
                         gradient_checkpointing = gr.Checkbox(

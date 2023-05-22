@@ -270,7 +270,7 @@ def model_presets_ui():
                         gr.Markdown(
                             elem_classes='info-text mt-m-md ph-md',
                             value=dedent(f"""
-                                Choice "Default" to use the global config (`{Config.torch_dtype}`).
+                                Choice "Default" to use the global config (`{Config.default_torch_dtype}`).
                                 For more information, check the docs [here](https://huggingface.co/docs/transformers/v4.28.1/en/main_classes/model#model-instantiation-dtype).
                             """).strip()
                         )
@@ -288,7 +288,7 @@ def model_presets_ui():
                         gr.Markdown(
                             elem_classes='info-text mt-m-md ph-md',
                             value=dedent(f"""
-                                Whether to load the model in 8-bit quantization. Choice "Default" to use the global config (`{'Yes' if Config.load_in_8bit else 'No'}`).
+                                Whether to load the model in 8-bit quantization. Choice "Default" to use the global config (`{'Yes' if Config.default_load_in_8bit else 'No'}`).
                                 For more information, check the docs [here](https://huggingface.co/docs/transformers/v4.28.1/main_classes/quantization#load-a-large-model-in-8bit).
                             """).strip()
                         )
