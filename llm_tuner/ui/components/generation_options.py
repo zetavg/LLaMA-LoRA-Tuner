@@ -46,18 +46,17 @@ def generation_options(
             )
 
             with gr.Row():
-                top_p = gr.Slider(
-                    label="Top P",
-                    minimum=0, maximum=1, step=0.01,
-                    elem_classes='top_p',
-                    elem_id=get_elem_id('top_p')
-                )
-
                 top_k = gr.Slider(
                     label="Top K",
                     minimum=0, maximum=100, step=1,
                     elem_classes='top_k',
                     elem_id=get_elem_id('top_k')
+                )
+                top_p = gr.Slider(
+                    label="Top P",
+                    minimum=0, maximum=1, step=0.01,
+                    elem_classes='top_p',
+                    elem_id=get_elem_id('top_p')
                 )
 
             num_beams = gr.Slider(

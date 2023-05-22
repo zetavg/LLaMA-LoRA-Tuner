@@ -4,27 +4,28 @@ function inference_ui_blocks_js() {
     document.getElementById('inference_reload_selections_button').click();
 
     // Workaround default value not shown.
-    document.querySelector('#inference_lora_model input').value =
-      'None';
-  }, 100);
+    // document.querySelector('#inference_lora_model input').value =
+    //   'None';
+  }, 50);
 
   // Add tooltips
   setTimeout(function () {
-    tippy('#inference_lora_model', {
-      placement: 'top-start',
+    tippy('#inference_model_preset_select', {
+      placement: 'right',
       delay: [500, 0],
       animation: 'scale-subtle',
       content:
-        'Select a LoRA model form your data directory, or type in a model name on HF (e.g.: <code>tloen/alpaca-lora-7b</code>).',
+        'Select the model to use. Add models by defining new presets on the "Models" / "Preset" tab.',
       allowHTML: true,
     });
 
     tippy('#inference_prompt_template', {
-      placement: 'top-start',
+      placement: 'left',
       delay: [500, 0],
       animation: 'scale-subtle',
       content:
-        'Templates are loaded from the "templates" folder of your data directory. Select the template that matches the data which the model is trained on to get the best results.',
+        'Templates are loaded from the "templates" folder of your data directory.<br/><br/>Select the template that matches the data which the model is trained on to get the best results.',
+      allowHTML: true,
     });
 
     tippy('#inference_reload_selections_button', {
@@ -56,16 +57,7 @@ function inference_ui_blocks_js() {
         delay: [500, 0],
         animation: 'scale-subtle',
         content:
-          '<strong>Controls randomness</strong>: Higher values (e.g., <code>1.0</code>) make the model generate more diverse and random outputs. As the temperature approaches zero, the model will become deterministic and repetitive.<br /><i>Setting a value larger then <code>0</code> will enable sampling.</i>',
-        allowHTML: true,
-      });
-
-      tippy('#inference_top_p', {
-        placement: 'right',
-        delay: [500, 0],
-        animation: 'scale-subtle',
-        content:
-          'Controls diversity via nucleus sampling: only the tokens whose cumulative probability exceeds <code>top_p</code> are considered. <code>0.5</code> means half of all likelihood-weighted options are considered.<br />Will only take effect if Temperature is set to > 0.',
+          '<strong>Controls randomness</strong>: Higher values (e.g., <code>1.0</code>) make the model generate more diverse and random outputs. As the temperature approaches zero, the model will become deterministic and repetitive.</i>',
         allowHTML: true,
       });
 
@@ -74,7 +66,16 @@ function inference_ui_blocks_js() {
         delay: [500, 0],
         animation: 'scale-subtle',
         content:
-          'Controls diversity of the generated text by only considering the <code>top_k</code> tokens with the highest probabilities. This method can lead to more focused and coherent outputs by reducing the impact of low probability tokens.<br />Will only take effect if Temperature is set to > 0.',
+          '<strong>Controls diversity</strong> of the generated text by only considering the <code>top_k</code> tokens with the highest probabilities.<br /><br />A lower value can lead to more focused and coherent outputs by reducing the impact of tokens with lower probabilities.<br /><br />Will only take effect if Temperature is set to > 0.',
+        allowHTML: true,
+      });
+
+      tippy('#inference_top_p', {
+        placement: 'right',
+        delay: [500, 0],
+        animation: 'scale-subtle',
+        content:
+          '<strong>Controls diversity</strong> via nucleus sampling: If set to < 1, only the tokens whose cumulative probability exceeds <code>top_p</code> are considered. <code>0.5</code> means half of all likelihood-weighted options are considered.<br /><br />A lower <code>top_p</code> would lead to less diverse output because a narrower set of potential next tokens is considered.<br /><br />Will only take effect if Temperature is set to > 0.',
         allowHTML: true,
       });
 
@@ -125,16 +126,27 @@ function inference_ui_blocks_js() {
   // Show/hide generate and stop button base on the state.
   setTimeout(function () {
     // Make the '#inference_output > .wrap' element appear
-    document.getElementById('inference_stop_btn').click();
+    document.getElementById('inference_init_inference_output_btn').click();
 
     setTimeout(function () {
       const output_wrap_element = document.querySelector(
         '#inference_output > .wrap'
       );
+      var timer1 = null;
       function handle_output_wrap_element_class_change() {
+        if (timer1) { clearTimeout(timer1); }
         if (Array.from(output_wrap_element.classList).includes('hide')) {
-          document.getElementById('inference_generate_btn').style.display =
-            'block';
+          var g_btn = document.getElementById('inference_generate_btn');
+
+          // To prevent double click, disable the button for 500ms.
+          g_btn.style.pointerEvents = 'none';
+          g_btn.style.opacity = 0.5;
+          timer1 = setTimeout(function () {
+            g_btn.style.pointerEvents = 'auto';
+            g_btn.style.opacity = 1;
+          }, 500);
+
+          g_btn.style.display = 'block';
           document.getElementById('inference_stop_btn').style.display = 'none';
         } else {
           document.getElementById('inference_generate_btn').style.display =

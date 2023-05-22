@@ -126,8 +126,8 @@ def inference_ui():
         if generation_config.get('do_sample', False):
             config.append(
                 f"Temperature: {generation_config.get('temperature')}")
-            config.append(f"Top P: {generation_config.get('top_p')}")
             config.append(f"Top K: {generation_config.get('top_k')}")
+            config.append(f"Top P: {generation_config.get('top_p')}")
         num_beams = generation_config.get('num_beams', 1)
         if num_beams > 1:
             config.append(f"Beams: {generation_config.get('num_beams')}")
@@ -167,10 +167,8 @@ def inference_ui():
             with gr.Row(elem_classes=""):
                 model_preset_select = gr.Dropdown(
                     label="Model",
+                    elem_id="inference_model_preset_select",
                 )
-                reload_selections_button = gr.Button(
-                    "↻", elem_classes="block-reload-btn",
-                    elem_id="inference_reload_selections_button")
                 prompt_template = gr.Dropdown(
                     label="Prompt Template",
                     value="None",
@@ -180,6 +178,9 @@ def inference_ui():
                 visible=False,
                 elem_classes="mt-m2 ph-2 o-09"
             )
+            reload_selections_button = gr.Button(
+                "↻", elem_classes="block-reload-btn",
+                elem_id="inference_reload_selections_button")
         # with gr.Row(elem_classes="disable_while_training"):
         #     with gr.Column(elem_id="inference_lora_model_group"):
         #         model_prompt_template_message = gr.Markdown(
@@ -227,7 +228,9 @@ def inference_ui():
 
                     with gr.Accordion("Preview", open=False, elem_id="inference_preview_prompt_container"):
                         preview_prompt = gr.Textbox(
-                            show_label=False, interactive=False, elem_id="inference_preview_prompt")
+                            show_label=False, interactive=False,
+                            lines=3,
+                            elem_id="inference_preview_prompt")
                         update_prompt_preview_btn = gr.Button(
                             "↻", elem_id="inference_update_prompt_preview_btn")
                         update_prompt_preview_btn.style(size="sm")
@@ -276,8 +279,21 @@ def inference_ui():
             with gr.Column(elem_id="inference_output_group_container"):
                 with gr.Column(elem_id="inference_output_group"):
                     inference_output = gr.Textbox(
-                        lines=inference_output_lines, label="Output", elem_id="inference_output")
+                        label="Output",
+                        lines=inference_output_lines,
+                        interactive=False,
+                        elem_id="inference_output")
                     inference_output.style(show_copy_button=True)
+                    init_inference_output_btn = gr.Button(
+                        visible=False,
+                        elem_id="inference_init_inference_output_btn",
+                    )
+                    init_inference_output_btn.click(
+                        fn=lambda x: x,
+                        inputs=[inference_output],
+                        outputs=[inference_output],
+                        # queue=False,
+                    )
 
                     with gr.Row(elem_id="inference_flagging_group", variant="panel"):
                         output_for_flagging = gr.Textbox(
@@ -361,7 +377,8 @@ def inference_ui():
             prompt_template.change(
                 fn=handle_prompt_template_change,
                 inputs=handle_prompt_template_change_inputs,
-                outputs=handle_prompt_template_change_outputs
+                outputs=handle_prompt_template_change_outputs,
+                # queue=False,
             )
         )
 
@@ -388,10 +405,12 @@ def inference_ui():
                 # ),
                 inputs=[model_preset_select, prompt_template],
                 outputs=[prompt_template],
+                # queue=False,
             ).then(
                 fn=handle_prompt_template_change,
                 inputs=handle_prompt_template_change_inputs,
-                outputs=handle_prompt_template_change_outputs
+                outputs=handle_prompt_template_change_outputs,
+                # queue=False,
             )
         )
 
@@ -399,14 +418,17 @@ def inference_ui():
             handle_reload_selections,
             inputs=[model_preset_select, prompt_template],
             outputs=[model_preset_select, prompt_template],
+            # queue=False,
         ).then(
             fn=handle_model_preset_select_change,
             inputs=[model_preset_select, prompt_template],
             outputs=[prompt_template],
+            # queue=False,
         ).then(
             fn=handle_prompt_template_change,
             inputs=handle_prompt_template_change_inputs,
-            outputs=handle_prompt_template_change_outputs
+            outputs=handle_prompt_template_change_outputs,
+            # queue=False,
         )
         things_that_might_hang.append(reload_selections_event)
 
@@ -464,7 +486,8 @@ def inference_ui():
             fn=handle_stop_generate,
             inputs=None,
             outputs=None,
-            cancels=[generate_event]
+            cancels=[generate_event],
+            # queue=False,
         )
 
         update_prompt_preview_event = \
@@ -473,7 +496,9 @@ def inference_ui():
                 inputs=[prompt_template,
                         variable_0, variable_1, variable_2, variable_3,
                         variable_4, variable_5, variable_6, variable_7,],
-                outputs=preview_prompt)
+                outputs=preview_prompt,
+                # queue=False,
+                )
         things_that_might_hang.append(update_prompt_preview_event)
 
         stop_non_responding_elements_btn = gr.Button(

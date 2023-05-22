@@ -30,6 +30,10 @@ register_css_style(
     relative_read_file(__file__, 'tag.css')
 )
 register_css_style(
+    'tippy',
+    relative_read_file(__file__, 'tippy.css')
+)
+register_css_style(
     'utility-classes',
     relative_read_file(__file__, 'utility-classes.css')
 )
