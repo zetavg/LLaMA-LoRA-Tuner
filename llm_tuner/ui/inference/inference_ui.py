@@ -36,7 +36,7 @@ register_css_style('finetune', relative_read_file(__file__, "style.css"))
 
 # device = get_device()
 
-inference_output_lines = 12
+inference_output_lines = 7
 
 
 class LoggingItem:

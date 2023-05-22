@@ -29,6 +29,15 @@ class Config:
     default_load_in_8bit: bool = False
     default_torch_dtype: str = 'float16'
 
+    default_generation_config = {
+        'temperature': 0,
+        'top_p': 0.75,
+        'top_k': 40,
+        'num_beams': 2,
+        'repetition_penalty': 1.2,
+        'max_new_tokens': 128,
+    }
+
     # Authentication
     auth_username: Union[str, None] = None
     auth_password: Union[str, None] = None
@@ -42,9 +51,10 @@ class Config:
     default_wandb_project: str = "llama-lora-tuner"
 
     # UI related
-    ui_title: str = "LLaMA-LoRA Tuner"
+    ui_title: str = "LLM Tuner"
     ui_emoji: str = "🦙🎛️"
-    ui_subtitle: str = "Toolkit for evaluating and fine-tuning LLaMA models with low-rank adaptation (LoRA)."
+    ui_subtitle: str = \
+        "Toolkit for evaluating and fine-tuning language models."
     ui_show_sys_info: bool = True
     ui_dev_mode: bool = False
     ui_dev_mode_title_prefix: str = "[UI DEV MODE] "
@@ -64,6 +74,9 @@ class Config:
 
 def set_config(config_dict: Dict[str, Any]):
     for key, value in config_dict.items():
+        if key == 'default_generation_config':
+            Config.default_generation_config.update(value)
+            continue
         if not hasattr(Config, key):
             available_keys = [k for k in vars(
                 Config) if not k.startswith('__')]

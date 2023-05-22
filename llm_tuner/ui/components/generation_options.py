@@ -2,19 +2,10 @@ import json
 from textwrap import dedent
 import gradio as gr
 
+from ...config import Config
 from ..css_styles import register_css_style
 from ..ui_utils import tie_controls_with_json_editor
 from ...utils.data_processing import deep_merge_dicts
-
-
-default_value = {
-    'temperature': 0,
-    'top_p': 0.75,
-    'top_k': 40,
-    'num_beams': 2,
-    'repetition_penalty': 1.2,
-    'max_new_tokens': 128,
-}
 
 
 def generation_options(
@@ -26,7 +17,7 @@ def generation_options(
     if not isinstance(value, dict):
         value = json.loads(value)
 
-    value = deep_merge_dicts(default_value, value)
+    value = deep_merge_dicts(Config.default_generation_config, value)
 
     def get_elem_id(elem_id):
         if not elem_id_prefix:

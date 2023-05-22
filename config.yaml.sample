@@ -23,5 +23,14 @@ default_torch_dtype: float16
 # wandb_api_key: ""
 # default_wandb_project: LLM-Tuner
 
+# Adjust the default generation config for text generation.
+# default_generation_config:
+#   temperature: 0
+#   top_p: 0.75
+#   top_k: 40
+#   num_beams: 2
+#   repetition_penalty: 1.2
+#   max_new_tokens: 128
+
 # Special Modes
 ui_dev_mode: false
