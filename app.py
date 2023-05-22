@@ -95,7 +95,7 @@ def main(
         main_page()
 
     demo.queue(concurrency_count=1).launch(
-        server_name=server_name,
+        server_name=Config.server_name,
         share=share,
         auth=((Config.auth_username, Config.auth_password)
               if Config.auth_username and Config.auth_password else None)
