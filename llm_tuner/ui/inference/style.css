@@ -1,4 +1,4 @@
-#inference_reload_selected_models_btn {
+/*#inference_reload_selected_models_btn {
     position: absolute;
     top: 0;
     left: 0;
@@ -50,7 +50,7 @@
 }
 #inference_prompt_template {
     z-index: 55;
-}
+}*/
 
 #inference_prompt_box > *:first-child {
     border-bottom-left-radius: 0;
@@ -95,17 +95,14 @@
     border-bottom: 0;
     box-shadow: none;
 }
-
-#inference_options_bottom_group {
-    margin-top: -12px;
-}
+/*
 #inference_options_bottom_group > .form {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
     border-left: 0;
     border-right: 0;
     border-bottom: 0;
-}
+}*/
 
 #inference_output > .wrap:first-child,
 #inference_raw_output > .wrap:first-child {

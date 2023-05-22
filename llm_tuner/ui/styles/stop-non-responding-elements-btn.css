@@ -1,0 +1,18 @@
+.foot-stop-non-responding-elements-btn {
+    align-self: flex-end;
+    border: 0 !important;
+    width: auto !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    font-weight: 100 !important;
+    font-size: 80% !important;
+    text-decoration: underline;
+    opacity: 0.3;
+}
+.foot-stop-non-responding-elements-btn:hover {
+    opacity: 0.8;
+}
+.foot-stop-non-responding-elements-btn:active {
+    opacity: 1;
+}

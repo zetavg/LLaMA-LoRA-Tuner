@@ -10,7 +10,7 @@ from numba import cuda
 import nvidia_smi
 
 from .config import Config
-from .utils.dynamic_import import dynamic_import
+from .dynamic_import import dynamic_import
 from .utils.lru_cache import LRUCache
 from .utils.eta_predictor import ETAPredictor
 
@@ -82,6 +82,8 @@ def initialize_global():
         Global.inference_generate_fn = dynamic_import('.lib.inference').generate
         Global.finetune_train_fn = dynamic_import('.lib.finetune').train
         load_gpu_info()
+    else:
+        Global.inference_generate_fn = dynamic_import('.lib.inference_mocked').generate
 
 
 def get_package_dir():

@@ -2,7 +2,10 @@ function models_ui_js() {
   // Load data
   setTimeout(function () {
     document.getElementById('models_preset_list_reload_button').click();
-  }, 100);
+  }, 200);
+  setTimeout(function () {
+    document.getElementById('model_presets_reload_model_defaults_selections_button').click();
+  }, 800);
 
   // Tooltips
   setTimeout(function () {

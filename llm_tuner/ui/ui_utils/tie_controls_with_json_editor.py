@@ -141,6 +141,18 @@ def tie_controls_with_json_editor(
                     values.push('Default');
                 }}
             '''
+        elif t == 'string' and component.__class__ == gr.Dropdown:
+            null_value = 'undefined'
+            if 'None' in component.choices:  # type: ignore
+                null_value = "'None'"
+            js_code += f'''
+                var v = {get_js_property_accessor('json', path)};
+                if (v === null || v === undefined) {{
+                    values.push({null_value});
+                }} else {{
+                    values.push(v);
+                }}
+            '''
         elif isinstance(t, dict):
             js_code += f'''
                 var v = {get_js_property_accessor('json', path)};
@@ -200,6 +212,14 @@ def tie_controls_with_json_editor(
     """).strip()
     control_components = [d[0] for d in controls_defn]
     json_editor.change(
+        fn=None,
+        _js=js_code,
+        inputs=[json_editor] + control_components,
+        outputs=[message_component] + control_components,
+    )
+    with gr.Blocks() as blocks:
+        pass
+    blocks.load(
         fn=None,
         _js=js_code,
         inputs=[json_editor] + control_components,

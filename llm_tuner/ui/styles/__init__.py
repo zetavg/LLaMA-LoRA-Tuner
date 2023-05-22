@@ -22,6 +22,14 @@ register_css_style(
     relative_read_file(__file__, 'panel-with-textbox-and-btn.css')
 )
 register_css_style(
+    'stop-non-responding-elements-btn',
+    relative_read_file(__file__, 'stop-non-responding-elements-btn.css')
+)
+register_css_style(
+    'tag',
+    relative_read_file(__file__, 'tag.css')
+)
+register_css_style(
     'utility-classes',
     relative_read_file(__file__, 'utility-classes.css')
 )

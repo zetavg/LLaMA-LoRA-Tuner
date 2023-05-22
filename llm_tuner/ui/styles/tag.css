@@ -1,0 +1,6 @@
+.tag {
+    border: 1px solid var(--border-color-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--background-fill-secondary);
+}

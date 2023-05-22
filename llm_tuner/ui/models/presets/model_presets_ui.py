@@ -1,7 +1,12 @@
 from typing import Any
 
+import json
+from textwrap import dedent
 import gradio as gr
+from transformers import TRANSFORMERS_CACHE
 
+from ....config import Config
+from ....data import get_available_template_names
 from ...ui_utils import mk_fake_btn, tie_controls_with_json_editor
 
 from .event_handlers import (
@@ -9,6 +14,7 @@ from .event_handlers import (
     handle_show_model_preset,
     handle_new_model_preset,
     handle_edit_model_preset,
+    handle_duplicate_model_preset,
     handle_delete_model_preset,
     handle_set_model_preset_as_default,
     handle_toggle_model_preset_star,
@@ -22,8 +28,8 @@ def model_presets_ui():
     with gr.Blocks():
         with gr.Column() as main_view:
             gr.Markdown("""
-                Define model presets to switch between different models and configurations.
-            """)
+                Define model presets to switch between different models.
+            """, elem_classes="info-text-color")
             with gr.Row():
                 with gr.Column(scale=1):
                     with gr.Column(elem_classes="model-preset-list"):
@@ -73,6 +79,17 @@ def model_presets_ui():
                             edit_model_preset_btn = gr.Button(
                                 "Edit",
                                 elem_id="models_edit_model_preset_btn"
+                            )
+                        with gr.Row(
+                                variant="panel",
+                                elem_classes="panel-with-textbox-and-btn"):
+                            model_preset_uid_to_duplicate = gr.Textbox(
+                                label="Preset UID to Duplicate", lines=1, max_lines=1,
+                                elem_id="models_model_preset_uid_to_duplicate"
+                            )
+                            duplicate_model_preset_btn = gr.Button(
+                                "Duplicate",
+                                elem_id="models_duplicate_model_preset_btn"
                             )
                         with gr.Row(
                                 variant="panel",
@@ -138,7 +155,7 @@ def model_presets_ui():
                 )
             )
 
-        with gr.Box(visible=False, elem_classes="t-bg") as edit_view:
+        with gr.Box(visible=False, elem_classes="t-bg max-width-800") as edit_view:
             with gr.Column(elem_classes="mb-xxl gap-0"):
                 with gr.Row(elem_classes="mb-md"):
                     ev_title = gr.HTML('', elem_classes="display-flex ai-c")
@@ -163,19 +180,27 @@ def model_presets_ui():
                 ev_uid = gr.Textbox()
                 ev_original_file_name = gr.Textbox()
             gr.Markdown("### Basic Info", elem_classes="mb-md")
-            ev_preset_name = gr.Textbox(
-                label="Preset Name",
-                lines=1, max_lines=1)
+            with gr.Box(elem_classes="form-box"):
+                ev_preset_name = gr.Textbox(
+                    label="Preset Name",
+                    lines=1, max_lines=1)
+                gr.Markdown(
+                    elem_classes='info-text mt-m-md ph-md',
+                    value=dedent(f"""
+                       Name the preset for easy recolonization.
+                    """).strip()
+                )
             gr.Markdown("### Model", elem_classes="mt-xxl mb-md")
             with gr.Box(elem_classes="form-box"):
-                with gr.Row(elem_classes="gap-block-padding"):
+                with gr.Row(elem_classes="deep-gap-block-padding"):
+                    ev_model_from_default_value = 'HF Hub'
                     ev_model_from = gr.Dropdown(
                         label="From",
                         choices=[
                             'Data Dir',
                             'HF Hub',
                         ],
-                        value="HF Hub",
+                        value=ev_model_from_default_value,
                         elem_classes="flex-grow-0"
                     )
                     ev_model_name = gr.Textbox(
@@ -199,34 +224,185 @@ def model_presets_ui():
                         inputs=[ev_model_from],
                         outputs=[ev_model_name, ev_model_name_select]
                     )
-                with gr.Row(elem_classes="gap-block-padding"):
-                    ev_model_torch_dtype = gr.Dropdown(
-                        label="Torch dtype",
-                        choices=[
-                            'auto',
-                            'float16',
-                            'bfloat16',
-                            'float32',
-                            'float64',
-                            'complex64',
-                            'complex128',
-                        ],
-                    )
-                    ev_model_load_in_8bit = gr.Dropdown(
-                        label="Load in 8bit",
-                        choices=['Yes', 'No', 'Default'],
-                        allow_custom_value=False,
-                    )
+                model_from_info_text_mapping = {
+                    'HF Hub': f'The model will be automatically downloaded and cached by the HF Transformers library (at <code>{TRANSFORMERS_CACHE}</code>).',
+                    'Data Dir': f'Select a model from the local data dir (<code>{Config.models_path}</code>).',
+                }
+                model_from_info_text = gr.Markdown(
+                    elem_classes='info-text mt-m-md ph-md',
+                    value=model_from_info_text_mapping[
+                        ev_model_from_default_value
+                    ]
+                )
+                ev_model_from.change(
+                    fn=None,
+                    inputs=[ev_model_from],
+                    outputs=[model_from_info_text],
+                    _js=f"function (k) {{ return {json.dumps(model_from_info_text_mapping)}[k] }}",
+                )
+
+                with gr.Row(elem_classes="deep-gap-block-padding"):
+                    with gr.Column():
+                        ev_model_torch_dtype = gr.Dropdown(
+                            label="Torch dtype",
+                            choices=[
+                                'Default',
+                                'auto',
+                                'float16',
+                                'bfloat16',
+                                'float32',
+                                'float64',
+                                'complex64',
+                                'complex128',
+                            ],
+                            value="Default"
+                        )
+                        ev_model_torch_dtype_value_mapping = {
+                            'Default': 'undefined',
+                            'auto': '"auto"',
+                            'float16': '"float16"',
+                            'bfloat16': '"bfloat16"',
+                            'float32': '"float32"',
+                            'float64': '"float64"',
+                            'complex64': '"complex64"',
+                            'complex128': '"complex128"',
+                        }
+                        gr.Markdown(
+                            elem_classes='info-text mt-m-md ph-md',
+                            value=dedent(f"""
+                                Choice "Default" to use the global config (`{Config.torch_dtype}`).
+                                For more information, check the docs [here](https://huggingface.co/docs/transformers/v4.28.1/en/main_classes/model#model-instantiation-dtype).
+                            """).strip()
+                        )
+                    with gr.Column():
+                        ev_model_load_in_8bit = gr.Dropdown(
+                            label="Load in 8bit",
+                            choices=['Yes', 'No', 'Default'],
+                            allow_custom_value=False,
+                        )
+                        ev_model_load_in_8bit_value_mapping = {
+                            'Yes': 'true',
+                            'No': 'false',
+                            'Default': 'undefined',
+                        }
+                        gr.Markdown(
+                            elem_classes='info-text mt-m-md ph-md',
+                            value=dedent(f"""
+                                Whether to load the model in 8-bit quantization. Choice "Default" to use the global config (`{'Yes' if Config.load_in_8bit else 'No'}`).
+                                For more information, check the docs [here](https://huggingface.co/docs/transformers/v4.28.1/main_classes/quantization#load-a-large-model-in-8bit).
+                            """).strip()
+                        )
                 ev_model_trust_remote_code = gr.Checkbox(
                     label="Trust Remote Code"
                 )
+            with gr.Box(elem_classes="form-box deep-gap-block-padding mt-gap"):
+                ev_use_adapter_model = gr.Checkbox(
+                    label="Use Adapter Model (LoRA)",
+                    value=False,
+                )
+                gr.Markdown(
+                    elem_classes='info-text mt-m-md ph-md',
+                    value=dedent(f"""
+                       Apply an adapter (LoRA) model.
+                    """).strip()
+                )
+                with gr.Column(visible=False) as ev_adapter_model_settings:
+                    with gr.Row():
+                        ev_adapter_model_from_default_value = "HF Hub"
+                        ev_adapter_model_from = gr.Dropdown(
+                            label="From",
+                            choices=[
+                                'Data Dir',
+                                'HF Hub',
+                            ],
+                            value=ev_adapter_model_from_default_value,
+                            elem_classes="flex-grow-0"
+                        )
+                        ev_adapter_model_name = gr.Textbox(
+                            label="Adapter (LoRA) Model Name",
+                            placeholder="Example: tloen/alpaca-lora-7b",
+                            lines=1, max_lines=1)
+                        ev_adapter_model_name_select = gr.Dropdown(
+                            visible=False,
+                            label="Adapter (LoRA) Model",
+                            choices=[
+                                'TODO',
+                                'WIP',
+                            ]
+                        )
+                        ev_adapter_model_from.change(
+                            fn=lambda v: (
+                                gr.Textbox.update(visible=v == 'HF Hub'),
+                                gr.Dropdown.update(visible=v == 'Data Dir')
+                            ),
+                            inputs=[ev_adapter_model_from],
+                            outputs=[ev_adapter_model_name,
+                                     ev_adapter_model_name_select]
+                        )
+                    adapter_model_from_info_text_mapping = {
+                        'HF Hub': f'The model will be automatically downloaded and cached by the HF Transformers library (at <code>{TRANSFORMERS_CACHE}</code>).',
+                        'Data Dir': f'Select a model from the local data dir (<code>{Config.adapter_models_path}</code>).',
+                    }
+                    adapter_model_from_info_text = gr.Markdown(
+                        elem_classes='info-text mt-m-md ph-md',
+                        value=adapter_model_from_info_text_mapping[
+                            ev_adapter_model_from_default_value
+                        ]
+                    )
+                    ev_adapter_model_from.change(
+                        fn=None,
+                        inputs=[ev_adapter_model_from],
+                        outputs=[adapter_model_from_info_text],
+                        _js=f"function (k) {{ return {json.dumps(adapter_model_from_info_text_mapping)}[k] }}",
+                    )
+                ev_use_adapter_model.change(
+                    fn=lambda enabled: gr.Column.update(visible=enabled),
+                    inputs=[ev_use_adapter_model],
+                    outputs=[ev_adapter_model_settings],  # type: ignore
+                )
+
+            gr.Markdown("### Defaults", elem_classes="mt-xxl mb-m8")
+            with gr.Box(elem_classes="form-box mt-gap"):
+                with gr.Row(elem_classes="deep-gap-block-padding"):
+                    ev_default_prompt_template_select = gr.Dropdown(
+                        label="Default Prompt Template",
+                        choices=['None'],
+                        value='None'
+                    )
+                    reload_model_defaults_selections_button = gr.Button(
+                        "↻", elem_classes="block-reload-btn",
+                        elem_id="model_presets_reload_model_defaults_selections_button"
+                    )
+                    reload_model_defaults_selections_button.click(
+                        fn=lambda: (
+                            gr.Dropdown.update(
+                                choices=get_available_template_names() +
+                                ['None'],
+                            )
+                        ),
+                        inputs=[],
+                        outputs=[ev_default_prompt_template_select]
+                    )
+                gr.Markdown(
+                    elem_classes='info-text mt-m-md ph-md',
+                    value=dedent(f"""
+                        Select a default prompt template while using this preset.
+                    """).strip()
+                )
+            gr.Markdown("### Advanced", elem_classes="mt-xxl mb-m8")
             with gr.Box(elem_classes="form-box mt-gap"):
                 ev_use_custom_tokenizer = gr.Checkbox(
                     label="Use Custom Tokenizer",
                     value=False,
                 )
+                gr.Markdown(
+                    elem_classes='info-text mt-m-md ph-md',
+                    value=dedent(f"""
+                       Use a tokenizer that is not shipped with the model.
+                    """).strip()
+                )
                 with gr.Column(visible=False) as ev_custom_tokenizer_settings:
-                    with gr.Row(elem_classes="gap-block-padding"):
+                    with gr.Row(elem_classes="deep-gap-block-padding"):
                         ev_custom_tokenizer_from = gr.Dropdown(
                             label="From",
                             choices=[
@@ -236,6 +412,10 @@ def model_presets_ui():
                             value="HF Hub",
                             elem_classes="flex-grow-0"
                         )
+                        ev_custom_tokenizer_from_value_mapping = {
+                            'Data Dir': '"data_dir"',
+                            'HF Hub': '"default"',
+                        }
                         ev_custom_tokenizer_name = gr.Textbox(
                             label="Tokenizer Name",
                             lines=1, max_lines=1)
@@ -261,56 +441,36 @@ def model_presets_ui():
                     inputs=[ev_use_custom_tokenizer],
                     outputs=[ev_custom_tokenizer_settings],  # type: ignore
                 )
-            with gr.Box(elem_classes="form-box mt-gap"):
-                ev_use_adapter_model = gr.Checkbox(
-                    label="Use Adapter Model (LoRA)",
-                    value=False,
-                )
-                with gr.Column(visible=False) as ev_adapter_model_settings:
-                    with gr.Row(elem_classes="gap-block-padding"):
-                        ev_adapter_model_from = gr.Dropdown(
-                            label="From",
-                            choices=[
-                                'Data Dir',
-                                'HF Hub',
-                            ],
-                            value="HF Hub",
-                            elem_classes="flex-grow-0"
-                        )
-                        ev_adapter_model_name = gr.Textbox(
-                            label="Adapter (LoRA) Model Name",
-                            lines=1, max_lines=1)
-                        ev_adapter_model_name_select = gr.Dropdown(
-                            visible=False,
-                            label="Adapter (LoRA) Model",
-                            choices=[
-                                'TODO',
-                                'WIP',
-                            ]
-                        )
-                        ev_adapter_model_from.change(
-                            fn=lambda v: (
-                                gr.Textbox.update(visible=v == 'HF Hub'),
-                                gr.Dropdown.update(visible=v == 'Data Dir')
-                            ),
-                            inputs=[ev_adapter_model_from],
-                            outputs=[ev_adapter_model_name,
-                                     ev_adapter_model_name_select]
-                        )
-                ev_use_adapter_model.change(
-                    fn=lambda enabled: gr.Column.update(visible=enabled),
-                    inputs=[ev_use_adapter_model],
-                    outputs=[ev_adapter_model_settings],  # type: ignore
-                )
-            gr.Markdown("### Advanced", elem_classes="mt-xxl mb-m8")
             with gr.Accordion(
-                label="Advanced",
+                label="Model Preset JSON Editor",
                 open=False,
                 elem_id="models_edit_advanced_accordion",
-                elem_classes="accordion gap-0 mt-gap",
+                elem_classes="accordion deep-gap-0 mt-gap",
             ):
                 ev_json = gr.Code(label="JSON", language='json')
                 ev_json_message = gr.HTML('')
+                gr.Markdown(
+                    elem_classes='info-text mt-sm ph-md',
+                    value=dedent(f"""
+                        Control everything that is unadjustable by the UI.
+
+                        &nbsp;&nbsp;•&nbsp; `.model.args` is the arguments that will be passed into the `.from_pretrained()` function while loading the model ([docs](https://huggingface.co/docs/transformers/v4.28.1/en/model_doc/auto#transformers.AutoModelForCausalLM.from_pretrained)).<br/>
+                        &nbsp;&nbsp;•&nbsp; `.adapter_model` will not be used if `.use_adapter_model` is set to `false`.
+                    """).strip()
+                )
+                # with gr.Column(variant="panel"):
+                #     gr.Markdown(dedent("""
+                #         **💡 Tips**
+
+                #         * The model will be loaded as
+                #             ```python
+                #             AutoModelForCausalLM.from_pretrained(
+                #                 json['model']['name_or_path'],
+                #                 **json['model']['args']
+                #             )
+                #             ```
+                #     """).strip())
+
             tie_controls_with_json_editor(
                 ev_json,
                 [
@@ -321,9 +481,11 @@ def model_presets_ui():
                     (ev_model_from, ['model', 'load_from'],
                         {'Data Dir': '"data_dir"', 'HF Hub': '"default"'}),
                     (ev_model_torch_dtype,
-                        ['model', 'args', 'torch_dtype'], 'string'),
+                        ['model', 'args', 'torch_dtype'],
+                        ev_model_torch_dtype_value_mapping),
                     (ev_model_load_in_8bit,
-                        ['model', 'args', 'load_in_8bit'], 'boolean'),
+                        ['model', 'args', 'load_in_8bit'],
+                        ev_model_load_in_8bit_value_mapping),
                     (ev_model_trust_remote_code,
                         ['model', 'args', 'trust_remote_code'], 'boolean'),
                     (ev_use_custom_tokenizer,
@@ -332,8 +494,9 @@ def model_presets_ui():
                         ['custom_tokenizer', 'name_or_path'], 'string'),
                     (ev_custom_tokenizer_name_select, [
                      'custom_tokenizer', 'name_or_path'], 'string'),
-                    (ev_custom_tokenizer_from, ['custom_tokenizer', 'load_from'],
-                        {'Data Dir': '"data_dir"', 'HF Hub': '"default"'}),
+                    (ev_custom_tokenizer_from,
+                        ['custom_tokenizer', 'load_from'],
+                        ev_custom_tokenizer_from_value_mapping),
                     (ev_use_adapter_model,
                         ['use_adapter_model'], 'boolean'),
                     (ev_adapter_model_name,
@@ -342,6 +505,8 @@ def model_presets_ui():
                      'adapter_model', 'name_or_path'], 'string'),
                     (ev_adapter_model_from, ['adapter_model', 'load_from'],
                         {'Data Dir': '"data_dir"', 'HF Hub': '"default"'}),
+                    (ev_default_prompt_template_select,
+                        ['defaults', 'prompt_template'], 'string'),
                 ],
                 ev_json_message,
                 status_indicator_elem_id="models_edit_advanced_accordion",
@@ -354,32 +519,33 @@ def model_presets_ui():
         stop_timeoutable_btn.click(
             fn=None, inputs=None, outputs=None, cancels=things_that_might_hang)
 
+        enter_editing_outputs: Any = [
+            main_view,
+            edit_view,
+            ev_title,
+            save_edit_message,
+            ev_uid,
+            ev_original_file_name,
+            ev_json,
+        ]
         things_that_might_hang.append(
             new_button.click(
                 fn=handle_new_model_preset,
                 inputs=[],
-                outputs=[
-                    main_view,  # type: ignore
-                    edit_view,  # type: ignore
-                    ev_title,
-                    ev_uid,
-                    ev_original_file_name,
-                    ev_json,
-                ]
-            )
+                outputs=enter_editing_outputs)
         )
         things_that_might_hang.append(
             edit_model_preset_btn.click(
                 fn=handle_edit_model_preset,
                 inputs=[model_preset_uid_to_edit],
-                outputs=[
-                    main_view,  # type: ignore
-                    edit_view,  # type: ignore
-                    ev_title,
-                    ev_uid,
-                    ev_original_file_name,
-                    ev_json,
-                ]
+                outputs=enter_editing_outputs
+            )
+        )
+        things_that_might_hang.append(
+            duplicate_model_preset_btn.click(
+                fn=handle_duplicate_model_preset,
+                inputs=[model_preset_uid_to_duplicate],
+                outputs=enter_editing_outputs
             )
         )
         things_that_might_hang.append(

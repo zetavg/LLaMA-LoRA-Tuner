@@ -24,11 +24,11 @@ function inference_ui_blocks_js() {
       delay: [500, 0],
       animation: 'scale-subtle',
       content:
-        'Templates are loaded from the "templates" folder of your data directory. Be sure to select the template that matches your selected LoRA model to get the best results.',
+        'Templates are loaded from the "templates" folder of your data directory. Select the template that matches the data which the model is trained on to get the best results.',
     });
 
     tippy('#inference_reload_selections_button', {
-      placement: 'bottom-end',
+      placement: 'top-end',
       delay: [500, 0],
       animation: 'scale-subtle',
       content: 'Press to reload LoRA Model and Prompt Template selections.',
@@ -78,7 +78,7 @@ function inference_ui_blocks_js() {
         allowHTML: true,
       });
 
-      tippy('#inference_beams', {
+      tippy('#inference_num_beams', {
         placement: 'right',
         delay: [500, 0],
         animation: 'scale-subtle',

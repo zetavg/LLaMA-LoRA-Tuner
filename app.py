@@ -24,7 +24,8 @@ def main(
     share: bool = False,
     skip_loading_base_model: bool = False,
     auth: Union[str, None] = None,
-    load_8bit: Union[bool, None] = None,
+    load_in_8bit: Union[bool, None] = None,
+    torch_dtype: Union[str, None] = None,
     ui_show_sys_info: Union[bool, None] = None,
     ui_dev_mode: Union[bool, None] = None,
     wandb_api_key: Union[str, None] = None,
@@ -75,8 +76,11 @@ def main(
     if data_dir is not None:
         Config.data_dir = data_dir
 
-    if load_8bit is not None:
-        Config.load_8bit = load_8bit
+    if load_in_8bit is not None:
+        Config.load_in_8bit = load_in_8bit
+
+    if torch_dtype is not None:
+        Config.torch_dtype = torch_dtype
 
     if auth is not None:
         try:

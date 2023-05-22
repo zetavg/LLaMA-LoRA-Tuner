@@ -6,7 +6,8 @@ default_base_model_name: decapoda-research/llama-7b-hf
 base_model_choices:
   - decapoda-research/llama-7b-hf
   - nomic-ai/gpt4all-j
-load_8bit: false
+load_in_8bit: false
+torch_dtype: float16
 trust_remote_code: false
 
 # timezone: Atlantic/Reykjavik

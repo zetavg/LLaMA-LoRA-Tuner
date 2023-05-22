@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import os
 import re
@@ -118,7 +118,9 @@ def get_model_preset(uid) -> ModelPreset:
     return ModelPreset(data)
 
 
-def get_model_preset_from_choice(choice) -> ModelPreset:
+def get_model_preset_from_choice(choice) -> Union[ModelPreset, None]:
+    if not choice:
+        return None
     match = re.search(r'\(([^()]+)\)$', choice)
     if not match:
         raise ValueError(f"Invalid model preset choice: \"{choice}\".")
@@ -176,10 +178,8 @@ def get_new_model_preset():
         '_file_name': None,
         'name': 'New Model Preset',
         'model': {
-            'name_or_path': 'huggyllama/llama-7b',
-            'args': {
-                'torch_dtype': 'auto',
-            },
+            'name_or_path': '',
+            'args': {},
         }
     }
 
@@ -316,14 +316,14 @@ model_preset_schema = {
         'model',
     ],
     'properties': {
-        'name': {'type': 'string'},
+        'name': {'type': 'string', 'minLength': 1},
         'model': {
             'type': 'object',
             'required': [
                 'name_or_path',
             ],
             'properties': {
-                'name_or_path': {'type': 'string'},
+                'name_or_path': {'type': 'string', 'minLength': 1},
                 'args': {'type': 'object'},
             }
         },

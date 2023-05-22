@@ -1,7 +1,7 @@
+import pdb
 import torch
 import transformers
 
-from .get_device import get_device
 from .streaming_generation_utils import Iteratorize, Stream
 
 
@@ -12,21 +12,19 @@ def generate(
     # input
     prompt,
     generation_config,
-    max_new_tokens,
+    # max_new_tokens,
     stopping_criteria=[],
     # output options
     stream_output=False
 ):
-    device = get_device()
-
     inputs = tokenizer(prompt, return_tensors="pt")
-    input_ids = inputs["input_ids"].to(device)
+    input_ids = inputs["input_ids"].to(model.device)
     generate_params = {
         "input_ids": input_ids,
         "generation_config": generation_config,
         "return_dict_in_generate": True,
         "output_scores": True,
-        "max_new_tokens": max_new_tokens,
+        # "max_new_tokens": max_new_tokens,
         "stopping_criteria": transformers.StoppingCriteriaList() + stopping_criteria
     }
 
@@ -72,6 +70,9 @@ def generate(
         if generation_output:
             output = generation_output.sequences[0]
             decoded_output = tokenizer.decode(output, skip_special_tokens=skip_special_tokens)
+            output_as_list = output
+            if not isinstance(output_as_list, list):
+                output_as_list = output_as_list.tolist()
             yield decoded_output, output, True
 
         return  # early return for stream_output
@@ -81,5 +82,8 @@ def generate(
         generation_output = model.generate(**generate_params)
     output = generation_output.sequences[0]
     decoded_output = tokenizer.decode(output, skip_special_tokens=skip_special_tokens)
+    output_as_list = output
+    if not isinstance(output_as_list, list):
+        output_as_list = output_as_list.tolist()
     yield decoded_output, output, True
     return

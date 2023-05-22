@@ -25,6 +25,8 @@ def ui_get_tokenizer(
 ):
     if tokenizer_from == 'Model Preset':
         preset = get_model_preset_from_choice(tokenizer_from_preset_selection)
+        if not preset:
+            raise ValueError(f"Can't find preset: '{tokenizer_from_preset_selection}'.")
         return preset.tokenizer
     elif tokenizer_from == 'HF Hub':
         return get_tokenizer(
@@ -39,11 +41,11 @@ def handle_tokenize(text, *args):
         tokenize_results = tokenize(text, tokenizer)
         text = comparing_lists(
             [
+                [f"{i}" for i in tokenize_results['tokens']],
                 [f"{i}," if c < len(tokenize_results['ids']) - 1 else f"{i}"
                  for c, i in enumerate(tokenize_results['ids'])],
-                [f"{i}" for i in tokenize_results['tokens']],
             ],
-            labels=['', '//'],
+            labels=['//', ''],
             max_width=42)
         text = text.rstrip()
         text = f"[\n{text}\n]"
@@ -133,10 +135,11 @@ def tokenizer_ui():
             with gr.Column():
                 tokens = gr.Code(
                     label="Tokens (JSON)",
-                    language="json",
+                    language="javascript",
                     lines=10,
                     value=sample_tokens_value,
-                    elem_id="tokenizer_encoded_tokens_input_textbox")
+                    elem_id="tokenizer_encoded_tokens_input_textbox",
+                    elem_classes="cm-max-height-400px")
                 decode_btn = gr.Button("Decode ➡️")
                 encoded_tokens_error_message = gr.Markdown(
                     "", visible=False, elem_classes="error-message")
@@ -145,7 +148,8 @@ def tokenizer_ui():
                     label="Text",
                     lines=10,
                     value=sample_text_value,
-                    elem_id="tokenizer_decoded_text_input_textbox")
+                    elem_id="tokenizer_decoded_text_input_textbox",
+                    elem_classes="cm-max-height-400px")
                 encode_btn = gr.Button("⬅️ Tokenize")
                 text_error_message = gr.Markdown(
                     "", visible=False, elem_classes="error-message")

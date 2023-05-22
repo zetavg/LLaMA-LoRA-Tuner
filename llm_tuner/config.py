@@ -22,7 +22,8 @@ class Config:
     # Model Related
     default_base_model_name: str = ""
     base_model_choices: Union[List[str], str] = []
-    load_8bit: bool = False
+    load_in_8bit: bool = False
+    torch_dtype: str = 'float16'
     trust_remote_code: bool = False
 
     # Application Settings
@@ -55,6 +56,10 @@ class Config:
     @ClassProperty
     def models_path(self) -> str:
         return os.path.join(self.data_dir, 'models')
+
+    @ClassProperty
+    def adapter_models_path(self) -> str:
+        return os.path.join(self.data_dir, 'adapter_models')
 
 
 def process_config():
