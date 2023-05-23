@@ -82,7 +82,7 @@ def generation_options(
         with gr.Accordion(
             "Advanced Generation Config", open=False,
             elem_id=get_elem_id('advanced_generation_config_accordion'),
-            elem_classes='accordion',
+            elem_classes='accordion accordion-with-block-title-text-color',
         ):
             generation_config_json = gr.Code(
                 label="Generation Config (JSON)",

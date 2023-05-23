@@ -182,3 +182,7 @@
 .contain .info-text-color * {
     color: var(--block-info-text-color);
 }
+
+.accordion-with-block-title-text-color > .label-wrap {
+    color: var(--block-title-text-color);
+}

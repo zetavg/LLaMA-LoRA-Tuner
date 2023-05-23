@@ -13,7 +13,6 @@ from langchain.prompts import PromptTemplate
 # from numba.core import base
 
 from ..config import Config
-from ..data import get_prompt_templates_settings
 
 
 class Prompter:
@@ -140,33 +139,33 @@ class Prompter:
         origional_prompt = self.generate_prompt(input_variables)
         return remove_common_from_start(origional_prompt, output)
 
-    @property
-    def samples(self) -> List[List[str]]:
-        prompt_templates_settings = get_prompt_templates_settings()
-        all_samples = None
-        if prompt_templates_settings:
-            all_samples = prompt_templates_settings.get('samples')
-        samples = []
-        if all_samples:
-            samples = (
-                all_samples.get(self.prompt_template_name, [])
-                or all_samples.get(self.prompt_template_filename, [])
-            )
-            if not isinstance(samples, list):
-                print(
-                    f"WARNING: samples for prompt template '{self.prompt_template_name}' is not a list. Ignoring.")
-                return []
-            variable_names = self.get_variable_names()
-            samples = [[
-                n
-                for _, n in
-                itertools.zip_longest(
-                    variable_names,
-                    s[:len(variable_names)] if isinstance(s, list) else [s],
-                    fillvalue=''
-                )
-            ] for s in samples]
-        return samples
+    # @property
+    # def samples(self) -> List[List[str]]:
+    #     prompt_templates_settings = get_prompt_templates_settings()
+    #     all_samples = None
+    #     if prompt_templates_settings:
+    #         all_samples = prompt_templates_settings.get('samples')
+    #     samples = []
+    #     if all_samples:
+    #         samples = (
+    #             all_samples.get(self.prompt_template_name, [])
+    #             or all_samples.get(self.prompt_template_filename, [])
+    #         )
+    #         if not isinstance(samples, list):
+    #             print(
+    #                 f"WARNING: samples for prompt template '{self.prompt_template_name}' is not a list. Ignoring.")
+    #             return []
+    #         variable_names = self.get_variable_names()
+    #         samples = [[
+    #             n
+    #             for _, n in
+    #             itertools.zip_longest(
+    #                 variable_names,
+    #                 s[:len(variable_names)] if isinstance(s, list) else [s],
+    #                 fillvalue=''
+    #             )
+    #         ] for s in samples]
+    #     return samples
 
 
 def remove_common_from_start(str1, str2):

@@ -76,6 +76,10 @@ class Config:
     def prompt_templates_path(self) -> str:
         return os.path.join(self.data_dir, 'prompt_templates')
 
+    @ClassProperty
+    def prompt_samples_path(self) -> str:
+        return os.path.join(self.data_dir, 'prompt_samples')
+
 
 def set_config(config_dict: Dict[str, Any]):
     for key, value in config_dict.items():

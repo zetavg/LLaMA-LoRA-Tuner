@@ -8,6 +8,15 @@ function inference_ui_blocks_js() {
     //   'None';
   }, 50);
 
+  setTimeout(function () {
+    document.getElementById('inference_reload_prompt_examples_button').click();
+  }, 150);
+
+  // Add placeholder
+  setTimeout(function () {
+    document.querySelectorAll('#inference_prompt_box .example_select input').forEach(function (elem) { elem.placeholder = 'Select an example...' });
+  }, 50);
+
   // Add tooltips
   setTimeout(function () {
     tippy('#inference_model_preset_select', {
@@ -108,7 +117,7 @@ function inference_ui_blocks_js() {
         delay: [500, 0],
         animation: 'scale-subtle',
         content:
-          'A sequence where the generation will stop once such sequence is generated. The returned text will not contain the stop sequence. Example: <code>Human:</code>',
+          'A sequence where the generation will stop once such sequence is generated. The returned text will not contain the stop sequence. Example: "<code>Human:</code>".',
         allowHTML: true,
       });
 

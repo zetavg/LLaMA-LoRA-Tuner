@@ -5,6 +5,7 @@ import re
 import shutil
 import fnmatch
 import json
+import json5
 import time
 import jsonschema
 import hashlib
@@ -28,6 +29,9 @@ def init_data_dir():
     copy_sample_data_if_not_exists(
         os.path.join(sample_data_dir_path, "prompt_templates"),
         os.path.join(Config.data_dir, "prompt_templates"))
+    copy_sample_data_if_not_exists(
+        os.path.join(sample_data_dir_path, "prompt_samples"),
+        os.path.join(Config.data_dir, "prompt_samples"))
     copy_sample_data_if_not_exists(
         os.path.join(sample_data_dir_path, "datasets"),
         os.path.join(Config.data_dir, "datasets"))
@@ -215,23 +219,37 @@ def get_prompt_template_names():
     return sorted(names)
 
 
-def get_prompt_templates_settings() -> Dict[str, Any]:
-    settings_file_path = os.path.join(
-        Config.prompt_templates_path, '_settings.json')
-    if not os.path.isfile(settings_file_path):
+def get_prompt_samples() -> Dict[str, List[List[str]]]:
+    filepath = os.path.join(Config.prompt_samples_path, 'default.json')
+    if not os.path.isfile(filepath):
         return {}
-    with open(settings_file_path, 'r') as f:
-        settings = json.load(f)
-    return settings
+    try:
+        with open(filepath, 'r') as file:
+            json_data = json5.load(file)
+            jsonschema.validate(
+                instance=json_data, schema=prompt_samples_schema)
+            return json_data
+    except Exception as e:
+        print(f"Error reading prompt samples file '{filepath}': {str(e)}")
+        return {}
+
+# def get_prompt_templates_settings() -> Dict[str, Any]:
+#     settings_file_path = os.path.join(
+#         Config.prompt_templates_path, '_settings.json')
+#     if not os.path.isfile(settings_file_path):
+#         return {}
+#     with open(settings_file_path, 'r') as f:
+#         settings = json.load(f)
+#     return settings
 
 
-def update_prompt_templates_settings(new_settings):
-    old_settings = get_prompt_templates_settings()
-    settings = deep_merge_dicts(old_settings, new_settings)
-    settings_file_path = os.path.join(
-        Config.prompt_templates_path, '_settings.json')
-    with open(settings_file_path, 'w') as f:
-        json.dump(settings, f, indent=2, ensure_ascii=False)
+# def update_prompt_templates_settings(new_settings):
+#     old_settings = get_prompt_templates_settings()
+#     settings = deep_merge_dicts(old_settings, new_settings)
+#     settings_file_path = os.path.join(
+#         Config.prompt_templates_path, '_settings.json')
+#     with open(settings_file_path, 'w') as f:
+#         json.dump(settings, f, indent=2, ensure_ascii=False)
 
 
 def get_available_dataset_names():
@@ -348,5 +366,16 @@ model_preset_schema = {
                 'args': {'type': 'object'},
             }
         },
+    },
+}
+
+prompt_samples_schema = {
+    'type': 'object',
+    'additionalProperties': {
+        'type': 'array',
+        'items': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        }
     },
 }
