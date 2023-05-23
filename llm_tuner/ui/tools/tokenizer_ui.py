@@ -201,10 +201,10 @@ def tokenizer_ui():
 
 sample_tokens_value = """
 [
-   510, 3158,  8516,  30013, 27287, 689,
 // The   quick  brown  fox    jumps  over
-   253, 22658, 4370, 15
+   510, 3158,  8516,  30013, 27287, 689,
 //  the  lazy   dog  .
+   253, 22658, 4370, 15
 ]
 """
 
