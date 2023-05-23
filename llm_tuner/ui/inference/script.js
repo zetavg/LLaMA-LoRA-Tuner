@@ -196,7 +196,7 @@ function inference_ui_blocks_js() {
         const context = this;
         clearTimeout(timeout);
         const fn = () => {
-          if (document.querySelector('#inference_preview_prompt > .wrap:not(.hide)')) {
+          if (document.querySelector('#inference_preview_prompt > .wrap.default:not(.hide)')) {
             // Preview request is still loading, wait for 10ms and try again.
             timeout = setTimeout(fn, 10);
             return;

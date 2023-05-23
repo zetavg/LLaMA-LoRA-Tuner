@@ -7,7 +7,7 @@ from ...config import Config
 from ...globals import Global
 from ...data import (
     get_model_preset_choices,
-    get_available_template_names,
+    get_prompt_template_names,
     get_available_lora_model_names,
     get_info_of_available_lora_model,
     get_model_preset_from_choice
@@ -20,17 +20,15 @@ from ...utils.data_processing import comparing_lists
 def handle_reload_selections(
     current_model_preset_selection, current_prompt_template
 ):
-    available_template_names = get_available_template_names()
-    available_template_names_with_none = available_template_names + ["None"]
+    prompt_template_names = get_prompt_template_names()
+    prompt_template_choices = ["None"] + prompt_template_names
 
-    if current_prompt_template not in available_template_names_with_none:
+    if current_prompt_template not in prompt_template_choices:
         current_prompt_template = None
 
     if not current_prompt_template:
         current_prompt_template = \
-            next(
-                iter(available_template_names_with_none),
-                None)
+            next(iter(prompt_template_choices), None)
 
     model_preset_choices = get_model_preset_choices()
 
@@ -46,44 +44,47 @@ def handle_reload_selections(
             choices=model_preset_choices,
             value=current_model_preset_selection),
         gr.Dropdown.update(
-            choices=available_template_names_with_none,
+            choices=prompt_template_choices,
             value=current_prompt_template)
     )
 
 
 def handle_prompt_template_change(prompt_template, model_preset_selection):
-    prompter = Prompter(prompt_template)
-    var_names = prompter.get_variable_names()
-    human_var_names = [
-        ' '.join(
-            word.capitalize()
-            for word in item.split('_')
-        )
-        for item in var_names]
-    variable_textbox_updates = [
-        gr.Textbox.update(label=name, visible=True)
-        for name in human_var_names]
+    try:
+        prompter = Prompter(prompt_template)
+        var_names = prompter.get_variable_names()
+        human_var_names = [
+            ' '.join(
+                word.capitalize()
+                for word in item.split('_')
+            )
+            for item in var_names]
+        variable_textbox_updates = [
+            gr.Textbox.update(label=name, visible=True)
+            for name in human_var_names]
 
-    while len(variable_textbox_updates) < 8:
-        variable_textbox_updates.append(
-            gr.Textbox.update(label="Not Used", visible=False)
-        )
+        while len(variable_textbox_updates) < 8:
+            variable_textbox_updates.append(
+                gr.Textbox.update(label="Not Used", visible=False)
+            )
 
-    message_update = \
-        gr.Markdown.update('', visible=False)
+        message_update = \
+            gr.Markdown.update('', visible=False)
 
-    model_preset = get_model_preset_from_choice(model_preset_selection)
-    if (
-        model_preset
-        and model_preset.default_prompt_template != 'None'
-        and model_preset.default_prompt_template != prompt_template
-    ):
-        message_update = gr.Markdown.update(
-            f'<span style="font-size: 90%;">ⓘ</span> The default prompt template of the selected model is <code>{model_preset.default_prompt_template}</code>.',
-            visible=True
-        )
+        model_preset = get_model_preset_from_choice(model_preset_selection)
+        if (
+            model_preset
+            and model_preset.default_prompt_template != 'None'
+            and model_preset.default_prompt_template != prompt_template
+        ):
+            message_update = gr.Markdown.update(
+                f'<span style="font-size: 90%;">ⓘ</span> The default prompt template of the selected model is <code>{model_preset.default_prompt_template}</code>.',
+                visible=True
+            )
 
-    return [message_update] + variable_textbox_updates
+        return [message_update] + variable_textbox_updates
+    except Exception as e:
+        raise gr.Error(str(e)) from e
 
 
 def prepare_generate(
@@ -182,7 +183,10 @@ def handle_generate(
             if Global.should_stop_generating:
                 return
 
-            response = prompter.get_response(decoded_output)
+            response = prompter.get_response(
+                output=decoded_output,
+                input_variables=list(variables),
+            )
 
             output_tokens_str = comparing_lists(
                 [

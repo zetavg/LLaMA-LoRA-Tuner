@@ -13,10 +13,11 @@ from ...globals import Global
 from ...lib.csv_logger import CSVLogger
 from ...data import (
     get_model_preset_choices,
-    get_available_template_names,
+    # get_available_template_names,
     get_available_lora_model_names,
     get_info_of_available_lora_model,
-    get_model_preset_from_choice
+    get_model_preset_from_choice,
+    get_prompt_template_names
 )
 from ...utils.prompter import Prompter
 from ...utils.relative_read_file import relative_read_file
@@ -47,54 +48,17 @@ class LoggingItem:
         return value
 
 
-def get_warning_message_for_lora_model_and_prompt_template(lora_model, prompt_template):
-    messages = []
-
-    lora_mode_info = get_info_of_available_lora_model(lora_model)
-
-    if lora_mode_info and isinstance(lora_mode_info, dict):
-        model_base_model = lora_mode_info.get("base_model")
-        if model_base_model and model_base_model != Global.base_model_name:
-            messages.append(
-                f"⚠️ This model was trained on top of base model `{model_base_model}`, it might not work properly with the selected base model `{Global.base_model_name}`.")
-
-        model_prompt_template = lora_mode_info.get("prompt_template")
-        if model_prompt_template and model_prompt_template != prompt_template:
-            messages.append(
-                f"This model was trained with prompt template `{model_prompt_template}`.")
-
-    return " ".join(messages)
-
-
-def handle_lora_model_change(lora_model, prompt_template):
-    lora_mode_info = get_info_of_available_lora_model(lora_model)
-
-    if lora_mode_info and isinstance(lora_mode_info, dict):
-        model_prompt_template = lora_mode_info.get("prompt_template")
-        if model_prompt_template:
-            available_template_names = get_available_template_names()
-            if model_prompt_template in available_template_names:
-                prompt_template = model_prompt_template
-
-    model_prompt_template_message_update = gr.Markdown.update(
-        "", visible=False)
-    warning_message = get_warning_message_for_lora_model_and_prompt_template(
-        lora_model, prompt_template)
-    if warning_message:
-        model_prompt_template_message_update = gr.Markdown.update(
-            warning_message, visible=True)
-
-    return model_prompt_template_message_update, prompt_template
-
-
 def update_prompt_preview(prompt_template,
                           variable_0, variable_1, variable_2, variable_3,
                           variable_4, variable_5, variable_6, variable_7):
-    variables = [variable_0, variable_1, variable_2, variable_3,
-                 variable_4, variable_5, variable_6, variable_7]
-    prompter = Prompter(prompt_template)
-    prompt = prompter.generate_prompt(variables)
-    return gr.Textbox.update(value=prompt)
+    try:
+        variables = [variable_0, variable_1, variable_2, variable_3,
+                     variable_4, variable_5, variable_6, variable_7]
+        prompter = Prompter(prompt_template)
+        prompt = prompter.generate_prompt(variables)
+        return prompt
+    except Exception as e:
+        raise gr.Error(str(e)) from e
 
 
 def inference_ui():
@@ -227,9 +191,10 @@ def inference_ui():
                         lines=2, label="", visible=False, elem_id="inference_variable_7")
 
                     with gr.Accordion("Preview", open=False, elem_id="inference_preview_prompt_container"):
-                        preview_prompt = gr.Textbox(
-                            show_label=False, interactive=False,
-                            lines=3,
+                        preview_prompt = gr.Code(
+                            label="Prompt",
+                            show_label=False,
+                            interactive=False, lines=3,
                             elem_id="inference_preview_prompt")
                         update_prompt_preview_btn = gr.Button(
                             "↻", elem_id="inference_update_prompt_preview_btn")
@@ -391,6 +356,10 @@ def inference_ui():
             if not default_prompt_template or default_prompt_template == 'None':
                 return y
 
+            prompt_template_names = get_prompt_template_names()
+            if default_prompt_template not in prompt_template_names:
+                return y
+
             return default_prompt_template
 
         things_that_might_hang.append(
@@ -497,6 +466,7 @@ def inference_ui():
                         variable_0, variable_1, variable_2, variable_3,
                         variable_4, variable_5, variable_6, variable_7,],
                 outputs=preview_prompt,
+                postprocess=False,
                 # queue=False,
                 )
         things_that_might_hang.append(update_prompt_preview_event)

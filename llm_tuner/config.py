@@ -71,6 +71,10 @@ class Config:
     def adapter_models_path(self) -> str:
         return os.path.join(self.data_dir, 'adapter_models')
 
+    @ClassProperty
+    def prompt_templates_path(self) -> str:
+        return os.path.join(self.data_dir, 'prompt_templates')
+
 
 def set_config(config_dict: Dict[str, Any]):
     for key, value in config_dict.items():

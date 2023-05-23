@@ -6,7 +6,7 @@ import gradio as gr
 from transformers import TRANSFORMERS_CACHE
 
 from ....config import Config
-from ....data import get_available_template_names
+from ....data import get_prompt_template_names
 from ...ui_utils import mk_fake_btn, tie_controls_with_json_editor
 
 from .event_handlers import (
@@ -376,7 +376,7 @@ def model_presets_ui():
                     reload_model_defaults_selections_button.click(
                         fn=lambda: (
                             gr.Dropdown.update(
-                                choices=get_available_template_names() +
+                                choices=get_prompt_template_names() +
                                 ['None'],
                             )
                         ),

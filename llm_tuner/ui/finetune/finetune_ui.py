@@ -7,7 +7,7 @@ from random_word import RandomWords
 from ...config import Config
 from ...globals import Global
 from ...data import (
-    get_available_template_names,
+    # get_available_template_names,
     get_available_dataset_names,
     get_available_lora_model_names
 )

@@ -180,10 +180,39 @@
 #inference_preview_prompt textarea {
     border: 0;
 }
-#inference_preview_prompt > .wrap {
+#inference_preview_prompt > .wrap.default {
     pointer-events: none;
     background: transparent;
     opacity: 0.8;
+}
+#inference_preview_prompt > .empty {
+    max-height: 60px !important;
+    min-height: 0 !important;
+}
+#inference_preview_prompt > *:not(:first-child):not(:last-child) {
+    position: absolute;
+    opacity: 0.5;
+}
+#inference_preview_prompt > *:not(:first-child):not(:last-child):hover {
+    opacity: 0.9;
+}
+#inference_preview_prompt .cm-scroller {
+    max-height: 300px;
+}
+#inference_preview_prompt .cm-content {
+    white-space: break-spaces;
+    word-wrap: break-word;
+    flex-shrink: 1 !important;
+}
+#inference_preview_prompt .cm-gutters,
+#inference_preview_prompt .cm-gutter {
+    min-height: 60px !important;
+}
+#inference_preview_prompt .cm-gutters {
+    padding-bottom: 12px;
+}
+#inference_preview_prompt .cm-foldGutter {
+    width: 2px !important;
 }
 
 #inference_update_prompt_preview_btn {

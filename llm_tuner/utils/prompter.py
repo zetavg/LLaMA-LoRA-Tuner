@@ -1,254 +1,156 @@
-"""
-A dedicated helper to manage templates and prompt building.
-From https://github.com/tloen/alpaca-lora/blob/main/utils/prompter.py
-"""
-
-import json
-import os.path as osp
-import importlib
-import itertools
+import pdb
 from typing import Union, List, Dict
 
+import os
+import inspect
+import json
+import json5
+import importlib
+import hashlib
+import itertools
+
+from langchain.prompts import PromptTemplate
+# from numba.core import base
+
 from ..config import Config
-from ..globals import Global
+# from ..globals import Global
 
 
-class Prompter(object):
-    __slots__ = ("template_name", "template", "template_module", "_verbose")
+class Prompter:
+    def __init__(self, prompt_template_name: str):
+        self.prompt_template_name = prompt_template_name
+        self.prompt_template_type = None
+        self.prompt_template = None
 
-    def __init__(self, template_name: str = "", verbose: bool = False):
-        self._verbose = verbose
-        if not template_name:
-            template_name = "None"
-        if template_name == "None":
-            self.template_name = "None"
-            return
-        self.template_name = template_name
-        self.template_module = None
-
-        base_filename, ext = osp.splitext(template_name)
-        if ext == "":
-            filename = base_filename + ".json"
-        else:
-            filename = base_filename + ext
-
-        file_path = osp.join(Config.data_dir, "templates", filename)
-
-        if not osp.exists(file_path):
-            raise ValueError(f"Can't read {file_path}")
-
-        if ext == ".py":
-            importlib_util = importlib.util  # type: ignore
-            template_module_spec = importlib_util.spec_from_file_location(
-                "template_module", file_path)
-            template_module = importlib_util.module_from_spec(
-                template_module_spec)
-            template_module_spec.loader.exec_module(template_module)
-            self.template_module = template_module
-
-            if not hasattr(template_module, "variables"):
-                raise ValueError(
-                    "The template module does not have a \"variables\" attribute.")
-
-            self.template = {
-                'variables': template_module.variables
-            }
-
-            if hasattr(template_module, "response_split"):
-                self.template["response_split"] = template_module.response_split
-
+        if prompt_template_name == 'None':
+            self.prompt_template_type = 'None'
             return
 
-        with open(file_path) as fp:
-            self.template = json.load(fp)
-        if self._verbose:
-            print(
-                f"Using prompt template {template_name}: {self.template['description']}"
+        base_filename, ext = os.path.splitext(prompt_template_name)
+        if not ext:
+            ext = ".json"
+
+        filename = base_filename + ext
+
+        filepath = os.path.join(Config.prompt_templates_path, filename)
+
+        if not os.path.exists(filepath):
+            raise ValueError(f"Prompt template '{filepath}' does not exists.")
+
+        if ext == '.py':
+            module_spec = importlib.util.spec_from_file_location(
+                # hashlib.sha256(filepath.encode('utf-8')).hexdigest(),
+                sha1_hash_of_file(filepath),
+                filepath,
             )
+            module = importlib.util.module_from_spec(module_spec)
+            module_spec.loader.exec_module(module)
+            classes = [
+                attr
+                for name, attr in inspect.getmembers(module)
+                if inspect.isclass(attr)]
+
+            if not classes:
+                raise ValueError(f"No class is defined in the prompt template file '{filepath}'.")
+
+            if len(classes) > 1:
+                print(f"Mutiple classes is defined in the prompt template file '{filepath}'. Using the first one which is {classes[0].__name__}.")
+
+            klass = classes[0]
+
+            self.prompt_template_type = 'prompt'
+            self.prompt_template = klass()
+
+        elif ext == '.json':
+            with open(filepath, 'r') as f:
+                json = json5.load(f)
+            t = json.get('_type')
+            self.prompt_template_type = t
+            if not t:
+                raise ValueError(
+                    f"Invalid prompt template '{filepath}': missing \"_type\" attribute.")
+            if t == 'prompt':
+                self.prompt_template = PromptTemplate(**{
+                    k: v for k, v in json.items() if k != '_type'
+                })
+            else:
+                raise ValueError(
+                    f"Unknown prompt template type: '{t}' ('{filepath}').")
+
+        elif ext == '.txt':
+            with open(filepath, 'r') as f:
+                file_contents = f.read()
+            self.prompt_template_type = 'prompt'
+            self.prompt_template = PromptTemplate.from_template(file_contents)
+
+        else:
+            raise ValueError(
+                f"Unknown prompt template file extension: {ext} ('{filepath}'')")
+
+        # assert self.prompt_template, 'Prompt template is not set by __init__.'
+
+    def get_variable_names(self) -> List[str]:
+        if self.prompt_template_name == 'None':
+            return ['prompt']
+        elif 'prompt':
+            input_variables = self.prompt_template.input_variables
+            if not is_list_of_strings(input_variables):
+                raise ValueError(f"Expect {self.prompt_template.__class__.__name__}.input_variables to be a list of strings, but got {input_variables}.")
+
+            return input_variables
+
 
     def generate_prompt(
         self,
         variables: Union[Dict[str, str], List[Union[None, str]]] = [],
-        # instruction: str,
-        # input: Union[None, str] = None,
-        label: Union[None, str] = None,
     ) -> str:
-        if self.template_name == "None":
-            if type(variables) == list:
-                res = get_val(variables, 0, "")
-            elif type(variables) == dict:
-                res = variables.get("prompt", "")
-            else:
-                raise ValueError(f"Invalid variables type: {type(variables)}")
-        elif "variables" in self.template:
-            variable_names = self.template.get("variables")
-            # if type(variable_names) != list:
-            #     raise ValueError(f"Invalid variable_names type {type(variable_names)} defined in template {self.template_name}, expecting list.")
-            if self.template_module:
-                if type(variables) == list:
-                    variables = {k: v for k, v in zip(
-                        variable_names, variables)}
-
-                res = self.template_module.get_prompt(variables)
-            else:
-                if type(variables) == dict:
-                    variables = [variables.get(name, None)
-                                 for name in variable_names]
-
-                if "default" not in self.template:
-                    raise ValueError(
-                        f"The template {self.template_name} has \"variables\" defined but does not has a default prompt defined. Please do it like: '\"default\": \"prompt_with_instruction\"' to handle cases when a matching prompt can't be found.")
-                default_prompt_name = self.template.get("default")
-                if default_prompt_name not in self.template:
-                    raise ValueError(
-                        f"The template {self.template_name} has \"default\" set to \"{default_prompt_name}\" but it's not defined. Please do it like: '\"{default_prompt_name}\": \"...\".")
-                prompt_name = get_prompt_name(variables, variable_names)
-                prompt_template = self.template.get(default_prompt_name)
-                if prompt_name in self.template:
-                    prompt_template = self.template.get(prompt_name)
-
-                res = prompt_template.format(
-                    **variables_to_dict(variables, variable_names))
-
+        if self.prompt_template_type == 'None':
+            if not isinstance(variables, list):
+                variables = variables.values()
+            return ''.join(variables)
+        elif self.prompt_template_type == 'prompt':
+            if not isinstance(variables, dict):
+                variable_names = self.get_variable_names()
+                variables = {
+                    k: v
+                    for k, v in
+                    itertools.zip_longest(
+                        variable_names,
+                        variables[:len(variable_names)],
+                        fillvalue=''
+                    )
+                }
+            prompt = self.prompt_template.format(**variables)
+            return prompt
         else:
-            if type(variables) == dict:
-                instruction = variables.get("instruction", "")
-                input = variables.get("input")
-            else:
-                instruction = get_val(variables, 0, "")
-                input = get_val(variables, 1)
-            # returns the full prompt from instruction and optional input
-            # if a label (=response, =output) is provided, it's also appended.
-            if input:
-                res = self.template["prompt_input"].format(
-                    instruction=instruction, input=input
-                )
-            else:
-                res = self.template["prompt_no_input"].format(
-                    instruction=instruction
-                )
+            raise NotImplementedError('')
 
-        if label:
-            res = f"{res}{label}"
-        if self._verbose:
-            print(res)
-        return res
-
-    def get_response(self, output: str) -> str:
-        if self.template_name == "None":
+    def get_response(
+        self,
+        output: str,
+        input_variables: Union[Dict[str, str], List[Union[None, str]]] = [],
+    ):
+        if self.prompt_template_type == 'None':
             return output
 
-        splitted_output = output.split(self.template["response_split"])
-        # if len(splitted_output) <= 1:
-        #     return output.strip()
-
-        return self.template["response_split"].join(
-            splitted_output[1:]
-        ).strip()
-
-    def get_variable_names(self) -> List[str]:
-        if self.template_name == "None":
-            return ["prompt"]
-        elif "variables" in self.template:
-            return self.template['variables']
-        else:
-            return ["instruction", "input"]
-
-    def get_train_data_from_dataset(self, data, only_first_n_items=None):
-        if self.template_module:
-            if hasattr(self.template_module,
-                       "get_train_data_list_from_dataset"):
-                data = self.template_module.get_train_data_list_from_dataset(
-                    data)
-            if only_first_n_items:
-                data = data[:only_first_n_items]
-            return list(itertools.chain(*list(
-                map(self.template_module.get_train_data, data)
-            )))
-
-        if only_first_n_items:
-            data = data[:only_first_n_items]
-
-        data = process_json_dataset(data)
-
-        train_data = [
-            {
-                'prompt': self.generate_prompt(d['variables']),
-                'completion': d['output'],
-                **{"_var_" + k: v for k, v in d['variables'].items()}
-            }
-            for d in data]
-
-        return train_data
+        origional_prompt = self.generate_prompt(input_variables)
+        return remove_common_from_start(origional_prompt, output)
 
 
-def get_val(arr, index, default=None):
-    return arr[index] if -len(arr) <= index < len(arr) else default
+def remove_common_from_start(str1, str2):
+    i = 0
+    while i < len(str1) and i < len(str2) and str1[i] == str2[i]:
+        i += 1
+    return str2[i:]
 
 
-def get_prompt_name(variables, variable_names):
-    result = [y for x, y in zip(
-        variables, variable_names) if x not in (None, '')]
-    return "prompt_with_" + '_'.join(result)
+def is_list_of_strings(lst):
+    return isinstance(lst, list) and all(isinstance(item, str) for item in lst)
 
 
-def variables_to_dict(variables, variable_names):
-    return {
-        key: (variables[i] if i < len(variables)
-              and variables[i] is not None else '')
-        for i, key in enumerate(variable_names)
-    }
-
-
-def process_json_dataset(data):
-    if not isinstance(data, list):
-        raise ValueError("The dataset is not an array of objects.")
-
-    first_item = get_val_from_arr(data, 0, None)
-
-    if first_item is None:
-        raise ValueError("The dataset is empty.")
-    if not isinstance(first_item, dict):
-        raise ValueError("The dataset is not an array of objects.")
-
-    # Convert OpenAI fine-tuning dataset to LLaMA LoRA style
-    if "completion" in first_item and "output" not in first_item:
-        data = [
-            {"output" if k == "completion" else k: v for k, v in d.items()}
-            for d in data]
-        first_item = get_val_from_arr(data, 0, None)
-
-    # Flatten Stanford Alpaca style instances
-    if "instances" in first_item and isinstance(first_item["instances"], list):
-        data = [
-            {"output" if k == "completion" else k: v for k, v in d.items()}
-            for d in data]
-        flattened_data = []
-        for item in data:
-            for instance in item["instances"]:
-                d = {k: v for k, v in item.items() if k != "instances"}
-                d.update(instance)
-                flattened_data.append(d)
-        data = flattened_data
-        first_item = get_val_from_arr(data, 0, None)
-
-    if "output" not in first_item:
-        raise ValueError(
-            "The data does not contains an \"output\" or \"completion\".")
-
-    # Put all variables under the "variables" key if it does not exists
-    if "variables" not in first_item:
-        data = [
-            {
-                "variables":
-                    {k: v for k, v in d.items() if k != "output"},
-                "output":
-                    d["output"]
-            }
-            for d in data
-        ]
-    return data
-
-
-def get_val_from_arr(arr, index, default=None):
-    return arr[index] if -len(arr) <= index < len(arr) else default
+def sha1_hash_of_file(file_path):
+    hash_sha1 = hashlib.sha1()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha1.update(chunk)
+    return hash_sha1.hexdigest()

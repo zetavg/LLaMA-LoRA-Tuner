@@ -25,9 +25,9 @@ def init_data_dir():
     copy_sample_data_if_not_exists(
         os.path.join(sample_data_dir_path, "model_presets"),
         os.path.join(Config.data_dir, "model_presets"))
-    copy_sample_data_if_not_exists(
-        os.path.join(sample_data_dir_path, "templates"),
-        os.path.join(Config.data_dir, "templates"))
+    # copy_sample_data_if_not_exists(
+    #     os.path.join(sample_data_dir_path, "templates"),
+    #     os.path.join(Config.data_dir, "templates"))
     copy_sample_data_if_not_exists(
         os.path.join(sample_data_dir_path, "datasets"),
         os.path.join(Config.data_dir, "datasets"))
@@ -202,15 +202,27 @@ def get_new_model_preset_uid(existing_preset_uids=None):
         return new_uid
 
 
-def get_available_template_names():
-    templates_directory_path = os.path.join(Config.data_dir, "templates")
-    all_files = os.listdir(templates_directory_path)
+def get_prompt_template_names():
+    all_files = os.listdir(Config.prompt_templates_path)
     names = [
         filename.rstrip(".json") for filename in all_files
-        if fnmatch.fnmatch(
-            filename, "*.json") or fnmatch.fnmatch(filename, "*.py")
+        if not filename.startswith('_') and (
+            fnmatch.fnmatch(filename, "*.json")
+            or fnmatch.fnmatch(filename, "*.txt")
+            or fnmatch.fnmatch(filename, "*.py")
+        )
     ]
     return sorted(names)
+
+# def get_available_template_names():
+#     templates_directory_path = os.path.join(Config.data_dir, "templates")
+#     all_files = os.listdir(templates_directory_path)
+#     names = [
+#         filename.rstrip(".json") for filename in all_files
+#         if fnmatch.fnmatch(
+#             filename, "*.json") or fnmatch.fnmatch(filename, "*.py")
+#     ]
+#     return sorted(names)
 
 
 def get_available_dataset_names():
