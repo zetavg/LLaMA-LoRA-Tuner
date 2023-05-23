@@ -110,6 +110,7 @@ def tie_controls_with_json_editor(
         function () {{
             try {{
                 json_string = arguments[0];
+                if (!json_string) return [];
                 var json = JSON.parse(json_string);
                 var jsonShapeOfValuesThatCanBeControlled = {{}};
                 oldValues = Array.from(arguments).slice(1);
@@ -197,7 +198,7 @@ def tie_controls_with_json_editor(
     js_code += dedent(f"""
                 return [''].concat(values);
             }} catch (e) {{
-                console.log(e);
+                console.error(e);
     """).strip()
     if status_indicator_elem_id:
         js_code += dedent(f"""
