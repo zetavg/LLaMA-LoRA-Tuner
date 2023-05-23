@@ -35,16 +35,16 @@ function inference_ui_blocks_js() {
       content: 'Press to reload LoRA Model and Prompt Template selections.',
     });
 
+    tippy('#inference_preview_prompt', {
+      placement: 'right',
+      delay: [500, 0],
+      animation: 'scale-subtle',
+      content: 'This is the prompt that will be sent to the language model.',
+    });
+
     document
       .querySelector('#inference_preview_prompt_container .label-wrap')
       .addEventListener('click', function () {
-        tippy('#inference_preview_prompt', {
-          placement: 'right',
-          delay: [500, 0],
-          animation: 'scale-subtle',
-          content: 'This is the prompt that will be sent to the language model.',
-        });
-
         const update_btn = document.getElementById(
           'inference_update_prompt_preview_btn'
         );
@@ -116,11 +116,12 @@ function inference_ui_blocks_js() {
     const inference_options_accordion_toggle = document.querySelector(
       '#inference_options_accordion .label-wrap'
     );
-    if (inference_options_accordion_toggle) {
-      inference_options_accordion_toggle.addEventListener('click', function () {
-        setTooltipForOptions();
-      });
-    }
+
+    // if (inference_options_accordion_toggle) {
+    //   inference_options_accordion_toggle.addEventListener('click', function () {
+    //     setTooltipForOptions();
+    //   });
+    // }
   }, 100);
 
   // Show/hide generate and stop button base on the state.
