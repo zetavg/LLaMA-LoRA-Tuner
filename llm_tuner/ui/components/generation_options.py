@@ -66,7 +66,7 @@ def generation_options(
 
             max_new_tokens = gr.Slider(
                 label="Max New Tokens",
-                minimum=0, maximum=2048, step=1,
+                minimum=1, maximum=2048, step=1,
                 elem_classes='max_new_tokens',
                 elem_id=get_elem_id('max_new_tokens')
             )
