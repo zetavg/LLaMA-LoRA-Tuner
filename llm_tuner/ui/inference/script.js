@@ -12,11 +12,6 @@ function inference_ui_blocks_js() {
     document.getElementById('inference_reload_prompt_examples_button').click();
   }, 150);
 
-  // Add placeholder
-  setTimeout(function () {
-    document.querySelectorAll('#inference_prompt_box .example_select input').forEach(function (elem) { elem.placeholder = 'Select an example...' });
-  }, 50);
-
   // Add tooltips
   setTimeout(function () {
     tippy('#inference_model_preset_select', {

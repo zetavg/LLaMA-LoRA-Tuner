@@ -27,6 +27,7 @@ from ...utils.relative_read_file import relative_read_file
 
 from ..css_styles import register_css_style
 from ..components.generation_options import generation_options
+from ..components.prompt_examples_select import prompt_examples_select
 
 from .event_handlers import (
     handle_reload_selections,
@@ -193,148 +194,28 @@ def inference_ui():
                     variable_7 = gr.Textbox(
                         lines=2, label="", visible=False, elem_id="inference_variable_7")
 
+                    variable_textboxes = [
+                        variable_0, variable_1, variable_2, variable_3,
+                        variable_4, variable_5, variable_6, variable_7
+                    ]
+
                     with gr.Accordion(
                         "Examples", open=True, visible=False,
-                        elem_classes="examples accordion-with-block-title-text-color",
+                        elem_id="inference_examples_select_container",
+                        elem_classes="accordion-with-block-title-text-color",
                     ) as prompt_examples_accordion:
-                        with gr.Row(elem_classes="gap-block-padding"):
-                            prompt_examples = gr.State({})
-                            # prompt_examples_dataset = gr.Dataset(
-                            #     components=[gr.Textbox(visible=False)],
-                            #     samples=[],
-                            #     visible=False,
-                            #     type='index',
-                            #     elem_classes="examples examples-with-width-limit",
-                            # )
-                            prompt_examples_category_select = gr.Dropdown(
-                                elem_classes="example_category_select",
-                                choices=[],
-                                show_label=False,
-                                interactive=True,
-                            )
-                            prompt_examples_select = gr.Dropdown(
-                                elem_classes="example_select",
-                                value=None,
-                                choices=[],
-                                show_label=False,
-                                interactive=True,
-                            )
-
-                            variable_inputs: Any = [
-                                variable_0, variable_1, variable_2, variable_3,
-                                variable_4, variable_5, variable_6, variable_7
-                            ]
-
-                        reload_prompt_examples_button = gr.Button(
-                            "↻", elem_classes="block-reload-btn",
-                            elem_id="inference_reload_prompt_examples_button")
-
-                        def handle_reload_prompt_examples(selected_category):
-                            prompt_examples = get_prompt_samples()
-
-                            accordion_updates = {}
-                            if prompt_examples:
-                                accordion_updates['visible'] = True
-
-                            if selected_category not in prompt_examples.keys():
-                                selected_category = next(
-                                    iter(prompt_examples), None)
-
-                            example_choices = []
-                            if selected_category:
-                                example_choices = [
-                                    "{:2d}. ".format(i + 1) + next(iter(c), '')
-                                    for i, c in enumerate(prompt_examples[selected_category])]
-
-                            return (
-                                prompt_examples,
-                                gr.Accordion.update(**accordion_updates),
-                                gr.Dropdown.update(
-                                    value=selected_category,
-                                    choices=list(prompt_examples.keys()),
-                                ),
-                                gr.Dropdown.update(
-                                    choices=example_choices,
-                                )
-                            )
-                        things_that_might_hang.append(
-                            reload_prompt_examples_button.click(
-                                fn=handle_reload_prompt_examples,
-                                inputs=[
-                                    prompt_examples_category_select
-                                ],
-                                outputs=[
-                                    prompt_examples,
-                                    prompt_examples_accordion,  # type: ignore
-                                    prompt_examples_category_select,
-                                    prompt_examples_select
-                                ]
-                            )
+                        prompt_examples_select(
+                            variable_textboxes=variable_textboxes,
+                            container=prompt_examples_accordion,
+                            reload_button_elem_id="inference_reload_prompt_examples_button",
+                            things_that_might_hang_list=things_that_might_hang,
                         )
 
-                        def handle_example_category_select(name, samples):
-                            example_choices = []
-                            if name in samples:
-                                example_choices = [
-                                    "{:2d}. ".format(i + 1) + next(iter(c), '')
-                                    for i, c in enumerate(samples[name])]
-
-                            return gr.Dropdown.update(
-                                choices=example_choices,
-                            )
-
-                        def handle_example_choose(c, i, samples):
-                            return_value = []
-
-                            if c in samples and len(samples[c]) > i:
-                                sample = samples[c][i]
-                                return_value = sample
-
-                            while len(return_value) < 8:
-                                return_value.append(gr.Textbox.update())
-                            return return_value
-
-                        def handle_example_select(c, s, samples):
-                            i = 0
-                            m = re.match(f'^ *([0-9]+)', s)
-                            if m:
-                                i = int(m.group(1)) - 1
-                            return handle_example_choose(c, i, samples)
-
-                        things_that_might_hang.append(
-                            prompt_examples_category_select.select(
-                                fn=handle_example_category_select,
-                                inputs=[
-                                    prompt_examples_category_select,
-                                    prompt_examples],
-                                outputs=[prompt_examples_select]
-                            )
-                        )
-                        prompt_examples_select.select(
-                            fn=handle_example_select,
-                            inputs=[
-                                prompt_examples_category_select,
-                                prompt_examples_select,
-                                prompt_examples],
-                            outputs=variable_inputs
-                        ).then(
-                            fn=None,
-                            inputs=[],
-                            outputs=[prompt_examples_select],
-                            _js=dedent("""
-                                function () {
-                                    setTimeout(function () {
-                                        document.querySelector(
-                                            '#inference_variable_0 textarea').focus();
-                                    }, 200);
-                                    return [null];
-                                }
-                                """).strip()
-                        )
-                    with gr.Accordion("Preview", open=False,
-                                      elem_id="inference_preview_prompt_container",
-                                      elem_classes="accordion-with-block-title-text-color"
-                                      ):
+                    with gr.Accordion(
+                        "Preview", open=False,
+                        elem_id="inference_preview_prompt_container",
+                        elem_classes="accordion-with-block-title-text-color"
+                    ):
                         preview_prompt = gr.Code(
                             label="Prompt",
                             show_label=False,
