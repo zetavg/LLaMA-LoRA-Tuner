@@ -222,6 +222,11 @@ def inference_ui():
                         # elem_id="inference_options_bottom_group"
                         elem_classes="form-btr-0 form-bb-0 form-bl-0 form-br-0"
                     ):
+                        stop_sequence = gr.Textbox(
+                            label="Stop Sequence",
+                            value=Config.default_generation_stop_sequence,
+                            elem_id="inference_stop_sequence",
+                        )
                         stream_output = gr.Checkbox(
                             label="Stream Output",
                             elem_id="inference_stream_output",
@@ -439,6 +444,7 @@ def inference_ui():
                 model_preset_select,
                 prompt_template,
                 go_component['generation_config_json'],
+                stop_sequence,
                 stream_output,
                 variable_0, variable_1, variable_2, variable_3,
                 variable_4, variable_5, variable_6, variable_7,
@@ -468,7 +474,7 @@ def inference_ui():
                 outputs=preview_prompt,
                 postprocess=False,
                 # queue=False,
-                )
+            )
         things_that_might_hang.append(update_prompt_preview_event)
 
         stop_non_responding_elements_btn = gr.Button(

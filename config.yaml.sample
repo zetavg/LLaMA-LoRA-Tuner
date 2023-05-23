@@ -26,11 +26,12 @@ default_torch_dtype: float16
 # Adjust the default generation config for text generation.
 # default_generation_config:
 #   temperature: 0
-#   top_p: 0.75
 #   top_k: 40
+#   top_p: 0.75
 #   num_beams: 2
 #   repetition_penalty: 1.2
 #   max_new_tokens: 128
+# default_generation_stop_sequence: '### Human:'
 
 # Special Modes
 ui_dev_mode: false

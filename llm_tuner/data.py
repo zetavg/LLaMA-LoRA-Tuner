@@ -214,15 +214,24 @@ def get_prompt_template_names():
     ]
     return sorted(names)
 
-# def get_available_template_names():
-#     templates_directory_path = os.path.join(Config.data_dir, "templates")
-#     all_files = os.listdir(templates_directory_path)
-#     names = [
-#         filename.rstrip(".json") for filename in all_files
-#         if fnmatch.fnmatch(
-#             filename, "*.json") or fnmatch.fnmatch(filename, "*.py")
-#     ]
-#     return sorted(names)
+
+def get_prompt_templates_settings() -> Dict[str, Any]:
+    settings_file_path = os.path.join(
+        Config.prompt_templates_path, '_settings.json')
+    if not os.path.isfile(settings_file_path):
+        return {}
+    with open(settings_file_path, 'r') as f:
+        settings = json.load(f)
+    return settings
+
+
+def update_prompt_templates_settings(new_settings):
+    old_settings = get_prompt_templates_settings()
+    settings = deep_merge_dicts(old_settings, new_settings)
+    settings_file_path = os.path.join(
+        Config.prompt_templates_path, '_settings.json')
+    with open(settings_file_path, 'w') as f:
+        json.dump(settings, f, indent=2, ensure_ascii=False)
 
 
 def get_available_dataset_names():

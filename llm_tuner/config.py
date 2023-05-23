@@ -37,6 +37,7 @@ class Config:
         'repetition_penalty': 1.2,
         'max_new_tokens': 128,
     }
+    default_generation_stop_sequence = None
 
     # Authentication
     auth_username: Union[str, None] = None
@@ -94,6 +95,13 @@ def process_config():
 
     if isinstance(Config.timezone, str):
         Config.timezone = pytz.timezone(Config.timezone)
+
+    if (
+        Config.default_generation_config
+        and Config.default_generation_config.get('temperature')
+        and not Config.default_generation_config.get('do_sample')
+    ):
+        Config.default_generation_config['do_sample'] = True
 
     if Config.enable_wandb is None:
         if (

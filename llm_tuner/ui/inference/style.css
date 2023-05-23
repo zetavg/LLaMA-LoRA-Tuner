@@ -226,3 +226,75 @@
     box-shadow: none;
     opacity: 0.8;
 }
+
+#inference_stop_sequence {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+}
+#inference_stop_sequence > label {
+    display: flex;
+    flex-direction: row;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+#inference_stop_sequence > label span {
+    margin: 0 !important;
+    flex-shrink: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 100px;
+    opacity: 1;
+    transition-property: max-width opacity;
+    transition-duration: 0.3s;
+}
+#inference_stop_sequence:hover > label span,
+#inference_stop_sequence:has(textarea:focus) > label span {
+    max-width: 0;
+    opacity: 0;
+}
+#inference_stop_sequence textarea {
+    padding: var(--spacing-xs) var(--spacing-md);
+    height: auto !important;
+    flex-shrink: 1;
+    white-space: nowrap;
+}
+
+#inference_variable_0 > .wrap.default:not(.hide) {
+    opacity: 0.5;
+    pointer-events: none;
+}
+#inference_variable_1 > .wrap.default:not(.hide) {
+    opacity: 0.5;
+    pointer-events: none;
+}
+#inference_variable_2 > .wrap.default:not(.hide) {
+    opacity: 0.5;
+    pointer-events: none;
+}
+#inference_variable_3 > .wrap.default:not(.hide) {
+    opacity: 0.5;
+    pointer-events: none;
+}
+#inference_variable_4 > .wrap.default:not(.hide) {
+    opacity: 0.5;
+    pointer-events: none;
+}
+#inference_variable_5 > .wrap.default:not(.hide) {
+    opacity: 0.5;
+    pointer-events: none;
+}
+#inference_variable_6 > .wrap.default:not(.hide) {
+    opacity: 0.5;
+    pointer-events: none;
+}
+#inference_variable_7 > .wrap.default:not(.hide) {
+    opacity: 0.5;
+    pointer-events: none;
+}
+#inference_variable_8 > .wrap.default:not(.hide) {
+    opacity: 0.5;
+    pointer-events: none;
+}

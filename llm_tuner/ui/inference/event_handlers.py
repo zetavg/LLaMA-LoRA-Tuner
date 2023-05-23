@@ -106,12 +106,17 @@ def handle_generate(
     model_preset_choice,
     prompt_template,
     generation_config,
+    stop_sequences,
     stream_output,
     *variables
 ):
     model_preset = get_model_preset_from_choice(model_preset_choice)
     if not model_preset:
         return
+
+    if not isinstance(stop_sequences, list):
+        stop_sequences = [stop_sequences]
+    stop_sequences = [s for s in stop_sequences if s]
 
     if isinstance(generation_config, str):
         generation_config = json.loads(generation_config)
@@ -128,6 +133,9 @@ def handle_generate(
 
         prompter = Prompter(prompt_template)
         prompt = prompter.generate_prompt(list(variables))
+
+        if not prompt:
+            return
 
         if 'temperature' in generation_config:
             generation_config['temperature'] = \
@@ -154,6 +162,9 @@ def handle_generate(
                 'raw_output': raw_output,
                 # 'max_new_tokens': max_new_tokens,
                 'generation_config': generation_config.to_dict(),
+                'options': {
+                    'stop_sequences': stop_sequences,
+                },
                 'prompt_template': prompt_template,
                 'prompt_template_variables': variables,
             })
@@ -174,6 +185,7 @@ def handle_generate(
             'generation_config': generation_config,
             # 'max_new_tokens': max_new_tokens,
             'stopping_criteria': [ui_generation_stopping_criteria],
+            'stop_sequences': stop_sequences,
             'stream_output': stream_output
         }
 
