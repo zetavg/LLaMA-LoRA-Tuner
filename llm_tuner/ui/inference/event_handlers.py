@@ -10,7 +10,8 @@ from ...data import (
     get_prompt_template_names,
     get_available_lora_model_names,
     get_info_of_available_lora_model,
-    get_model_preset_from_choice
+    get_model_preset_from_choice,
+    get_prompt_templates_settings
 )
 
 from ...utils.prompter import Prompter
@@ -82,7 +83,28 @@ def handle_prompt_template_change(prompt_template, model_preset_selection):
                 visible=True
             )
 
-        return [message_update] + variable_textbox_updates
+        samples = prompter.samples
+        sample_choices = [s[0] for s in samples]
+
+        return [
+            message_update,
+            samples,
+            gr.Dataset.update(
+                samples=[
+                    [c if len(c) < 32 else c[:32] + '...']
+                    for c in sample_choices
+                ],
+                visible=len(sample_choices) > 0 and len(sample_choices) <= 6,
+            ),
+            gr.Dropdown.update(
+                choices=(
+                    ['Select an example...'] +
+                    [f"{i + 1}. {c if len(c) < 32 else c[:32] + '...'}"
+                     for i, c in enumerate(sample_choices)]
+                ),
+                visible=len(sample_choices) > 0 and len(sample_choices) > 6,
+            ),
+        ] + variable_textbox_updates
     except Exception as e:
         raise gr.Error(str(e)) from e
 

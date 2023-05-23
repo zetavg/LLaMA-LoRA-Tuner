@@ -57,7 +57,6 @@
     border-bottom-right-radius: 0;
 }
 #inference_prompt_box > *:last-child {
-    margin-top: -16px;
     border-top: 0;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
@@ -65,6 +64,21 @@
 
 #inference_prompt_box {
     flex-grow: 0 !important;
+    gap: 0;
+}
+#inference_prompt_box .examples {
+    border: var(--block-border-width) solid var(--border-color-primary);
+    border-top: 0;
+    border-radius: 0;
+    box-shadow: var(--block-shadow);
+    background: var(--block-background-fill);
+    padding: var(--block-padding);
+}
+#inference_prompt_box .examples label span {
+    font-size: var(--block-label-text-size);
+}
+#inference_prompt_box .examples .wrap-inner {
+    padding: var(--spacing-sm) var(--spacing-md);
 }
 
 #inference_options_accordion {

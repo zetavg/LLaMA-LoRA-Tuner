@@ -2,8 +2,10 @@ from typing import Any
 
 import gradio as gr
 import os
+import re
 import time
 import json
+from textwrap import dedent
 
 from transformers import GenerationConfig
 
@@ -190,6 +192,67 @@ def inference_ui():
                     variable_7 = gr.Textbox(
                         lines=2, label="", visible=False, elem_id="inference_variable_7")
 
+                    variable_examples = gr.State([])
+                    variable_examples_dataset = gr.Dataset(
+                        components=[gr.Textbox(visible=False)],
+                        samples=[],
+                        visible=False,
+                        type='index',
+                        elem_classes="examples examples-with-width-limit",
+                    )
+                    variable_examples_select = gr.Dropdown(
+                        label="Examples",
+                        value='Select an example...',
+                        choices=['Select an example...'],
+                        visible=False,
+                        # type='index',
+                        interactive=True,
+                        elem_classes="examples",
+                    )
+
+                    variable_inputs: Any = [
+                        variable_0, variable_1, variable_2, variable_3,
+                        variable_4, variable_5, variable_6, variable_7
+                    ]
+
+                    def handle_example_choose(i, samples):
+                        return_value = []
+                        if len(samples) > i:
+                            sample = samples[i]
+                            return_value = sample
+                        while len(return_value) < 8:
+                            return_value.append(gr.Textbox.update())
+                        return return_value
+
+                    def handle_example_select(s, samples):
+                        i = 0
+                        m = re.match(f'^[0-9]+', s)
+                        if m:
+                            i = int(m.group(0)) - 1
+                        return handle_example_choose(i, samples)
+                    variable_examples_dataset.select(
+                        fn=handle_example_choose,
+                        inputs=[variable_examples_dataset, variable_examples],
+                        outputs=variable_inputs
+                    )
+                    variable_examples_select.select(
+                        fn=handle_example_select,
+                        inputs=[variable_examples_select, variable_examples],
+                        outputs=variable_inputs
+                    ).then(
+                        fn=None,
+                        inputs=[],
+                        outputs=[variable_examples_select],
+                        _js=dedent("""
+                            function () {
+                                setTimeout(function () {
+                                    document.querySelector('#inference_variable_0 textarea').focus();
+                                }, 200);
+                                return ['Select an example...'];
+                            }
+                            """).strip()
+                    )
+
                     with gr.Accordion("Preview", open=False, elem_id="inference_preview_prompt_container"):
                         preview_prompt = gr.Code(
                             label="Prompt",
@@ -225,6 +288,7 @@ def inference_ui():
                         stop_sequence = gr.Textbox(
                             label="Stop Sequence",
                             value=Config.default_generation_stop_sequence,
+                            # placeholder="Example: 'Human:'",
                             elem_id="inference_stop_sequence",
                         )
                         stream_output = gr.Checkbox(
@@ -336,10 +400,13 @@ def inference_ui():
                         )
 
         handle_prompt_template_change_inputs: Any = \
-            [prompt_template, model_preset_select]
+            [
+                prompt_template, model_preset_select,
+            ]
         handle_prompt_template_change_outputs: Any = \
             [
                 model_prompt_template_message,
+                variable_examples, variable_examples_dataset, variable_examples_select,
                 variable_0, variable_1, variable_2, variable_3,
                 variable_4, variable_5, variable_6, variable_7
             ]

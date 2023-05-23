@@ -1,0 +1,11 @@
+.examples-with-width-limit .gallery-item {
+    max-width: 47%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.examples-with-width-limit .gallery-item > * {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

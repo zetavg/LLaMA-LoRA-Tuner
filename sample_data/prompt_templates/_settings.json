@@ -1,0 +1,11 @@
+{
+    "samples": {
+        "human_and_ai": [
+            ["What is machine learning?"],
+            ["Can you help me write a formal email to a potential business partner proposing a joint venture?"],
+            ["Imagine you are a time traveler from the year 3000. What technological advancements would you tell people about?"],
+            ["How can you determine if a person is genuinely interested in a conversation or simply being polite?"],
+            ["Write a program to find the nth Fibonacci number using dynamic programming."]
+        ]
+    }
+}

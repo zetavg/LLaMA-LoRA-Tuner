@@ -10,6 +10,10 @@ register_css_style(
     relative_read_file(__file__, 'block-reload-btn.css')
 )
 register_css_style(
+    'examples-with-width-limit',
+    relative_read_file(__file__, 'examples-with-width-limit.css')
+)
+register_css_style(
     'form-box',
     relative_read_file(__file__, 'form-box.css')
 )

@@ -25,9 +25,9 @@ def init_data_dir():
     copy_sample_data_if_not_exists(
         os.path.join(sample_data_dir_path, "model_presets"),
         os.path.join(Config.data_dir, "model_presets"))
-    # copy_sample_data_if_not_exists(
-    #     os.path.join(sample_data_dir_path, "templates"),
-    #     os.path.join(Config.data_dir, "templates"))
+    copy_sample_data_if_not_exists(
+        os.path.join(sample_data_dir_path, "prompt_templates"),
+        os.path.join(Config.data_dir, "prompt_templates"))
     copy_sample_data_if_not_exists(
         os.path.join(sample_data_dir_path, "datasets"),
         os.path.join(Config.data_dir, "datasets"))

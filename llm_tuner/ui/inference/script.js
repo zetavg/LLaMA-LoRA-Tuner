@@ -108,7 +108,8 @@ function inference_ui_blocks_js() {
         delay: [500, 0],
         animation: 'scale-subtle',
         content:
-          'A sequence where the generation will stop once such sequence is generated. The returned text will not contain the stop sequence.',
+          'A sequence where the generation will stop once such sequence is generated. The returned text will not contain the stop sequence. Example: <code>Human:</code>',
+        allowHTML: true,
       });
 
       tippy('#inference_stream_output', {

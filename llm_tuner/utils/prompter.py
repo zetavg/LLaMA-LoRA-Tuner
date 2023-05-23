@@ -13,12 +13,13 @@ from langchain.prompts import PromptTemplate
 # from numba.core import base
 
 from ..config import Config
-# from ..globals import Global
+from ..data import get_prompt_templates_settings
 
 
 class Prompter:
     def __init__(self, prompt_template_name: str):
         self.prompt_template_name = prompt_template_name
+        self.prompt_template_filename = None
         self.prompt_template_type = None
         self.prompt_template = None
 
@@ -31,6 +32,7 @@ class Prompter:
             ext = ".json"
 
         filename = base_filename + ext
+        self.prompt_template_filename = filename
 
         filepath = os.path.join(Config.prompt_templates_path, filename)
 
@@ -51,10 +53,12 @@ class Prompter:
                 if inspect.isclass(attr)]
 
             if not classes:
-                raise ValueError(f"No class is defined in the prompt template file '{filepath}'.")
+                raise ValueError(
+                    f"No class is defined in the prompt template file '{filepath}'.")
 
             if len(classes) > 1:
-                print(f"Mutiple classes is defined in the prompt template file '{filepath}'. Using the first one which is {classes[0].__name__}.")
+                print(
+                    f"Mutiple classes is defined in the prompt template file '{filepath}'. Using the first one which is {classes[0].__name__}.")
 
             klass = classes[0]
 
@@ -95,10 +99,10 @@ class Prompter:
         elif 'prompt':
             input_variables = self.prompt_template.input_variables
             if not is_list_of_strings(input_variables):
-                raise ValueError(f"Expect {self.prompt_template.__class__.__name__}.input_variables to be a list of strings, but got {input_variables}.")
+                raise ValueError(
+                    f"Expect {self.prompt_template.__class__.__name__}.input_variables to be a list of strings, but got {input_variables}.")
 
             return input_variables
-
 
     def generate_prompt(
         self,
@@ -135,6 +139,34 @@ class Prompter:
 
         origional_prompt = self.generate_prompt(input_variables)
         return remove_common_from_start(origional_prompt, output)
+
+    @property
+    def samples(self) -> List[List[str]]:
+        prompt_templates_settings = get_prompt_templates_settings()
+        all_samples = None
+        if prompt_templates_settings:
+            all_samples = prompt_templates_settings.get('samples')
+        samples = []
+        if all_samples:
+            samples = (
+                all_samples.get(self.prompt_template_name, [])
+                or all_samples.get(self.prompt_template_filename, [])
+            )
+            if not isinstance(samples, list):
+                print(
+                    f"WARNING: samples for prompt template '{self.prompt_template_name}' is not a list. Ignoring.")
+                return []
+            variable_names = self.get_variable_names()
+            samples = [[
+                n
+                for _, n in
+                itertools.zip_longest(
+                    variable_names,
+                    s[:len(variable_names)] if isinstance(s, list) else [s],
+                    fillvalue=''
+                )
+            ] for s in samples]
+        return samples
 
 
 def remove_common_from_start(str1, str2):
