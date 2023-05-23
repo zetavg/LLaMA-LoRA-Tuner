@@ -60,11 +60,23 @@ def main_page():
         every=3
     )
 
-    main_page_blocks.load(_js=f"""
+    main_blocks_js = f"""
     function () {{
         {popperjs_core_code()}
         {tippy_js_code()}
-    """ + """
+    """
+    if not Config.ui_dev_mode:
+        # If clipboard is not supported (such as loading without https),
+        # hide the copy buttons to avoid confusion.
+        main_blocks_js += """
+            if (!("clipboard" in navigator)) {
+                var styleElement = document.createElement("style");
+                styleElement.innerHTML = 'button.copy-text { display: none; } button[title="copy"] { display: none; }';
+                document.head.appendChild(styleElement);
+                console.log(styleElement)
+            }
+        """
+    main_blocks_js += """
         setTimeout(function () {
           // Workaround default value not shown.
           const current_base_model_hint_elem = document.querySelector('#current_base_model_hint > p');
@@ -82,10 +94,13 @@ def main_page():
             if (btn) btn.click();
           }
         }, 3200);
-    """ + """
+    """
+    main_blocks_js += """
       return [];
     }
-    """)
+    """
+
+    main_page_blocks.load(_js=main_blocks_js)
 
 
 def get_page_title():
