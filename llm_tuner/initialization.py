@@ -10,6 +10,11 @@ def initialize(skip_loading_default_model=False):
 
     init_data_dir()
 
+    if Config.ui_dev_mode:
+        print("In UI dev mode.")
+        print()
+        return
+
     if not skip_loading_default_model:
         load_default_model()
 
