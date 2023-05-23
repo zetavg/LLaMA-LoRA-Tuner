@@ -10,7 +10,10 @@ def generate(
     # input
     prompt,
     generation_config,
+    # max_new_tokens,
     stopping_criteria=[],
+    stop_sequences=[],
+    include_stop_sequence_in_returned_text=False,
     # output options
     stream_output=False
 ):
