@@ -6,9 +6,18 @@ from ..globals import Global
 from .inference.inference_ui import inference_ui
 from .finetune.finetune_ui import finetune_ui
 from .models.models_ui import models_ui
+from .ui_components_ui import ui_components_ui
 from .tools import tools_ui
 
-from .js_scripts import popperjs_core_code, tippy_js_code
+from .js_scripts import (
+    popperjs_core_code,
+    tippy_js_code,
+    markdown_it_code,
+    highlightjs_js_code,
+    katex_js_code,
+    markdown_it_katex_plugin_code,
+    markdownit_md_js_code,
+)
 from .css_styles import get_css_styles, register_css_style
 
 from . import styles as styles
@@ -45,6 +54,10 @@ def main_page():
                 with gr.Tab("Tools"):
                     tools_ui()
 
+                if Config.ui_dev_mode:
+                    with gr.Tab("UI Components"):
+                        ui_components_ui()
+
             foot_info = gr.Markdown(get_foot_info)
 
     main_page_blocks.load(
@@ -64,6 +77,11 @@ def main_page():
     function () {{
         {popperjs_core_code()}
         {tippy_js_code()}
+        {markdown_it_code()}
+        {highlightjs_js_code()}
+        {katex_js_code()}
+        {markdown_it_katex_plugin_code()}
+        {markdownit_md_js_code()}
     """
     if not Config.ui_dev_mode:
         # If clipboard is not supported (such as loading without https),

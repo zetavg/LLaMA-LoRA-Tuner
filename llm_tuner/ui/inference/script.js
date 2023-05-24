@@ -12,6 +12,42 @@ function inference_ui_blocks_js() {
     document.getElementById('inference_reload_prompt_examples_button').click();
   }, 150);
 
+  // Markdown rendering
+//   setTimeout(function () {
+//     var textarea = document.querySelector('#inference_output textarea');
+//
+//     function throttle(func, limit) {
+//       var lastRan;
+//       var timer;
+//       return function() {
+//         const context = this;
+//         const args = arguments;
+//         function runFunc() {
+//           lastRan = Date.now();
+//           func.apply(context, args);
+//         }
+//
+//         if (timer) clearTimeout(timer);
+//         if (!lastRan || (Date.now() - lastRan) > limit) {
+//           runFunc();
+//         } else {
+//           timer = setTimeout(runFunc, limit - (Date.now() - lastRan));
+//         }
+//       }
+//     }
+//
+//     var throttled_render = throttle(function () {
+//       var html = window.markdownit_md.render(textarea.value);
+//       document.querySelector('#inference_output_markdown .prose').innerHTML = html;
+//     }, 1000);
+//
+//     var observer = new MutationObserver(function (mutations) {
+//       throttled_render();
+//     });
+//
+//     observer.observe(textarea, { attributes: true, childList: true, characterData: true, subtree: true });
+//   }, 100);
+
   // Add tooltips
   setTimeout(function () {
     tippy('#inference_model_preset_select', {

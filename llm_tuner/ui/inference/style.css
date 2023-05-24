@@ -140,14 +140,14 @@
 #inference_output > .wrap:first-child,
 #inference_raw_output > .wrap:first-child {
     /* allow users to select text while generation is still in progress */
-    pointer-events: none;
+/*    pointer-events: none;*/
 
-    padding: 12px !important;
+/*    padding: 12px !important;*/
 }
 
 #inference_output textarea { /* Fix the "disabled text" color for Safari */
-    -webkit-text-fill-color: var(--body-text-color);
-    opacity: 1;
+/*    -webkit-text-fill-color: var(--body-text-color);*/
+/*    opacity: 1;*/
 }
 
 /* position sticky */

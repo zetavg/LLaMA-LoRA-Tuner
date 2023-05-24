@@ -2,6 +2,9 @@
 .jc-c { justify-content: center !important;  }
 .ai-c { align-items: center !important;  }
 
+.width-auto { width: auto !important; }
+.align-self-flex-start { align-self: flex-start !important; }
+
 .gap-0 { gap: 0 !important; }
 .gap-0-d2 { gap: 0 !important; }
 .gap-0-d2 > .gap { gap: 0 !important; }

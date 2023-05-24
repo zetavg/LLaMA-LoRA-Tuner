@@ -28,6 +28,7 @@ from ...utils.relative_read_file import relative_read_file
 from ..css_styles import register_css_style
 from ..components.generation_options import generation_options
 from ..components.prompt_examples_select import prompt_examples_select
+from ..components.markdown_output import markdown_output
 
 from .event_handlers import (
     handle_reload_selections,
@@ -274,11 +275,20 @@ def inference_ui():
 
             with gr.Column(elem_id="inference_output_group_container"):
                 with gr.Column(elem_id="inference_output_group"):
-                    inference_output = gr.Textbox(
-                        label="Output",
-                        lines=inference_output_lines,
-                        interactive=False,
-                        elem_id="inference_output")
+                    inference_output, inference_output_markdown = \
+                        markdown_output(
+                            "inference_output_markdown_group",
+                            {
+                                'label': "Output",
+                                'lines': inference_output_lines,
+                                'interactive': False,
+                                'elem_id': "inference_output"
+                            },
+                            {
+                                'label': "Output",
+                                'elem_id': "inference_output_markdown"
+                            }
+                        )
                     inference_output.style(show_copy_button=True)
                     init_inference_output_btn = gr.Button(
                         visible=False,

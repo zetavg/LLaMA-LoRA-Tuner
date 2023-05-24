@@ -103,8 +103,11 @@ def prompt_examples_select(
                 sample = samples[c][i]
                 return_value = sample
 
-            while len(return_value) < 8:
+            while len(return_value) < len(variable_textboxes):
                 return_value.append(gr.Textbox.update())
+            while len(return_value) > len(variable_textboxes):
+                return_value.pop()
+
             return return_value
 
         def handle_example_select(c, s, samples):
@@ -183,6 +186,9 @@ register_css_style(
         flex-grow: 0;
         flex-shrink: 1;
         min-width: min(100px, 100%);
+    }
+    .prompt-examples-select input::placeholder {
+        color: var(--input-placeholder-color);
     }
     .prompt-examples-select .category-select input {
         overflow: hidden;
