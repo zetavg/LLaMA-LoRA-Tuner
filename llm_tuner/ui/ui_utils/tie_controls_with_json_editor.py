@@ -1,7 +1,10 @@
 from typing import List, Tuple, Union, Dict
 
-import gradio as gr
+import os
+import hashlib
 from textwrap import dedent
+
+import gradio as gr
 
 
 ControlDefn = Tuple[
@@ -19,6 +22,9 @@ def tie_controls_with_json_editor(
     message_component: gr.HTML,
     status_indicator_elem_id: Union[str, None] = None,
 ):
+    uid = get_random_hex()
+    wx_btn_elem_id = f"wx_tie_controls_with_json_editor_{uid}_btn"
+
     # Update the code block on controls change
     for (component, path, t) in controls_defn:
         if not isinstance(path, list):
@@ -76,6 +82,9 @@ def tie_controls_with_json_editor(
             _js=dedent(f"""
             function (value, json_string) {{
                 try {{
+                    if (window.debug_tie_controls_with_json_editor) {{
+                        debugger
+                    }}
                     var json = JSON.parse(json_string);
                     {js_code_to_assign_value}
                     return [value, JSON.stringify(json, null, 2)];
@@ -83,6 +92,23 @@ def tie_controls_with_json_editor(
                     console.log(e);
                     alert("Cannot update value: " + e);
                     return [value, json_string];
+                }} finally {{
+                    // This is a workaround to resolve that if the page has been
+                    // loaded for too long, the UI will stop reflecting the updates
+                    // (while the value update is actually done, and any subsequent
+                    // server-side code will be executed with the updated value and
+                    // make it update on the UI).
+                    if (window['timer_{wx_btn_elem_id}']) {{
+                        clearTimeout(window['timer_{wx_btn_elem_id}']);
+                    }}
+                    window['timer_{wx_btn_elem_id}'] = setTimeout(function () {{
+                        var btn = document.getElementById('{wx_btn_elem_id}')
+                        if (btn) {{
+                            btn.click();
+                        }} else {{
+                            console.error('Cannot find button with id "{wx_btn_elem_id}"');
+                        }}
+                    }}, 321)
                 }}
             }}
             """).strip(),
@@ -177,6 +203,9 @@ def tie_controls_with_json_editor(
         else:
             js_code += f"values.push({get_js_property_accessor('json', path)});\n"
     js_code += dedent(f"""
+                if (window.debug_tie_controls_with_json_editor) {{
+                    debugger
+                }}
                 var getDifference = {get_js_get_difference_function_code()};
                 var difference = getDifference(json, jsonShapeOfValuesThatCanBeControlled);
                 if (difference.length > 0) {{
@@ -208,6 +237,23 @@ def tie_controls_with_json_editor(
                 return [
                     '<div class="json-code-block-error-message">' + e + '</div>'
                 ];
+            }} finally {{
+                // This is a workaround to resolve that if the page has been
+                // loaded for too long, the UI will stop reflecting the updates
+                // (while the value update is actually done, and any subsequent
+                // server-side code will be executed with the updated value and
+                // make it update on the UI).
+                if (window['timer_{wx_btn_elem_id}']) {{
+                    clearTimeout(window['timer_{wx_btn_elem_id}']);
+                }}
+                window['timer_{wx_btn_elem_id}'] = setTimeout(function () {{
+                    var btn = document.getElementById('{wx_btn_elem_id}')
+                    if (btn) {{
+                        btn.click();
+                    }} else {{
+                        console.error('Cannot find button with id "{wx_btn_elem_id}"');
+                    }}
+                }}, 321)
             }}
         }}
     """).strip()
@@ -218,8 +264,26 @@ def tie_controls_with_json_editor(
         inputs=[json_editor] + control_components,
         outputs=[message_component] + control_components,
     )
+
     with gr.Blocks() as blocks:
-        pass
+        with gr.Column(
+            visible=False,
+            elem_id=f"wx_tie_controls_with_json_editor_{uid}_container",
+        ):
+            wx_textbox = gr.Textbox(
+                label="Textbox for 'tie_controls_with_json_editor' to work",
+                elem_id=f"wx_tie_controls_with_json_editor_{uid}_textbox"
+            )
+            wx_btn = gr.Button(
+                "Button for 'tie_controls_with_json_editor' to work",
+                elem_id=wx_btn_elem_id
+            )
+            wx_btn.click(
+                fn=wx_value_updater,
+                inputs=[wx_textbox],
+                outputs=[wx_textbox]
+            )
+
     blocks.load(
         fn=None,
         _js=js_code,
@@ -278,3 +342,21 @@ def get_js_get_difference_function_code() -> str:
           return diff;
         }
     """).strip()
+
+
+def get_random_hex():
+    random_bytes = os.urandom(16)
+    hash_object = hashlib.sha256(random_bytes)
+    hex_dig = hash_object.hexdigest()
+    return hex_dig
+
+
+def wx_value_updater(x):
+    try:
+        x = int(x)
+        x += 1
+        if x >= 100:
+            x = 0
+        return x
+    except Exception:
+        return '0'
