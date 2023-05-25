@@ -12,16 +12,13 @@ import hashlib
 
 from .utils.data_processing import deep_merge_dicts
 
-from .config import Config
+from .config import Config, project_dir
 from .dataclasses import ModelPreset
 
 
 def init_data_dir():
     os.makedirs(Config.data_dir, exist_ok=True)
-    current_file_path = os.path.abspath(__file__)
-    parent_directory_path = os.path.dirname(current_file_path)
-    project_dir_path = os.path.abspath(
-        os.path.join(parent_directory_path, "..", ".."))
+    project_dir_path = project_dir
     sample_data_dir_path = os.path.join(project_dir_path, "sample_data")
     copy_sample_data_if_not_exists(
         os.path.join(sample_data_dir_path, "model_presets"),

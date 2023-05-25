@@ -1,0 +1,16 @@
+{
+  "name": "LLaMA with LoRA - Unhelpful AI",
+  "model": {
+    "name_or_path": "huggyllama/llama-7b",
+    "args": {
+      "torch_dtype": "float16"
+    }
+  },
+  "use_adapter_model": true,
+  "adapter_model": {
+    "name_or_path": "zetavg/llama-lora-unhelpful-ai-on-alpaca-v01"
+  },
+  "defaults": {
+    "prompt_template": "human_and_ai"
+  }
+}

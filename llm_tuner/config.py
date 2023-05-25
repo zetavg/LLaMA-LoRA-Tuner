@@ -3,6 +3,7 @@ from typing import Dict, Union, Any
 import os
 import pytz
 
+project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 class ClassProperty:
     def __init__(self, getter):

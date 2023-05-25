@@ -1,7 +1,0 @@
-{
-  "description": "Human and AI.",
-  "variables": ["instruction"],
-  "prompt": "### Human:\n{instruction}\n\n### AI:\n",
-  "default": "prompt",
-  "response_split": "### AI:"
-}

@@ -1,0 +1,9 @@
+{
+  "name": "LLaMA 7B",
+  "model": {
+    "name_or_path": "huggyllama/llama-7b",
+    "args": {
+      "torch_dtype": "float16"
+    }
+  }
+}

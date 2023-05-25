@@ -1,0 +1,18 @@
+{
+  "Writing":
+  [
+    ["Compose an engaging travel blog post about a recent trip to Kaohsiung, highlighting cultural experiences and must-see attractions."],
+    ["Can you help me write a formal email to a potential business partner proposing a joint venture?"]
+  ],
+  "Common-sense":
+  [
+    ["How can you determine if a person is genuinely interested in a conversation or simply being polite?"]
+  ],
+  "Coding":
+  [
+    ["Write a program to find the nth Fibonacci number using dynamic programming."],
+    ["Develop a C++ program that reads a text file line by line and counts the number of occurrences of a specific word in the file."],
+    ["What are the main differences between Python and JavaScript programming languages?"],
+    ["What are the main differences between Python and C++ programming languages?"]
+  ]
+}
