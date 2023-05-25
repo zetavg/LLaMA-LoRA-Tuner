@@ -1,4 +1,4 @@
-from llm_tuner.ui.css_styles import register_css_style
+from .css_styles import register_css_style
 
 
 def popperjs_core_code():

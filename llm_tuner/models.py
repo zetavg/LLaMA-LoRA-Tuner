@@ -78,7 +78,10 @@ def get_model(
         if torch_dtype and torch_dtype != 'auto':
             args['torch_dtype'] = getattr(torch, torch_dtype)
         Global.loaded_models.make_space()
-        model = AutoModelForCausalLM.from_pretrained(name_or_path, **args)
+        model = AutoModelForCausalLM.from_pretrained(
+            name_or_path,
+            **args
+        )
         Global.loaded_models.set(key, model)
 
     peft = get_peft()

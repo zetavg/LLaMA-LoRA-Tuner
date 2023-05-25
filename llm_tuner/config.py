@@ -43,6 +43,7 @@ class Config:
     # Model Related
     default_load_in_8bit: bool = False
     default_torch_dtype: str = 'float16'
+    default_device_map = 'auto'
 
     default_generation_config = {
         'temperature': 0,

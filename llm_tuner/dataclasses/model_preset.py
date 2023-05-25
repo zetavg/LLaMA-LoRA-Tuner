@@ -130,7 +130,7 @@ class ModelPreset:
             args['torch_dtype'] = Config.default_torch_dtype
 
         if args.get('device_map') is None:
-            args['device_map'] = 'auto'
+            args['device_map'] = Config.default_device_map
 
         return args
 
