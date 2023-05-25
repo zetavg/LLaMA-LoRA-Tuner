@@ -6,6 +6,7 @@ import re
 import time
 import json
 from textwrap import dedent
+from numba.core.datamodel import register
 
 from transformers import GenerationConfig
 
@@ -190,40 +191,47 @@ def chat_ui():
                 )
                 with gr.Column(elem_classes="chat-ui-send-message-group gap-0-d3"):
                     with gr.Box(
-                            elem_classes="send-message-box panel-with-textbox-and-btn"):
-                        message = gr.Textbox(
-                            label="Message",
-                            placeholder="Type your message here...",
-                            elem_id="chat_ui_message_input",
-                            interactive=True,
-                        )
-                        not_used_message = gr.Textbox(
-                            label="Not Used",
-                            visible=False,
-                        )  # TODO: So that selecting prompt_examples will not get something like `['message'']`
-                        with gr.Column(elem_classes="send-message-btn-container mw-fc flex-grow-0"):
-                            send_message_btn = gr.Button(
-                                "Send",
-                                variant="primary",
-                                elem_id="chat_ui_send_message_btn",
-                                elem_classes="send-message-btn",
+                            elem_classes="send-message-box"):
+                        with gr.Row(elem_classes="panel-with-textbox-and-btn flex-wrap-nowrap"):
+                            message = gr.Textbox(
+                                label="Message",
+                                placeholder="Type your message here...",
+                                elem_id="chat_ui_message_input",
+                                interactive=True,
                             )
-                        with gr.Column(elem_classes="regenerate-btn-container mw-fc flex-grow-0"):
-                            regenerate_btn = gr.Button(
-                                "Regenerate Response",
-                                elem_id="chat_ui_regenerate_btn",
-                                elem_classes="regenerate-btn",
+                            not_used_message = gr.Textbox(
+                                label="Not Used",
+                                visible=False,
+                            )  # TODO: So that selecting prompt_examples will not get something like `['message'']`
+                            with gr.Column(elem_classes="send-message-btn-container mw-fc flex-grow-0"):
+                                send_message_btn = gr.Button(
+                                    "Send",
+                                    variant="primary",
+                                    elem_id="chat_ui_send_message_btn",
+                                    elem_classes="send-message-btn",
+                                )
+                            with gr.Column(elem_classes="regenerate-btn-container mw-fc flex-grow-0"):
+                                regenerate_btn = gr.Button(
+                                    "Regenerate Response",
+                                    elem_id="chat_ui_regenerate_btn",
+                                    elem_classes="regenerate-btn",
+                                )
+
+                            stop_generation_btn = gr.Button(
+                                "Stop",
+                                variant="stop",
+                                elem_id="chat_ui_stop_generation_btn",
+                                elem_classes="stop-generation-btn",
+                            )
+                        if Config.ui_chat_reminder_message:
+                            gr.Markdown(
+                                Config.ui_chat_reminder_message,
+                                elem_classes="reminder-message"
                             )
                         message.submit(
                             fn=None,
                             inputs=[message],
                             _js="function (m) { if (m) document.getElementById('chat_ui_send_message_btn').click(); }"
-                        )
-                        stop_generation_btn = gr.Button(
-                            "Stop",
-                            variant="stop",
-                            elem_id="chat_ui_stop_generation_btn",
-                            elem_classes="stop-generation-btn",
                         )
                         stop_generation_btn.click(
                             fn=None,

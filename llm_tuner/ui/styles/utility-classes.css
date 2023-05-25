@@ -9,6 +9,8 @@
     flex-direction: column-reverse !important;
 }
 
+.flex-wrap-nowrap { flex-wrap: nowrap !important; }
+
 .gap-0 { gap: 0 !important; }
 .gap-0-d2 { gap: 0 !important; }
 .gap-0-d2 > .gap { gap: 0 !important; }

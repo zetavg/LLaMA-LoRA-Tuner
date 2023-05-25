@@ -92,9 +92,10 @@ def tokenizer_ui():
                         'Model Preset',
                         'HF Hub',
                     ],
+                    visible=not Config.demo_mode,
                     elem_classes="flex-grow-0")
                 tokenizer_select = gr.Dropdown(
-                    label="Preset",
+                    label="Model",
                     visible=True
                 )
                 tokenizer_name = gr.Textbox(

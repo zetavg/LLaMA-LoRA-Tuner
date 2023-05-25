@@ -5,5 +5,7 @@ __pycache__/
 .vscode
 
 /config.yaml
+/config_*.yaml
 /wandb
 /data
+/data_*

@@ -229,7 +229,7 @@ def inference_ui():
 
                 # with gr.Column():
                 with gr.Accordion(
-                    "Options", open=True,
+                    "Options", open=Config.ui_inference_open_options_by_default,
                     elem_id="inference_options_accordion",
                     elem_classes="gap-0-d2 accordion-with-block-title-text-color",
                 ):
@@ -478,3 +478,5 @@ def inference_ui():
             cancels=things_that_might_hang)
 
     inference_ui_blocks.load(_js=relative_read_file(__file__, "script.js"))
+    if Config.ui_show_starter_tooltips:
+        inference_ui_blocks.load(_js=relative_read_file(__file__, "starter_tooltips.js"))

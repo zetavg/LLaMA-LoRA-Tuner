@@ -46,6 +46,10 @@ def main(
     if not config_path:
         app_dir = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(app_dir, 'config.yaml')
+        demo_config_path = os.path.join(app_dir, 'config_demo.yaml')
+        if os.path.exists(demo_config_path):
+            print(f"Found demo config file, using it as config file: {demo_config_path}.")
+            config_path = demo_config_path
     config_from_file = read_yaml_config(config_path)
     if config_from_file:
         try:

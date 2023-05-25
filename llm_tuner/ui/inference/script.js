@@ -46,24 +46,6 @@ function inference_ui_blocks_js() {
 
   // Add tooltips
   setTimeout(function () {
-    tippy('#inference_model_preset_select', {
-      placement: 'right',
-      delay: [500, 0],
-      animation: 'scale-subtle',
-      content:
-        'Select the model to use. Add models by defining new presets on the "Models" / "Preset" tab.',
-      allowHTML: true,
-    });
-
-    tippy('#inference_prompt_template_select', {
-      placement: 'left',
-      delay: [500, 0],
-      animation: 'scale-subtle',
-      content:
-        'Templates are loaded from the "templates" folder of your data directory.<br/><br/>Select the template that matches the data which the model is trained on to get the best results.',
-      allowHTML: true,
-    });
-
     tippy('#inference_model_and_prompt_template_select_reload_selections_button', {
       placement: 'top-end',
       delay: [500, 0],

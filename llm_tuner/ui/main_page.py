@@ -46,22 +46,30 @@ def main_page():
             with gr.Column(
                 elem_id="main_page_tabs_container"
             ) as main_page_tabs_container:
-                with gr.Tab("Inference"):
-                    inference_ui()
-                with gr.Tab("Chat"):
-                    chat_ui()
-                with gr.Tab("Models"):
-                    models_ui()
-                with gr.Tab("Fine-tuning"):
-                    finetune_ui()
-                with gr.Tab("Tools"):
-                    tools_ui()
+                for f in Config.ui_features:
+                    if f == 'inference':
+                        with gr.Tab("Inference"):
+                            inference_ui()
+                    elif f == 'chat':
+                        with gr.Tab("Chat"):
+                            chat_ui()
+                    elif f == 'models':
+                        with gr.Tab("Models"):
+                            models_ui()
+                    elif f == 'finetuning':
+                        with gr.Tab("Fine-tuning"):
+                            finetune_ui()
+                    elif f == 'tools':
+                        with gr.Tab("Tools"):
+                            tools_ui()
+                    else:
+                        raise ValueError(f"Unknown ui feature '{f}'.")
 
                 if Config.ui_dev_mode:
                     with gr.Tab("UI Components"):
                         ui_components_ui()
 
-            foot_info = gr.Markdown(get_foot_info)
+            foot_info = gr.Markdown(get_foot_info, elem_id="foot_info")
 
     main_page_blocks.load(
         fn=lambda: gr.HTML.update(
@@ -97,6 +105,14 @@ def main_page():
             }
         """
     main_blocks_js += """
+        window.add_tooltip = function (target, data) {
+            tippy(target, Object.assign({
+                placement: 'bottom',
+                delay: [500, 0],
+                animation: 'scale-subtle',
+                allowHTML: true,
+            }, data));
+        }
         setTimeout(function () {
           // Workaround default value not shown.
           const current_base_model_hint_elem = document.querySelector('#current_base_model_hint > p');
@@ -134,6 +150,14 @@ def get_page_title():
 
 def main_page_custom_css():
     css = """
+    #foot_info a {
+        color: var(--body-text-color);
+        text-decoration: none;
+    }
+    #foot_info a:hover {
+        text-decoration: underline;
+    }
+
     /* to make position sticky work */
     .gradio-container {
         overflow-x: initial !important;
@@ -417,7 +441,7 @@ register_css_style('main', main_page_custom_css())
 def get_foot_info():
     info = []
     if Global.version:
-        info.append(f"LLaMA-LoRA Tuner `{Global.version}`")
+        info.append(f"[LLaMA-LoRA Tuner](https://github.com/zetavg/LLaMA-LoRA-Tuner) `{Global.version}`")
     if Config.ui_show_sys_info:
         info.append(f"Data dir: `{Config.data_dir}`")
     return f"""\

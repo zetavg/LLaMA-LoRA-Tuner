@@ -1,9 +1,23 @@
-from typing import Dict, Union, Any
+from typing import Dict, List, Union, Any
 
 import os
 import pytz
 
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+default_data_dir = os.path.join(project_dir, "data")
+default_ui_features = [
+    'inference',
+    'chat',
+    'models',
+    'finetuning',
+    'tools',
+]
+demo_mode_ui_features = [
+    'inference',
+    'chat',
+    'tools',
+]
+
 
 class ClassProperty:
     def __init__(self, getter):
@@ -21,7 +35,7 @@ class Config:
     server_name: str = "127.0.0.1"
 
     # Where data is stored
-    data_dir: str = "./data"
+    data_dir: str = default_data_dir
 
     # Application Settings
     timezone: Any = pytz.UTC
@@ -53,13 +67,25 @@ class Config:
     default_wandb_project: str = "llama-lora-tuner"
 
     # UI related
+    ui_features: List[str] = default_ui_features
+    ui_show_starter_tooltips: bool = True
     ui_title: str = "LLM Tuner"
     ui_emoji: str = "🦙🎛️"
     ui_subtitle: str = \
         "Toolkit for evaluating and fine-tuning language models."
     ui_show_sys_info: bool = True
+
+    # More UI options
+    ui_inference_open_options_by_default: bool = True
+    ui_chat_reminder_message: str = \
+        'Language models may produce inaccurate information about people, places, or facts.'
+
+    # UI dev mode
     ui_dev_mode: bool = False
     ui_dev_mode_title_prefix: str = "[UI DEV MODE] "
+
+    # Special modes
+    demo_mode: bool = False
 
     @ClassProperty
     def model_presets_path(self) -> str:
@@ -96,6 +122,17 @@ def set_config(config_dict: Dict[str, Any]):
 
 
 def process_config():
+    if Config.data_dir == default_data_dir:
+        demo_data_dir = os.path.join(project_dir, "data_demo")
+        if os.path.isdir(demo_data_dir):
+            print(f"Demo Data Dir '{demo_data_dir}' detected! Using it as 'data_dir'.")
+            Config.data_dir = demo_data_dir
+
+    if Config.demo_mode:
+        if Config.ui_features == default_ui_features:
+            Config.ui_features = demo_mode_ui_features
+        Config.ui_show_starter_tooltips = False
+
     Config.data_dir = os.path.abspath(Config.data_dir)
 
     if isinstance(Config.timezone, str):

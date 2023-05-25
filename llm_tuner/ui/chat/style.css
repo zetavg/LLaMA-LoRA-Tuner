@@ -236,6 +236,13 @@ body.dark .chat-ui-current-conversation .bot {
     display: none !important;
 }
 
+.chat-ui-current-conversation-header:has(.blank) ~ .chat-ui-current-conversation {
+    display: none;
+}
+
+.send-message-box .form {
+    min-width: 20px;
+}
 .send-message-box .form:has(textarea:placeholder-shown) ~ .send-message-btn-container {
     display: none !important;
 }
@@ -255,6 +262,20 @@ body.dark .chat-ui-current-conversation .bot {
     display: none !important;
 }
 /* Show/hide buttons: end */
+
+.send-message-box .reminder-message:not([data-testid="markdown"]) {
+    text-align: center;
+    margin-top: var(--spacing-sm) !important;
+    padding-left: var(--spacing-xxs) !important;
+    padding-right: var(--spacing-xxs) !important;
+}
+
+.send-message-box .reminder-message,
+.send-message-box .reminder-message p,
+.send-message-box .reminder-message a {
+    color: var(--block-info-text-color);
+    font-size: var(--block-info-text-size);
+}
 
 .chat-ui-conversation-header {
     padding: var(--block-padding);
