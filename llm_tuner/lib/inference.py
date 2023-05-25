@@ -38,18 +38,22 @@ def generate(
         stop_sequences = [stop_sequences]
 
     if stop_sequences:
-        def reverse_prompt_stopping_criteria(
+        def stop_sequences_stopping_criteria(
             input_ids, score, **kwargs
         ):
             nonlocal tokenizer, stop_sequences, len_prompt
-            output = tokenizer.decode(input_ids[0])
+            ids = input_ids[0]
+            output = tokenizer.decode(ids)
+
             new_output = output[len_prompt:]
             for s in stop_sequences:
+                # if s == '\n' and len(ids) < 8:
+                #     continue
                 if s in new_output:
                     return True
             return False
         generate_params['stopping_criteria'].append(
-            reverse_prompt_stopping_criteria
+            stop_sequences_stopping_criteria
         )
 
     skip_special_tokens = True

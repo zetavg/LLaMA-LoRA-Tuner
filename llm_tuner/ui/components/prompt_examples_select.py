@@ -55,7 +55,8 @@ def prompt_examples_select(
             example_choices = []
             if selected_category:
                 example_choices = [
-                    "{:2d}. ".format(i + 1) + next(iter(c), '')
+                    "{:2d}. ".format(i + 1) + re.sub(
+                        r'[ \n]+', ' ', next(iter(c), '')[:200])
                     for i, c in enumerate(prompt_examples[selected_category])]
 
             return (
@@ -89,7 +90,8 @@ def prompt_examples_select(
             example_choices = []
             if name in samples:
                 example_choices = [
-                    "{:2d}. ".format(i + 1) + next(iter(c), '')
+                    "{:2d}. ".format(i + 1) + re.sub(
+                        r'[ \n]+', ' ', next(iter(c), '')[:200])
                     for i, c in enumerate(samples[name])]
 
             return gr.Dropdown.update(

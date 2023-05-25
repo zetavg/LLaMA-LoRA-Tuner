@@ -211,6 +211,13 @@ class Prompter:
         else:
             return []
 
+    def get_dialogue_stop_sequences(self):
+        if self.prompt_template_type == 'None':
+            # return ['\n']
+            return []
+        else:
+            return self.get_stop_sequences()
+
     def generate_dialogue_prompt_v1(self, messages):
         input_roles = self.get_input_roles()
         last_input_role = None

@@ -163,7 +163,7 @@ register_css_style(
     }
 
     .markdown-output-group .markdown-output-group-markdown .prose {
-        min-height: 42px;
+        min-height: 80px;
         box-shadow: var(--input-shadow);
         border: var(--input-border-width) solid var(--input-border-color);
         border-radius: var(--input-radius);
@@ -209,6 +209,10 @@ register_css_style(
 
     .markdown-output-group .wrap.default {
         pointer-events: none;
+    }
+
+    body:not(.dark) .markdown-output-group .tab-nav .selected {
+        background: var(--background-fill-secondary);
     }
     '''
 )

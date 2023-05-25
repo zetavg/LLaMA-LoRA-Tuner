@@ -98,6 +98,12 @@
     border-bottom-right-radius: 0;
 }
 
+.chat-ui-send-message-group .send-message-box textarea::placeholder {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .chat-ui-send-message-group .examples-accordion {
     border-radius: 0;
     border-top: 0;
@@ -204,27 +210,51 @@ body.dark .chat-ui-current-conversation .bot {
     display: none;
 }
 
-#chat_ui_generation_indicator ~ * .send-message-btn {
-    display: none;
+/* Show/hide buttons */
+#chat_ui_generation_indicator ~ * .send-message-btn,
+#chat_ui_generation_indicator ~ * .regenerate-btn {
+    display: none !important;
 }
-#chat_ui_generation_indicator:has(.wrap.hide) ~ * .send-message-btn {
-    display: block;
+#chat_ui_generation_indicator:has(.wrap.hide) ~ * .send-message-btn,
+#chat_ui_generation_indicator:has(.wrap.hide) ~ * .regenerate-btn {
+    display: block !important;
 }
-#chat_ui_generation_indicator:has(.error) ~ * .send-message-btn {
-    display: block;
+#chat_ui_generation_indicator:has(.error) ~ * .send-message-btn,
+#chat_ui_generation_indicator:has(.error) ~ * .regenerate-btn {
+    display: block !important;
 }
 #chat_ui_generation_indicator ~ * .stop-generation-btn {
-    display: block;
+    display: block !important;
 }
 #chat_ui_generation_indicator:has(.wrap.hide) ~ * .stop-generation-btn {
-    display: none;
+    display: none !important;
 }
 #chat_ui_generation_indicator:has(.error) {
-    display: block;
+    display: block !important;
 }
 #chat_ui_generation_indicator:has(.error) .error {
-    display: none;
+    display: none !important;
 }
+
+.send-message-box .form:has(textarea:placeholder-shown) ~ .send-message-btn-container {
+    display: none !important;
+}
+.send-message-box .regenerate-btn-container {
+    display: none !important;
+}
+.send-message-box .form:has(textarea:placeholder-shown) ~ .regenerate-btn-container {
+    display: block !important;
+}
+.send-message-box .form:has(textarea:focus) ~ .regenerate-btn-container {
+    display: none !important;
+}
+.chat-ui-current-conversation-header:has(.blank) ~ .chat-ui-send-message-group .send-message-box .send-message-btn-container {
+    display: block !important;
+}
+.chat-ui-current-conversation-header:has(.blank) ~ .chat-ui-send-message-group .send-message-box .regenerate-btn-container {
+    display: none !important;
+}
+/* Show/hide buttons: end */
 
 .chat-ui-conversation-header {
     padding: var(--block-padding);
@@ -294,4 +324,8 @@ body.dark .chat-ui-current-conversation .bot {
 #chat_ui_session_str > .wrap.default:not(.hide) {
     opacity: 0.5;
     pointer-events: none;
+}
+
+.chat-ui-current-conversation pre {
+    overflow-x: auto;
 }

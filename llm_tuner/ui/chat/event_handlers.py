@@ -1,3 +1,4 @@
+import pdb
 from typing import Any
 
 import os
@@ -105,7 +106,10 @@ def handle_switch_conversation(
 
 
 def get_current_conversation_and_sessions(sessions_str, current_conversation_id):
-    sessions: Any = json5.loads(sessions_str)
+    if isinstance(sessions_str, dict):
+        sessions: Any = sessions_str
+    else:
+        sessions: Any = json.loads(sessions_str)
 
     if not current_conversation_id:
         return (None, sessions)
@@ -119,9 +123,10 @@ def get_current_conversation_and_sessions(sessions_str, current_conversation_id)
     return (sessions[current_conversation_id], sessions)
 
 
-def render_current_conversation(sessions_str, current_conversation_id):
+def render_current_conversation(
+        sessions_or_sessions_str, current_conversation_id):
     current_conversation, _ = get_current_conversation_and_sessions(
-        sessions_str, current_conversation_id)
+        sessions_or_sessions_str, current_conversation_id)
 
     if not current_conversation:
         return (
@@ -159,8 +164,10 @@ def render_current_conversation(sessions_str, current_conversation_id):
         conversation_header_html(current_conversation),
         gr.Box.update(visible=False),
         gr.Chatbot.update(value=chatbot_history, visible=True),
-        gr.Code.update(value=current_conversation.get('outputs') and current_conversation['outputs'].get('text')),
-        gr.Code.update(value=current_conversation.get('outputs') and current_conversation['outputs'].get('tokens_str')),
+        gr.Code.update(value=current_conversation.get('outputs')
+                       and current_conversation['outputs'].get('text')),
+        gr.Code.update(value=current_conversation.get('outputs')
+                       and current_conversation['outputs'].get('tokens_str')),
     )
 
 
@@ -189,6 +196,7 @@ def pre_prepare_generate(
 
         return (
             '',
+            sessions_str,
             gr.Box.update(visible=False),
             gr.HTML.update(
                 visible=True,
@@ -198,7 +206,41 @@ def pre_prepare_generate(
         )
 
     except Exception as e:
-        raise gr.Error(str(e) + '. Click the "Stop" button to dismiss this message.') from e
+        raise gr.Error(
+            str(e) + '. Click the "Stop" button to dismiss this message.') from e
+
+
+def pre_prepare_regenerate(
+    sessions_str,
+    current_conversation_id,
+    model_preset,
+    prompt_template,
+):
+    try:
+        current_conversation, sessions = \
+            get_current_conversation_and_sessions(
+                sessions_str, current_conversation_id)
+        prompter = get_prompter(prompt_template)
+        output_roles = prompter.get_output_roles()
+
+        # Clear output messages form the end of the conversation
+        while (current_conversation
+               and current_conversation.get('messages')):
+            last_message = current_conversation['messages'][-1]
+            if last_message.get('from') not in output_roles:
+                break
+            current_conversation['messages'].pop()
+
+        sessions_str = json.dumps(sessions, ensure_ascii=False)
+    except Exception as e:
+        raise gr.Error(
+            str(e) + '. Click the "Stop" button to dismiss this message.') from e
+    return pre_prepare_generate(
+        sessions_str,
+        current_conversation_id,
+        model_preset,
+        prompt_template,
+    )
 
 
 def prepare_generate(
@@ -263,13 +305,14 @@ def prepare_generate(
             + conversations_list_output
             + render_current_conversation(**{
                 # **kwargs,
-                'sessions_str': new_sessions_str,
+                'sessions_or_sessions_str': new_sessions_str,
                 'current_conversation_id': current_conversation_id,
             })
         )
 
     except Exception as e:
-        raise gr.Error(str(e) + '. Click the "Stop" button to dismiss this message.') from e
+        raise gr.Error(
+            str(e) + '. Click the "Stop" button to dismiss this message.') from e
 
 
 def handle_generate(
@@ -285,10 +328,9 @@ def handle_generate(
             sessions_str,
         ) + render_current_conversation(**{
             # **kwargs,
-            'sessions_str': sessions_str,
+            'sessions_or_sessions_str': sessions_str,
             'current_conversation_id': current_conversation_id,
         })
-
 
         current_conversation, sessions = \
             get_current_conversation_and_sessions(
@@ -301,10 +343,11 @@ def handle_generate(
         prompt_template_name = current_conversation['prompt_template']
         prompter = get_prompter(prompt_template_name)
         if not prompter:
-            raise ValueError(f"Can't find prompt template '{prompt_template_name}'")
+            raise ValueError(
+                f"Can't find prompt template '{prompt_template_name}'")
         prompt = prompter.generate_dialogue_prompt_v1(
             current_conversation['messages'])
-        stop_sequences = prompter.get_stop_sequences()
+        stop_sequences = prompter.get_dialogue_stop_sequences()
 
         generation_config = \
             prepare_generation_config_args(generation_config)
@@ -351,6 +394,8 @@ def handle_generate(
         }
 
         last_yield_at = None
+        last_session_str_updated_at = None
+        new_sessions_str = json.dumps(sessions, ensure_ascii=False)
         for (
             decoded_output, output, completed
         ) in Global.inference_generate_fn(**generation_args):
@@ -383,7 +428,16 @@ def handle_generate(
             set_output('tokens_str', output_tokens_str)
 
             sessions['_updated_at'] = current_time
-            new_sessions_str = json.dumps(sessions, ensure_ascii=False)
+
+            # Throttling this more
+            if (
+                completed
+                or not last_session_str_updated_at
+                or (current_time - last_session_str_updated_at > 500)
+            ):
+                new_sessions_str = json.dumps(sessions, ensure_ascii=False)
+                last_session_str_updated_at = current_time
+
             last_yield_at = current_time
 
             yield (
@@ -391,7 +445,7 @@ def handle_generate(
                 new_sessions_str,
             ) + render_current_conversation(**{
                 # **kwargs,
-                'sessions_str': new_sessions_str,
+                'sessions_or_sessions_str': sessions,
                 'current_conversation_id': current_conversation_id,
             })
             # yield (
@@ -417,7 +471,8 @@ def handle_generate(
         # })
 
     except Exception as e:
-        raise gr.Error(str(e) + '. Click the "Stop" button to dismiss this message.') from e
+        raise gr.Error(
+            str(e) + '. Click the "Stop" button to dismiss this message.') from e
 
 
 def handle_stop_generate(sessions_str, current_conversation_id):

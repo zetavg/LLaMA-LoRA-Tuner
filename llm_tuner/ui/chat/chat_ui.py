@@ -38,6 +38,7 @@ from .event_handlers import (
     render_current_conversation,
     clear_cached_prompters,
     pre_prepare_generate,
+    pre_prepare_regenerate,
     prepare_generate,
     handle_generate,
     handle_stop_generate,
@@ -200,15 +201,23 @@ def chat_ui():
                             label="Not Used",
                             visible=False,
                         )  # TODO: So that selecting prompt_examples will not get something like `['message'']`
-                        send_message_btn = gr.Button(
-                            "Send",
-                            variant="primary",
-                            elem_id="chat_ui_send_message_btn",
-                            elem_classes="send-message-btn",
-                        )
+                        with gr.Column(elem_classes="send-message-btn-container mw-fc flex-grow-0"):
+                            send_message_btn = gr.Button(
+                                "Send",
+                                variant="primary",
+                                elem_id="chat_ui_send_message_btn",
+                                elem_classes="send-message-btn",
+                            )
+                        with gr.Column(elem_classes="regenerate-btn-container mw-fc flex-grow-0"):
+                            regenerate_btn = gr.Button(
+                                "Regenerate Response",
+                                elem_id="chat_ui_regenerate_btn",
+                                elem_classes="regenerate-btn",
+                            )
                         message.submit(
                             fn=None,
-                            _js="function () { document.getElementById('chat_ui_send_message_btn').click(); }"
+                            inputs=[message],
+                            _js="function (m) { if (m) document.getElementById('chat_ui_send_message_btn').click(); }"
                         )
                         stop_generation_btn = gr.Button(
                             "Stop",
@@ -224,13 +233,18 @@ def chat_ui():
                                     clearTimeout(window.chat_ui_send_message_btn_disable_timer);
                                   }
                                   var g_btn = document.getElementById('chat_ui_send_message_btn');
+                                  var r_btn = document.getElementById('chat_ui_regenerate_btn');
 
                                   // To prevent double click, disable the button for 500ms.
                                   g_btn.style.pointerEvents = 'none';
                                   g_btn.style.opacity = 0.5;
+                                  r_btn.style.pointerEvents = 'none';
+                                  r_btn.style.opacity = 0.5;
                                   window.chat_ui_send_message_btn_disable_timer = setTimeout(function () {
                                     g_btn.style.pointerEvents = 'auto';
                                     g_btn.style.opacity = 1;
+                                    r_btn.style.pointerEvents = 'auto';
+                                    r_btn.style.opacity = 1;
                                   }, 500);
                                 }
                                 ''').strip()
@@ -323,7 +337,42 @@ def chat_ui():
             )
         )
 
-        send_message_event = send_message_btn.click(
+        def register_generate_event_handlers(target):
+            return target.then(
+                fn=prepare_generate,
+                inputs=[
+                    sessions_str,
+                    current_conversation_id,
+                    model_preset_select,
+                    prompt_template_select,
+                    message,
+                ],
+                outputs=(
+                    [
+                        generation_indicator,
+                        sessions_str,
+                        current_conversation_id,
+                        message,
+                    ]
+                    + handle_update_conversations_list_html_outputs
+                    + render_current_conversation_outputs)  # type: ignore
+            ).then(
+                fn=handle_generate,
+                inputs=[
+                    sessions_str,
+                    current_conversation_id,
+                    go_component['generation_config_json'],
+                ],
+                outputs=(
+                    [
+                        generation_indicator,
+                        sessions_str,
+                    ]
+                    + render_current_conversation_outputs
+                ),
+            )
+
+        send_message_event = register_generate_event_handlers(send_message_btn.click(
             fn=pre_prepare_generate,
             inputs=[
                 sessions_str,
@@ -333,43 +382,29 @@ def chat_ui():
             ],
             outputs=[
                 generation_indicator,
+                sessions_str,
                 model_and_prompt_template_select_box,  # type: ignore
                 current_conversation_header_html,
                 message,
             ],
-        ).then(
-            fn=prepare_generate,
+        ))
+
+        regenerate_event = register_generate_event_handlers(regenerate_btn.click(
+            fn=pre_prepare_regenerate,
             inputs=[
                 sessions_str,
                 current_conversation_id,
                 model_preset_select,
                 prompt_template_select,
+            ],
+            outputs=[
+                generation_indicator,
+                sessions_str,
+                model_and_prompt_template_select_box,  # type: ignore
+                current_conversation_header_html,
                 message,
             ],
-            outputs=(
-                [
-                    generation_indicator,
-                    sessions_str,
-                    current_conversation_id,
-                    message,
-                ]
-                + handle_update_conversations_list_html_outputs
-                + render_current_conversation_outputs)  # type: ignore
-        ).then(
-            fn=handle_generate,
-            inputs=[
-                sessions_str,
-                current_conversation_id,
-                go_component['generation_config_json'],
-            ],
-            outputs=(
-                [
-                    generation_indicator,
-                    sessions_str,
-                ]
-                + render_current_conversation_outputs
-            ),
-        )
+        ))
         # render_current_conversation_outputs = [
         #     current_conversation_header_html,
         #     model_and_prompt_template_select_box,
@@ -411,7 +446,7 @@ def chat_ui():
                     conversations_list_html,
                     message,
                 ],
-                cancels=[send_message_event],
+                cancels=[send_message_event, regenerate_event],
                 # queue=False,
             )
         )
