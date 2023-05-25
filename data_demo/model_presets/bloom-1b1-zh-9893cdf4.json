@@ -1,0 +1,9 @@
+{
+  "name": "bloom-1b1-zh",
+  "model": {
+    "name_or_path": "ckip-joint/bloom-1b1-zh",
+    "args": {
+      "torch_dtype": "float16"
+    }
+  }
+}

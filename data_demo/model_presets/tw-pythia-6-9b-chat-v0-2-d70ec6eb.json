@@ -1,0 +1,12 @@
+{
+  "name": "TW Pythia 6.9B Chat v0.2",
+  "model": {
+    "name_or_path": "twlm/tw-pythia-6.9b-chat-v0_2",
+    "args": {
+      "torch_dtype": "float16"
+    }
+  },
+  "defaults": {
+    "prompt_template": "human_and_ai_chat"
+  }
+}

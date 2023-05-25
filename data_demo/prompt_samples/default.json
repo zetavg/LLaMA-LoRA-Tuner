@@ -1,0 +1,32 @@
+{
+  "Writing":
+  [
+    ["撰寫一篇引人入勝的旅行部落格文章，內容是關於最近去高雄旅行，強調文化經歷和必看的景點。"],
+    ["Compose an engaging travel blog post about a recent trip to Kaohsiung, highlighting cultural experiences and must-see attractions."],
+    ["你能幫我寫一封正式的郵件給可能的商業夥伴，提議一個共同的合作計畫嗎？"],
+    ["Can you help me write a formal email to a potential business partner proposing a joint venture?"],
+    ["你能幫我寫一封辭職信給我現在的雇主嗎？我希望能保持彼此良好的關係，並對他們提供的機會表達感謝。"],
+    ["Can you help me write a resignation letter to my current employer, while leaving on good terms and expressing gratitude for the opportunities provided?"]
+  ],
+  "Common-sense":
+  [
+    ["你如何判斷一個人是真心對一段對話感興趣，還是只是在保持禮貌？"],
+    ["How can you determine if a person is genuinely interested in a conversation or simply being polite?"]
+  ],
+  "Coding":
+  [
+    ["撰寫一個程式，使用動態規劃 (dynamic programming) 找出第 n 個費波那契數 (Fibonacci number)。"],
+    ["Write a program to find the nth Fibonacci number using dynamic programming."],
+    ["請寫一個 C++ 程式來逐行讀取一個文字檔案的內容，並計算某個指定的字在該檔案中出現的次數。"],
+    ["Develop a C++ program that reads a text file line by line and counts the number of occurrences of a specific word in the file."],
+    ["Python 和 JavaScript 這兩個程式語言有哪些主要的不同之處？"],
+    ["What are the main differences between Python and JavaScript programming languages?"],
+    ["Python 和 C++ 這兩個程式語言有哪些主要的不同之處？"],
+    ["What are the main differences between Python and C++ programming languages?"]
+  ],
+  "Summarization":
+  [
+    ["請為以下文章做出摘要：\n\n```\n在 20 世紀 50 年代，通信研究者認識到需要允許在不同電腦使用者和通信網路之間進行常規的通信。這促使分散網路、排隊論和封包交換的研究。1960 年，美國國防部高等研究計劃署（DARPA）出於冷戰考慮建立的 ARPANET 引發技術進步並使其成為網際網路發展的中心。ARPANET 的發展始於兩個網路節點，由倫納德・克萊因羅克帶領的加利福尼亞大學洛杉磯分校的網路測量中心與加利福尼亞州門羅帕克斯坦福國際研究院（SRI）道格拉斯・恩格爾巴特的 NLS 系統兩個節點之間連接。第三個節點是加利福尼亞大學聖塔芭芭拉分校，第四個節點是猶他大學。到 1971 年底，已經有 15 個節點連接到 ARPANET。1973 年 6 月，挪威地震陣列所（NORSAR）連接到 ARPANET 成為美國本土之外的第一個網路節點。\n\n1974 年，羅伯特・卡恩和文頓・瑟夫提出 TCP/IP，定義在電腦網路之間傳送報文的方法（他們在 2004 年也因此獲得圖靈獎）。1986 年，美國國家科學基金會建立了美國國家超級電腦應用中心與學術機構之間互聯基於 TCP/IP 技術的骨幹網路 NSFNET，速度由最初的 56kbit/s，接著為 T1（1.5Mbit/s），最後發展至 T3（45Mbit/s）。NSFNET 於 1988 至 1989 年擴展到歐洲、澳洲、紐西蘭和日本的學術和研究組織。商業網際網路服務提供商（ISP）於 1989 年在美國和澳洲成立。ARPANET 於 1990 年退役。\n```"],
+    ["請為以下文章做出摘要：\n\n```\n1905 年（明治三十八年），時值日本統治臺灣的最初十年，在台灣總督府對於菸草種植、加工及銷售的控管之下，為了彌補財政稅收上的捉襟見肘，而有計畫地推行「台灣菸草專賣制度」。\n\n1911 年（明治四十四年），台灣總督府專賣局在台北市上奎府町 4 丁目 1 番地開始興建「台北菸草工場」，專門負責菸草生產及加工製造。之後由於日軍發動太平洋戰爭，捲菸除供應台灣市場所需之外，也供應給在中國大陸華中、華南等地區打仗的日軍，甚至還外銷到東南亞地區，呈現供不應求的情況。\n\n1937 年，台灣總督府專賣局在台北市松山庄興雅 830 番地興建「台灣總督府專賣局松山菸草工場」。松山菸草工場是當時台灣推動工業廠房現代化的先驅，同時也是台灣第一座專業的捲菸廠。松山菸草工場在規劃時即引入「工業村」概念，重視員工福利，附設有完整的勞工福利設施如員工宿舍、男女浴池、更衣室、醫護室、藥局、手術室、福利社、育嬰室、托兒所等。興建時佔地 18.9864 公頃。建築風格屬「日本初現代主義」作品，強調水平視線，形式簡潔典雅，面磚、琉璃及銅釘均為特別定製的建材，做工精細，堪稱當時工業廠房之楷模。\n\n1939 年 10 月間，松山菸草工場開工生產，初期員工約 1200 人。\n\n1945 年（民國三十四年），日本投降後，台灣省專賣局接收松山菸草工場，並更名為「台灣省專賣局・松山菸草工廠」。松山菸廠戰後種植大量植栽，景觀優美，是台北市東區最大的綠地。\n\n1947 年（民國三十六年），台灣省專賣局改制成立台灣省菸酒公賣局，「台灣省專賣局・松山菸草工廠」更名為「台灣省菸酒公賣局・松山菸廠」，專製捲菸、菸絲及雪茄等菸草製品。在 1947 年至 1948 年間，陸續產製樂園牌、無濾嘴新樂園牌菸，質優價中，頗受消費者喜愛；爾後陸續生產雙喜牌、無濾嘴寶島牌、克難牌、中興牌、勝利牌、珍珠牌、金馬牌、軟包長壽牌等 40 餘種香菸品牌，成為為台灣在第二次世界大戰戰後最具代表性的菸廠，菸廠持續擴充增產，暢銷四十年，直到 1987 年達到最高峰，員工約 2000 人，松山菸廠年產值曾逾新台幣 210 億元，對中華民國政府的財政收益貢獻非凡。\n```"]
+  ]
+}

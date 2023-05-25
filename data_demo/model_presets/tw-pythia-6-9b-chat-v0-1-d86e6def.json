@@ -1,0 +1,12 @@
+{
+  "name": "TW Pythia 6.9B Chat v0.1",
+  "model": {
+    "name_or_path": "zh-tw-llm-dv/zh-tw-llm-ta01-pythia-6.9b-ta8000-v1-a_2_lora_instruction_tune-h100-t002-3d42d8-merged-float16",
+    "args": {
+      "torch_dtype": "float16"
+    }
+  },
+  "defaults": {
+    "prompt_template": "human_and_ai_chat"
+  }
+}
