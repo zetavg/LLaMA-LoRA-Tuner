@@ -4,6 +4,7 @@ from ..config import Config
 from ..globals import Global
 
 from .inference.inference_ui import inference_ui
+from .chat.chat_ui import chat_ui
 from .finetune.finetune_ui import finetune_ui
 from .models.models_ui import models_ui
 from .ui_components_ui import ui_components_ui
@@ -47,6 +48,8 @@ def main_page():
             ) as main_page_tabs_container:
                 with gr.Tab("Inference"):
                     inference_ui()
+                with gr.Tab("Chat"):
+                    chat_ui()
                 with gr.Tab("Models"):
                     models_ui()
                 with gr.Tab("Fine-tuning"):
@@ -91,7 +94,6 @@ def main_page():
                 var styleElement = document.createElement("style");
                 styleElement.innerHTML = 'button.copy-text { display: none; } button[title="copy"] { display: none; }';
                 document.head.appendChild(styleElement);
-                console.log(styleElement)
             }
         """
     main_blocks_js += """
@@ -329,7 +331,7 @@ def main_page_custom_css():
             box-shadow: var(--block-shadow);
         }
 
-        #inference_prompt_template {
+        #inference_prompt_template_select {
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
             border-left: 0;
@@ -367,7 +369,7 @@ def main_page_custom_css():
             border-bottom-right-radius: 0;
         }
 
-        #inference_prompt_template, #finetune_template + * {
+        #inference_prompt_template_select, #finetune_template + * {
             border-top-left-radius: 0;
             border-top-right-radius: 0;
             border-top: 0;

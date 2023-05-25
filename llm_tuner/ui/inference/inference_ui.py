@@ -27,6 +27,7 @@ from ...utils.relative_read_file import relative_read_file
 
 from ..css_styles import register_css_style
 from ..components.generation_options import generation_options
+from ..components.model_and_prompt_template_select import model_and_prompt_template_select
 from ..components.prompt_examples_select import prompt_examples_select
 from ..components.markdown_output import markdown_output
 
@@ -38,7 +39,7 @@ from .event_handlers import (
     handle_stop_generate,
 )
 
-register_css_style('finetune', relative_read_file(__file__, "style.css"))
+register_css_style('inference', relative_read_file(__file__, "style.css"))
 
 # device = get_device()
 
@@ -133,23 +134,15 @@ def inference_ui():
 
     with gr.Blocks() as inference_ui_blocks:
         with gr.Box(elem_classes="form-box disable_while_training"):
-            with gr.Row(elem_classes=""):
-                model_preset_select = gr.Dropdown(
-                    label="Model",
-                    elem_id="inference_model_preset_select",
-                )
-                prompt_template = gr.Dropdown(
-                    label="Prompt Template",
-                    value="None",
-                    elem_id="inference_prompt_template",
-                )
-            model_prompt_template_message = gr.HTML(
-                visible=False,
-                elem_classes="mt-m2 ph-2 o-09"
-            )
-            reload_selections_button = gr.Button(
-                "↻", elem_classes="block-reload-btn",
-                elem_id="inference_reload_selections_button")
+            (
+                model_preset_select,
+                prompt_template_select,
+                model_prompt_template_message,
+                reload_selections_button,
+                reload_selections_event,
+                model_preset_select_change_event,
+            ) = \
+                model_and_prompt_template_select(elem_id_prefix="inference")
         # with gr.Row(elem_classes="disable_while_training"):
         #     with gr.Column(elem_id="inference_lora_model_group"):
         #         model_prompt_template_message = gr.Markdown(
@@ -373,7 +366,7 @@ def inference_ui():
                         # )
 
         handle_prompt_template_change_inputs: Any = [
-            prompt_template, model_preset_select,
+            prompt_template_select, model_preset_select,
         ]
         handle_prompt_template_change_outputs: Any = [
             model_prompt_template_message,
@@ -381,43 +374,16 @@ def inference_ui():
             variable_4, variable_5, variable_6, variable_7
         ]
         things_that_might_hang.append(
-            prompt_template.change(
+            prompt_template_select.change(
                 fn=handle_prompt_template_change,
                 inputs=handle_prompt_template_change_inputs,
                 outputs=handle_prompt_template_change_outputs,
                 # queue=False,
             )
         )
-
-        def handle_model_preset_select_change(x, y):
-            model_preset = get_model_preset_from_choice(x)
-            if not model_preset:
-                return y
-
-            default_prompt_template = model_preset.default_prompt_template
-            if not default_prompt_template or default_prompt_template == 'None':
-                return y
-
-            prompt_template_names = get_prompt_template_names()
-            if default_prompt_template not in prompt_template_names:
-                return y
-
-            return default_prompt_template
 
         things_that_might_hang.append(
-            model_preset_select.change(
-                fn=handle_model_preset_select_change,
-                # fn=lambda x, y: (
-                #     getattr(
-                #         get_model_preset_from_choice(x),
-                #         'default_prompt_template',
-                #         y
-                #     )
-                # ),
-                inputs=[model_preset_select, prompt_template],
-                outputs=[prompt_template],
-                # queue=False,
-            ).then(
+            model_preset_select_change_event.then(
                 fn=handle_prompt_template_change,
                 inputs=handle_prompt_template_change_inputs,
                 outputs=handle_prompt_template_change_outputs,
@@ -425,23 +391,14 @@ def inference_ui():
             )
         )
 
-        reload_selections_event = reload_selections_button.click(
-            handle_reload_selections,
-            inputs=[model_preset_select, prompt_template],
-            outputs=[model_preset_select, prompt_template],
-            # queue=False,
-        ).then(
-            fn=handle_model_preset_select_change,
-            inputs=[model_preset_select, prompt_template],
-            outputs=[prompt_template],
-            # queue=False,
-        ).then(
-            fn=handle_prompt_template_change,
-            inputs=handle_prompt_template_change_inputs,
-            outputs=handle_prompt_template_change_outputs,
-            # queue=False,
+        things_that_might_hang.append(
+            reload_selections_event.then(
+                fn=handle_prompt_template_change,
+                inputs=handle_prompt_template_change_inputs,
+                outputs=handle_prompt_template_change_outputs,
+                # queue=False,
+            )
         )
-        things_that_might_hang.append(reload_selections_event)
 
         # reload_selected_models_btn = gr.Button(
         #     "", elem_id="inference_reload_selected_models_btn")
@@ -454,7 +411,7 @@ def inference_ui():
 
         # reload_selected_models_btn_event = reload_selected_models_btn.click(
         #     fn=handle_prompt_template_change,
-        #     inputs=[prompt_template, lora_model],
+        #     inputs=[prompt_template_select, lora_model],
         #     outputs=[
         #         model_prompt_template_message,
         #         variable_0, variable_1, variable_2, variable_3, variable_4, variable_5, variable_6, variable_7])
@@ -462,8 +419,8 @@ def inference_ui():
 
         # lora_model_change_event = lora_model.change(
         #     fn=handle_lora_model_change,
-        #     inputs=[lora_model, prompt_template],
-        #     outputs=[model_prompt_template_message, prompt_template])
+        #     inputs=[lora_model, prompt_template_select],
+        #     outputs=[model_prompt_template_message, prompt_template_select])
         # things_that_might_hang.append(lora_model_change_event)
 
         generate_event = generate_btn.click(
@@ -479,7 +436,7 @@ def inference_ui():
             fn=handle_generate,
             inputs=[
                 model_preset_select,
-                prompt_template,
+                prompt_template_select,
                 go_component['generation_config_json'],
                 stop_sequence,
                 stream_output,
@@ -504,7 +461,7 @@ def inference_ui():
 
         update_prompt_preview_event = update_prompt_preview_btn.click(
             fn=update_prompt_preview,
-            inputs=[prompt_template,
+            inputs=[prompt_template_select,
                     variable_0, variable_1, variable_2, variable_3,
                     variable_4, variable_5, variable_6, variable_7,],
             outputs=preview_prompt,

@@ -1,16 +1,12 @@
 function inference_ui_blocks_js() {
   // Auto load options
   setTimeout(function () {
-    document.getElementById('inference_reload_selections_button').click();
+    document.getElementById('inference_model_and_prompt_template_select_reload_selections_button').click();
 
     // Workaround default value not shown.
     // document.querySelector('#inference_lora_model input').value =
     //   'None';
   }, 50);
-
-  setTimeout(function () {
-    document.getElementById('inference_reload_prompt_examples_button').click();
-  }, 150);
 
   // Markdown rendering
 //   setTimeout(function () {
@@ -59,7 +55,7 @@ function inference_ui_blocks_js() {
       allowHTML: true,
     });
 
-    tippy('#inference_prompt_template', {
+    tippy('#inference_prompt_template_select', {
       placement: 'left',
       delay: [500, 0],
       animation: 'scale-subtle',
@@ -68,7 +64,7 @@ function inference_ui_blocks_js() {
       allowHTML: true,
     });
 
-    tippy('#inference_reload_selections_button', {
+    tippy('#inference_model_and_prompt_template_select_reload_selections_button', {
       placement: 'top-end',
       delay: [500, 0],
       animation: 'scale-subtle',
@@ -273,7 +269,7 @@ function inference_ui_blocks_js() {
     }
 
     const prompt_template_selector = document.querySelector(
-      '#inference_prompt_template .wrap-inner'
+      '#inference_prompt_template_select .wrap-inner'
     );
 
     if (prompt_template_selector) {

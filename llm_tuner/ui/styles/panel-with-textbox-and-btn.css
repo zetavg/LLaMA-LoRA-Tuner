@@ -1,9 +1,12 @@
 .panel-with-textbox-and-btn {
+    display: flex;
+    flex-wrap: nowrap;
     justify-content: flex-end;
     align-items: stretch;
     gap: calc(var(--layout-gap) / 2) !important;
 }
 .panel-with-textbox-and-btn > .form {
+    flex-grow: 1;
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -14,7 +17,7 @@
     background: transparent;
 }
 .panel-with-textbox-and-btn button {
+    flex-grow: 0;
     margin-top: 28px;
     min-width: fit-content;
-    flex-grow: 0;
 }

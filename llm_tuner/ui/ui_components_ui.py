@@ -9,6 +9,7 @@ from json5 import loads as json_loads
 
 from .components.markdown_output import markdown_output
 from .components.generation_options import generation_options
+from .components.model_and_prompt_template_select import model_and_prompt_template_select
 from .components.prompt_examples_select import prompt_examples_select
 
 
@@ -57,6 +58,13 @@ def ui_components_ui():
         gr.Markdown("## Generation Options")
         with gr.Column():
             generation_options()
+
+        gr.HTML('<hr />', elem_classes="mt-md mb-xxl")
+
+        gr.Markdown("## Model and Prompt Template Select")
+        with gr.Column():
+            with gr.Box(elem_classes="form-box disable_while_training"):
+                model_and_prompt_template_select(elem_id_prefix="ui_demo")
 
         gr.HTML('<hr />', elem_classes="mt-md mb-xxl")
 

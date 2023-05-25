@@ -10,6 +10,7 @@ import hashlib
 import itertools
 
 from langchain.prompts import PromptTemplate
+from numpy import isin
 # from numba.core import base
 
 from ..config import Config
@@ -76,6 +77,14 @@ class Prompter:
                 self.prompt_template = PromptTemplate(**{
                     k: v for k, v in json.items() if k != '_type'
                 })
+            elif t == 'llm_tuner_dialogue_v1':
+                self.prompt_template_type = 'llm_tuner_dialogue_v1'
+                self.data = json
+                self.prompt_templates = {
+                    k: PromptTemplate.from_template(t_str)
+                    for k, t_str in self.data['templates'].items()
+                }
+
             else:
                 raise ValueError(
                     f"Unknown prompt template type: '{t}' ('{filepath}').")
@@ -95,13 +104,18 @@ class Prompter:
     def get_variable_names(self) -> List[str]:
         if self.prompt_template_name == 'None':
             return ['prompt']
-        elif 'prompt':
+
+        elif self.prompt_template_type == 'prompt':
             input_variables = self.prompt_template.input_variables
             if not is_list_of_strings(input_variables):
                 raise ValueError(
                     f"Expect {self.prompt_template.__class__.__name__}.input_variables to be a list of strings, but got {input_variables}.")
 
             return input_variables
+        elif self.prompt_template_type == 'llm_tuner_dialogue_v1':
+            return ['message']
+
+        raise NotImplemented(self.prompt_template_type)
 
     def generate_prompt(
         self,
@@ -125,8 +139,38 @@ class Prompter:
                 }
             prompt = self.prompt_template.format(**variables)
             return prompt
+
+        elif self.prompt_template_type == 'llm_tuner_dialogue_v1':
+            if not isinstance(variables, list):
+                variables = variables.values()
+
+            prompt = ''
+
+            if self.data.get('system'):
+                prompt += self.data['system']
+
+            input_role = self.data['roles']['input'][0]
+            input_prompt_template = self.prompt_templates[input_role]
+            prompt += input_prompt_template.format(**{
+                k: variables[0] for k in input_prompt_template.input_variables
+            })
+
+            if self.data.get('separator'):
+                prompt += self.data['separator']
+
+            output_role = self.data['roles']['output'][0]
+            output_prompt_template = self.prompt_templates[output_role]
+            output_seperator = '<|\x1fseperator\x1f|>'
+            output_sample = output_prompt_template.format(**{
+                k: output_seperator
+                for k in output_prompt_template.input_variables
+            })
+            prompt += output_sample.split(output_seperator)[0]
+
+            return prompt
+
         else:
-            raise NotImplementedError('')
+            raise NotImplementedError(self.prompt_template_type)
 
     def get_response(
         self,
@@ -138,6 +182,114 @@ class Prompter:
 
         origional_prompt = self.generate_prompt(input_variables)
         return remove_common_from_start(origional_prompt, output)
+
+    def get_input_roles(self):
+        if self.prompt_template_type == 'llm_tuner_dialogue_v1':
+            return self.data['roles']['input']
+        else:
+            return ['human']
+
+    def get_output_roles(self):
+        if self.prompt_template_type == 'llm_tuner_dialogue_v1':
+            return self.data['roles']['output']
+        else:
+            return ['ai']
+
+    def get_stop_sequences(self):
+        if self.prompt_template_type == 'llm_tuner_dialogue_v1':
+            input_roles = self.get_input_roles()
+            stop_sequences = []
+            for role in input_roles:
+                prompt_template = self.prompt_templates[role]
+                seperator = '<|\x1fseperator\x1f|>'
+                sample = prompt_template.format(**{
+                    k: seperator
+                    for k in prompt_template.input_variables
+                })
+                stop_sequences.append(sample.split(seperator)[0])
+            return stop_sequences
+        else:
+            return []
+
+    def generate_dialogue_prompt_v1(self, messages):
+        input_roles = self.get_input_roles()
+        last_input_role = None
+        last_input_message = None
+        last_output_role = None
+        last_output_message = None
+        for i in range(len(messages)-1, -1, -1):
+            message = messages[i]
+            if message['from'] in input_roles:
+                last_input_role = message['from']
+                last_input_message = message['message']
+                break
+            else:
+                last_output_role = message['from']
+                last_output_message = message['message']
+        if self.prompt_template_type == 'None':
+            return last_input_message
+        elif self.prompt_template_type == 'prompt':
+            variable_names = self.get_variable_names()
+            variables = {
+                k: v
+                for k, v in
+                itertools.zip_longest(
+                    variable_names,
+                    [last_input_message],
+                    fillvalue=''
+                )
+            }
+            prompt = self.prompt_template.format(**variables)
+            if last_output_message:
+                prompt += last_output_message
+            return prompt
+        elif self.prompt_template_type == 'llm_tuner_dialogue_v1':
+            prompt = self.data.get('system')
+            if not messages:
+                return prompt
+            prev_messages = messages[:-1]
+            last_massage = messages[-1]
+            prev_message_prompts = [
+                self.prompt_templates[m['from']].format(**{
+                    k: m['message']
+                    for k in self.prompt_templates[m['from']].input_variables
+                })
+                for m in prev_messages
+            ]
+
+            output_role = self.data['roles']['output'][0]
+            output_prompt_template = self.prompt_templates[output_role]
+            output_seperator = '<|\x1fseperator\x1f|>'
+            output_sample = output_prompt_template.format(**{
+                k: output_seperator
+                for k in output_prompt_template.input_variables
+            })
+            output_pre = output_sample.split(output_seperator)[0]
+
+            last_message_prompts = []
+            if last_massage['from'] in input_roles:
+                last_message_prompts.append(
+                    self.prompt_templates[last_massage['from']].format(**{
+                        k: last_massage['message']
+                        for k in self.prompt_templates[last_massage['from']].input_variables
+                    })
+                )
+                last_message_prompts.append(output_pre)
+            else:
+                last_message_prompts.append(
+                    output_pre + last_massage['message'])
+
+            prompt += (self.data.get('separator') or '\n').join(
+                prev_message_prompts + last_message_prompts
+            )
+
+            # print('prompt')
+            # print(prompt)
+
+            return prompt
+        else:
+            raise NotImplemented(
+                f'generate_dialogue_prompt_v1 for prompt_template_type {self.prompt_template_type} is not implemented')
 
     # @property
     # def samples(self) -> List[List[str]]:

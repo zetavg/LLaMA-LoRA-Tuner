@@ -49,7 +49,8 @@ def random_name():
 
 
 def reload_selections(current_template, current_dataset):
-    available_template_names = get_available_template_names()
+    # available_template_names = get_available_template_names()
+    available_template_names = []
     available_template_names_with_none = available_template_names + ["None"]
     if current_template not in available_template_names_with_none:
         current_template = None

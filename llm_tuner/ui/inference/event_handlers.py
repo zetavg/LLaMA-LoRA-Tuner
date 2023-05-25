@@ -15,6 +15,7 @@ from ...data import (
 
 from ...utils.prompter import Prompter
 from ...utils.data_processing import comparing_lists
+from ...utils.prepare_generation_config_args import prepare_generation_config_args
 
 
 def handle_reload_selections(
@@ -118,9 +119,6 @@ def handle_generate(
         stop_sequences = [stop_sequences]
     stop_sequences = [s for s in stop_sequences if s]
 
-    if isinstance(generation_config, str):
-        generation_config = json.loads(generation_config)
-
     try:
         if Global.generation_force_stopped_at is not None:
             required_elapsed_time_after_forced_stop = 1
@@ -137,17 +135,8 @@ def handle_generate(
         if not prompt:
             return
 
-        if 'temperature' in generation_config:
-            generation_config['temperature'] = \
-                float(generation_config['temperature'] or 0)
-            # Now controlled via JS
-            # if generation_config['temperature'] > 0:
-            #     generation_config['do_sample'] = True
-
-        if 'repetition_penalty' in generation_config:
-            generation_config['repetition_penalty'] = \
-                float(generation_config['repetition_penalty'] or 0)
-
+        generation_config = \
+            prepare_generation_config_args(generation_config)
         generation_config = GenerationConfig(
             **generation_config,
         )

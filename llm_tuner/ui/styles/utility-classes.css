@@ -5,6 +5,10 @@
 .width-auto { width: auto !important; }
 .align-self-flex-start { align-self: flex-start !important; }
 
+.flex-direction-column-reverse {
+    flex-direction: column-reverse !important;
+}
+
 .gap-0 { gap: 0 !important; }
 .gap-0-d2 { gap: 0 !important; }
 .gap-0-d2 > .gap { gap: 0 !important; }
@@ -42,6 +46,8 @@
 .flex-12 { flex: 12 !important; }
 
 .flex-grow-0 { flex-grow: 0 !important; }
+.flex-grow-1 { flex-grow: 1 !important; }
+.flex-grow-2 { flex-grow: 2 !important; }
 
 .mt-0:not([data-testid="markdown"]) { margin-top: 0 !important; }
 .mt-gap:not([data-testid="markdown"]) { margin-top: var(--layout-gap) !important; }
@@ -188,4 +194,8 @@
 
 .accordion-with-block-title-text-color > .label-wrap {
     color: var(--block-title-text-color);
+}
+
+.fix-loading-no-transform > .wrap > .meta-text-center {
+    transform: none !important;
 }

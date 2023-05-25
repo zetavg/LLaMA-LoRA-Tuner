@@ -157,6 +157,13 @@ def prompt_examples_select(
             setTimeout(function () {
               document.querySelectorAll('.prompt-examples-select .select input').forEach(function (elem) { elem.placeholder = 'Select an example...' });
             }, 50);
+
+            // Auto load examples
+            setTimeout(function () {
+        """ + f"""
+                document.getElementById('{reload_button_elem_id}').click();
+        """ + """
+              }, 150);
             return [];
         }
         """).strip()
