@@ -1,5 +1,6 @@
 import gradio as gr
 
+from ...config import Config
 from ...data import (
     get_model_preset_choices,
     get_prompt_template_names,
@@ -26,6 +27,11 @@ def model_and_prompt_template_select(
             visible=False,
             elem_classes="mt-m2 ph-2 o-09"
         )
+        if Config.ui_model_and_prompt_template_select_notice:
+            gr.Markdown(
+                Config.ui_model_and_prompt_template_select_notice,
+                elem_classes="mt-m4 ph-4 info-text"
+            )
         reload_selections_button = gr.Button(
             "↻", elem_classes="block-reload-btn",
             elem_id=f"{elem_id_prefix}_model_and_prompt_template_select_reload_selections_button")

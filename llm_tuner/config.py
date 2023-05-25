@@ -79,6 +79,7 @@ class Config:
     ui_inference_open_options_by_default: bool = True
     ui_chat_reminder_message: str = \
         'Language models may produce inaccurate information about people, places, or facts.'
+    ui_model_and_prompt_template_select_notice: str = ''
 
     # UI dev mode
     ui_dev_mode: bool = False
