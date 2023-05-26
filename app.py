@@ -15,6 +15,7 @@ from llm_tuner.ui import (
 def main(
     data_dir: Union[str, None] = None,
     server_name: Union[str, None] = None,
+    port: Union[int, None] = None,
     share: bool = False,
     skip_loading_default_model: bool = False,
     auth: Union[str, None] = None,
@@ -100,6 +101,7 @@ def main(
 
     demo.queue(concurrency_count=1).launch(
         server_name=Config.server_name,
+        server_port=port,
         share=share,
         auth=((Config.auth_username, Config.auth_password)
               if Config.auth_username and Config.auth_password else None)
