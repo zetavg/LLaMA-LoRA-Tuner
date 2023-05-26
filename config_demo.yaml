@@ -22,7 +22,7 @@ ui_subtitle: 'Taiwanese Mandarin LLM Project: [https://github.com/zetavg/twlm](h
 default_generation_config:
   temperature: 1
   top_k: 40
-  top_p: 0.2
+  top_p: 0.4
   num_beams: 3
   repetition_penalty: 2.4
   max_new_tokens: 800
