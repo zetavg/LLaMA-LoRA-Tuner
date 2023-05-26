@@ -16,7 +16,7 @@ ui_features:
 # UI Customization
 ui_title: TWLM Demo
 # ui_emoji: 🦙🎛️
-ui_subtitle: 'Taiwanese Mandarin LLM Project: https://github.com/zetavg/twlm'
+ui_subtitle: 'Taiwanese Mandarin LLM Project: [https://github.com/zetavg/twlm](https://github.com/zetavg/twlm)'
 # ui_show_sys_info: true
 
 default_generation_config:
