@@ -8,6 +8,7 @@ default_torch_dtype: float16
 ui_show_starter_tooltips: false
 ui_inference_open_options_by_default: false
 ui_chat_reminder_message: "Language models may produce inaccurate information about people, places, or facts. <br/>因訓練成本限制，模型目前對長串對話的表現不是很好，在多輪對話後可能會開始回應重複的內容。如果對回應不滿意，可以嘗試按下「Regenerate Response」。對話紀錄只會保存在瀏覽器中，若有需要請自行備份 (展開左下角「Raw Data」查看相關資訊)。下方 \"Examples\" 有一些訊息範本可以選擇。"
+ui_model_and_prompt_template_select_notice: "切換模型後的第一次使用需要等待大約 30 秒載入模型。"
 ui_features:
   - chat
   - inference
