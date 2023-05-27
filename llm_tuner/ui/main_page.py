@@ -138,6 +138,36 @@ def main_page():
 
     main_page_blocks.load(_js=main_blocks_js)
 
+    if Config.ga4_measurement_id:
+        main_page_blocks.load(_js=f'''
+            function () {{
+                function gtag(){{ return; }}
+                window.gtag = gtag;
+
+                var script = document.createElement('script');
+                script.src = 'https://www.googletagmanager.com/gtag/js?id={Config.ga4_measurement_id}';
+                script.async = true;
+                document.head.appendChild(script);
+
+                function init_ga4() {{
+                    if (!Array.isArray(window.dataLayer)) {{
+                        console.log('GA4 data layer not ready, retry in 1 second...');
+                        setTimeout(init_ga4, 1000);
+                    }}
+
+                    window.dataLayer = window.dataLayer || [];
+                    function gtag(){{dataLayer.push(arguments);}}
+                    window.gtag = gtag;
+                    gtag('js', new Date());
+
+                    gtag('config', '{Config.ga4_measurement_id}');
+                    console.log('GA4 config done');
+                }}
+
+                init_ga4();
+            }}
+            ''')
+
 
 def get_page_title():
     title = Config.ui_title

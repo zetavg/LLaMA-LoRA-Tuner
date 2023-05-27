@@ -265,6 +265,15 @@ def inference_ui():
                         )
                         stop_btn = gr.Button(
                             "Stop", variant="stop", label="Stop Iterating", elem_id="inference_stop_btn")
+                        if Config.ga4_measurement_id:
+                            generate_btn.click(
+                                fn=None,
+                                _js="function () { gtag('event', 'inference_generate'); return []; }"
+                            )
+                            stop_btn.click(
+                                fn=None,
+                                _js="function () { gtag('event', 'inference_stop_generate'); return []; }"
+                            )
 
             with gr.Column(elem_id="inference_output_group_container"):
                 with gr.Column(elem_id="inference_output_group"):

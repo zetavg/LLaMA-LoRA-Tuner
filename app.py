@@ -28,6 +28,7 @@ def main(
     # hf_access_token: Union[str, None] = None,
     timezone: Union[str, None] = None,
     config: Union[str, None] = None,
+    ga4_measurement_id: Union[str, None] = None,
 ):
     '''
     Start the LLM Tuner UI.
@@ -93,6 +94,9 @@ def main(
 
     if ui_show_sys_info is not None:
         Config.ui_show_sys_info = ui_show_sys_info
+
+    if ga4_measurement_id is not None:
+        Config.ga4_measurement_id = ga4_measurement_id
 
     initialize(skip_loading_default_model=skip_loading_default_model)
 
