@@ -4,6 +4,15 @@
 
 Making evaluating and fine-tuning LLaMA models with low-rank adaptation (LoRA) easy.
 
+> **Update**:
+> 
+> On the `dev` branch, there's a new Chat UI and a new *Demo Mode* config as a simple and easy way to demonstrate new models. 
+> 
+> However, the new version does not have the fine-tuning feature yet and is not backward compatible as it uses a new way to define how models are loaded, and also a new format of prompt templates (from [LangChain](https://github.com/hwchase17/langchain)).
+>
+> For more info, see: https://github.com/zetavg/LLaMA-LoRA-Tuner/discussions/28.
+> 
+> https://github.com/zetavg/LLaMA-LoRA-Tuner/assets/3784687/ae81a5ed-fe8b-4b17-bea1-455837c2e909
 
 ## Features
 
