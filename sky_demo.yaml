@@ -40,4 +40,4 @@ setup: |
 run: |
   conda activate llm-tuner-twlm-demo
   cd llm_tuner_twlm_demo
-  python app.py --server_name=0.0.0.0 --port="$PORT"
+  python app.py --server_name=0.0.0.0 --port="$PORT" --ga4_measurement_id="$GA4_MEASUREMENT_ID"

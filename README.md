@@ -15,10 +15,11 @@ git push twlm-demo twlm-demo:main
 ## SkyPilot
 
 ```bash
-sky launch ./sky_demo.yaml -c llm-tuner --env PORT=7865 --env CLOUDFLARE_TUNNEL_TOKEN=xxxx
+sky launch ./sky_demo.yaml -c llm-tuner --env PORT=7865 --env CLOUDFLARE_TUNNEL_TOKEN=xxxx --env GA4_MEASUREMENT_ID=xxxx
 ```
 
-`--env CLOUDFLARE_TUNNEL_TOKEN=xxxx` is optional ([details](https://medium.com/@zetavg/%E4%BD%BF%E7%94%A8-cloudflare-tunnel-%E4%BD%9C%E7%82%BA%E4%BD%8E%E6%88%90%E6%9C%AC%E7%9A%84-ngrok-%E6%9B%BF%E4%BB%A3%E5%93%81-6b0aaef97557)). If not provided, you can still use the instance's public IP address to access (http://x.x.x.x:port). Just make sure you have the port allowed by the firewall if you're not using Lambda Cloud (which have no default firewall).
+* `--env CLOUDFLARE_TUNNEL_TOKEN=xxxx` is optional ([details](https://medium.com/@zetavg/%E4%BD%BF%E7%94%A8-cloudflare-tunnel-%E4%BD%9C%E7%82%BA%E4%BD%8E%E6%88%90%E6%9C%AC%E7%9A%84-ngrok-%E6%9B%BF%E4%BB%A3%E5%93%81-6b0aaef97557)). If not provided, you can still use the instance's public IP address to access (http://x.x.x.x:port). Just make sure you have the port allowed by the firewall if you're not using Lambda Cloud (which have no default firewall).
+* `--env GA4_MEASUREMENT_ID=xxxx` is optional too.
 
 ---
 
