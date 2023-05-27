@@ -4,6 +4,12 @@ sdk_version: 3.32.0
 app_file: app.py
 ---
 
+To push, `git remote add twlm-demo ...` then
+
+```bash
+git push twlm-demo twlm-demo:main
+```
+
 ---
 
 # 🦙🎛️ LLaMA-LoRA Tuner
