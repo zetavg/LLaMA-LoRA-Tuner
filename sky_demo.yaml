@@ -1,0 +1,43 @@
+# Usage:
+#
+# ```bash
+# sky launch ./sky_demo.yaml -c llm-tuner --env PORT=7865 --env CLOUDFLARE_TUNNEL_TOKEN=xxxx
+# ```
+#
+# or
+#
+# ```bash
+# sky exec llm-tuner ./sky_demo.yaml --env PORT=7865 --env CLOUDFLARE_TUNNEL_TOKEN=xxxx
+# ```
+#
+# if you have already launched and setup the server.
+#
+# `--env CLOUDFLARE_TUNNEL_TOKEN=xxxx` is optional.
+#
+
+resources:
+  accelerators: A10:1  # 1x NVIDIA A10 GPU, about US$ 0.6 / hr on Lambda Cloud. Run `sky show-gpus` for supported GPU types, and `sky show-gpus [GPU_NAME]` for the detailed information of a GPU type.
+  cloud: lambda  # Optional; if left out, SkyPilot will automatically pick the cheapest cloud.
+  region: us-west-1  # Optional; if left out, SkyPilot will automatically pick the region with the cheapest cloud.
+
+# Clone the LLaMA-LoRA Tuner repo and install its dependencies.
+setup: |
+  sudo rm -rf /var/lib/man-db/auto-update
+  sudo apt install git-lfs zsh -y
+  git lfs install --skip-repo
+  ~/miniconda3/bin/conda init --all
+
+  conda create -q python=3.8 -n llm-tuner-twlm-demo -y
+  conda activate llm-tuner-twlm-demo
+
+  git clone -b twlm-demo https://github.com/zetavg/LLaMA-LoRA-Tuner.git llm_tuner_twlm_demo
+
+  pip install -r llm_tuner_twlm_demo/requirements.txt
+
+  # Cloudflare Tunnel
+  [ -n "$CLOUDFLARE_TUNNEL_TOKEN" ] && echo "Installing Cloudflare" && curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && sudo dpkg -i cloudflared.deb && sudo cloudflared service uninstall || : && sudo cloudflared service install "$CLOUDFLARE_TUNNEL_TOKEN"
+
+run: |
+  conda activate llm-tuner-twlm-demo
+  cd llm_tuner_twlm_demo
+  python app.py --server_name=0.0.0.0 --port="$PORT"
