@@ -89,6 +89,9 @@ class Config:
     # Special modes
     demo_mode: bool = False
 
+    # GA
+    ga4_measurement_id: str = ''
+
     @ClassProperty
     def model_presets_path(self) -> str:
         return os.path.join(self.data_dir, 'model_presets')

@@ -103,6 +103,11 @@ def chat_ui():
                         ):
                             gr.Markdown("## Conversations")
                             new_conversation_button = gr.Button('+')
+                            if Config.ga4_measurement_id:
+                                new_conversation_button.click(
+                                    fn=None,
+                                    _js="function () { gtag('event', 'chat_new_conversation'); return []; }"
+                                )
                             new_conversation_event = new_conversation_button.click(
                                 fn=lambda: None,
                                 outputs=current_conversation_id,
@@ -142,11 +147,21 @@ def chat_ui():
                                 visible=False,
                                 elem_id="chat_ui_clear_conversations_btn"
                             )
+                            if Config.ga4_measurement_id:
+                                clear_conversations_btn.click(
+                                    fn=None,
+                                    _js="function () { gtag('event', 'chat_clear_conversations'); return []; }"
+                                )
                             new_conversation_button_2 = gr.Button(
                                 "New",
                                 elem_classes="mw-fc",
                                 # elem_id="chat_ui_clear_conversations_btn"
                             )
+                            if Config.ga4_measurement_id:
+                                new_conversation_button_2.click(
+                                    fn=None,
+                                    _js="function () { gtag('event', 'chat_new_conversation'); return []; }"
+                                )
                             new_conversation_event_2 = new_conversation_button_2.click(
                                 fn=lambda: None,
                                 outputs=current_conversation_id,
@@ -210,12 +225,22 @@ def chat_ui():
                                     elem_id="chat_ui_send_message_btn",
                                     elem_classes="send-message-btn",
                                 )
+                                if Config.ga4_measurement_id:
+                                    send_message_btn.click(
+                                        fn=None,
+                                        _js="function () { gtag('event', 'chat_send_message'); return []; }"
+                                    )
                             with gr.Column(elem_classes="regenerate-btn-container mw-fc flex-grow-0"):
                                 regenerate_btn = gr.Button(
                                     "Regenerate Response",
                                     elem_id="chat_ui_regenerate_btn",
                                     elem_classes="regenerate-btn",
                                 )
+                                if Config.ga4_measurement_id:
+                                    regenerate_btn.click(
+                                        fn=None,
+                                        _js="function () { gtag('event', 'chat_regenerate_response'); return []; }"
+                                    )
 
                             stop_generation_btn = gr.Button(
                                 "Stop",
@@ -223,6 +248,11 @@ def chat_ui():
                                 elem_id="chat_ui_stop_generation_btn",
                                 elem_classes="stop-generation-btn",
                             )
+                            if Config.ga4_measurement_id:
+                                stop_generation_btn.click(
+                                    fn=None,
+                                    _js="function () { gtag('event', 'chat_stop_generation_btn'); return []; }"
+                                )
                         if Config.ui_chat_reminder_message:
                             gr.Markdown(
                                 Config.ui_chat_reminder_message,
