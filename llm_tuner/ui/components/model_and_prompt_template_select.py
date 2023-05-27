@@ -7,13 +7,17 @@ from ...data import (
     get_model_preset_from_choice,
 )
 
+from ..ui_utils import get_random_hex
+
 
 def model_and_prompt_template_select(
     elem_id_prefix,
     load_priority=100,
 ):
+    uid = get_random_hex()
+    elem_id = f"model_and_prompt_template_select{uid}"
     with gr.Blocks() as model_and_prompt_select_blocks:
-        with gr.Row(elem_classes=""):
+        with gr.Row(elem_id=elem_id, elem_classes=""):
             model_preset_select = gr.Dropdown(
                 label="Model",
                 elem_id=f"{elem_id_prefix}_model_preset_select",
@@ -70,6 +74,22 @@ def model_and_prompt_template_select(
         }}
         """
     )
+
+    # if Config.ui_show_starter_tooltips:
+    #     model_and_prompt_select_blocks.load(
+    #         _js=f"""
+    #         function () {{
+    #             setTimeout(function () {{
+    #                 add_tooltip('#{elem_id}', {{
+    #                   placement: 'bottom',
+    #                   content:
+    #                     'Examples are loaded from the <code>prompt_samples</code> folder of your data dir.',
+    #                 }});
+    #             }}, 100);
+    #             return [];
+    #         }}
+    #         """
+    #     )
 
     return (
         model_preset_select,

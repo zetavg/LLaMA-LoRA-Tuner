@@ -347,6 +347,12 @@ body.dark .chat-ui-current-conversation .bot {
     pointer-events: none;
 }
 
-.chat-ui-current-conversation pre {
+.chat-ui-current-conversation pre code {
+    display: block;
+    max-width: 100%;
     overflow-x: auto;
+}
+
+.chat-ui-current-conversation .message {
+    width: calc(100% - var(--spacing-xxl)) !important;
 }
