@@ -341,6 +341,9 @@ body.dark .chat-ui-current-conversation .bot {
 }
 /* Hide message input label: end */
 
+.chat-ui-send-message-group .block:has(.progress-level-inner) {
+    min-height: 100px;
+}
 
 #chat_ui_session_str > .wrap.default:not(.hide) {
     opacity: 0.5;
@@ -355,4 +358,16 @@ body.dark .chat-ui-current-conversation .bot {
 
 .chat-ui-current-conversation .message {
     width: calc(100% - var(--spacing-xxl)) !important;
+}
+
+.chat-ui-send-message-group {
+    flex-grow: 0 !important;
+}
+
+.chat-ui-send-message-group .send-message-box .block > .wrap.default:not(.hide) {
+    opacity: 0.8;
+}
+
+.chat-ui-send-message-group .send-message-box .form {
+    box-shadow: none;
 }
