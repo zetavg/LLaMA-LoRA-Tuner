@@ -30,7 +30,7 @@ def ui_get_tokenizer(
         return preset.tokenizer
     elif tokenizer_from == 'HF Hub':
         return get_tokenizer(
-            tokenizer_from_hf_name or default_tokenizer_from_hf)
+            tokenizer_from_hf_name or default_tokenizer_from_hf, {})
     else:
         raise ValueError(f"Invalid tokenizer_from value: '{tokenizer_from}'.")
 
@@ -64,19 +64,19 @@ def handle_decode(json_str, *args):
         return "", gr.Markdown.update("Error: " + str(e), visible=True)
 
 
-def handle_encode(text):
-    # base_model_name = Global.base_model_name
-    tokenizer_name = Global.tokenizer_name or Global.base_model_name
+# def handle_encode(text):
+#     # base_model_name = Global.base_model_name
+#     tokenizer_name = Global.tokenizer_name or Global.base_model_name
 
-    try:
-        if Config.ui_dev_mode:
-            return f"[\"Not actually encoding tokens in UI dev mode.\"]", gr.Markdown.update("", visible=False)
-        tokenizer = get_tokenizer(tokenizer_name)
-        result = tokenizer(text)
-        encoded_tokens_json = json.dumps(result['input_ids'], indent=2)
-        return encoded_tokens_json, gr.Markdown.update("", visible=False)
-    except Exception as e:
-        return "", gr.Markdown.update("Error: " + str(e), visible=True)
+#     try:
+#         if Config.ui_dev_mode:
+#             return f"[\"Not actually encoding tokens in UI dev mode.\"]", gr.Markdown.update("", visible=False)
+#         tokenizer = get_tokenizer(tokenizer_name)
+#         result = tokenizer(text)
+#         encoded_tokens_json = json.dumps(result['input_ids'], indent=2)
+#         return encoded_tokens_json, gr.Markdown.update("", visible=False)
+#     except Exception as e:
+#         return "", gr.Markdown.update("Error: " + str(e), visible=True)
 
 
 def tokenizer_ui():
