@@ -78,6 +78,7 @@ def get_model(
         if torch_dtype and torch_dtype != 'auto':
             args['torch_dtype'] = getattr(torch, torch_dtype)
         Global.loaded_models.make_space()
+        # print(f"Loading model '{name_or_path}' with args {args}...")
         model = AutoModelForCausalLM.from_pretrained(
             name_or_path,
             **args

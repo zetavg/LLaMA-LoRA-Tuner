@@ -176,6 +176,7 @@ def pre_prepare_generate(
     current_conversation_id,
     model_preset,
     prompt_template,
+    progress=gr.Progress(track_tqdm=True)
 ):
     try:
         current_conversation, _ = get_current_conversation_and_sessions(
@@ -193,6 +194,12 @@ def pre_prepare_generate(
 
         if not current_conversation.get('messages'):
             header_html += blank_conversation_header_content
+
+        # Load model and tokenizer
+        mp = get_model_preset_from_choice(model_preset)
+        if mp:
+            mp.tokenizer
+            mp.model
 
         return (
             '',
@@ -411,6 +418,8 @@ def handle_generate(
 
             set_output('text', decoded_output)
             response = remove_common_from_start(prompt, decoded_output)
+            response = prompter.get_response(
+                original_prompt=prompt, output=decoded_output)
 
             get_output_message()['message'] = response
 
