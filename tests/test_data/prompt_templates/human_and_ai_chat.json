@@ -1,0 +1,13 @@
+{
+    "system": "",
+    "roles": {
+      "input": ["human"],
+      "output": ["ai"]
+    },
+    "templates": {
+      "human": "### Human:\n{message}",
+      "ai": "### AI:\n{message}"
+    },
+    "separator": "\n\n",
+    "_type": "llm_tuner_dialogue_v1"
+}

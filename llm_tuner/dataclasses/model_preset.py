@@ -71,7 +71,21 @@ class ModelPreset:
                 Config.models_path, tokenizer_name_or_path
             )
 
-        return get_tokenizer(tokenizer_name_or_path)
+        return get_tokenizer(tokenizer_name_or_path, self.tokenizer_args)
+
+    @property
+    def tokenizer_args(self):
+        if self.is_using_custom_tokenizer:
+            custom_tokenizer_args = self.data['custom_tokenizer'].get('args')
+            if custom_tokenizer_args:
+                return custom_tokenizer_args
+
+        tokenizer_data = self.data.get('tokenizer', {})
+        return tokenizer_data.get('args', {})
+
+    @property
+    def model_class(self):
+        return self.data['model'].get('class')
 
     @property
     def model(self) -> PreTrainedModel:
@@ -100,6 +114,7 @@ class ModelPreset:
         return get_model(
             model_name_or_path,
             self.model_args,
+            cls=self.model_class,
             adapter_model_name_or_path=adapter_model_name_or_path,
         )
 

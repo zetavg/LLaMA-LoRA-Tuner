@@ -1,0 +1,15 @@
+{
+    "system": "[Round 0]\n",
+    "roles": {
+      "input": ["user"],
+      "output": ["chatglm"]
+    },
+    "templates": {
+      "user": "问：{message}",
+      "chatglm": "答：{message}"
+    },
+    "separator": "\n",
+    "separator_2": "\n[Round {}]\n",
+    "response_separator_re": "\n答(?:: )|(?:：)",
+    "_type": "llm_tuner_dialogue_v1"
+}
