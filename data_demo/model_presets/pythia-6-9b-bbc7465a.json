@@ -1,0 +1,9 @@
+{
+  "name": "Pythia 6.9B",
+  "model": {
+    "name_or_path": "EleutherAI/pythia-6.9b",
+    "args": {
+      "torch_dtype": "float16"
+    }
+  }
+}

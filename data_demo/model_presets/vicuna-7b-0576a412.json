@@ -1,0 +1,13 @@
+{
+  "name": "Vicuna 7B",
+  "model": {
+    "name_or_path": "zpm0/vicuna-7b",
+    "args": {
+      "use_auth_token": "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",
+      "torch_dtype": "float16"
+    }
+  },
+  "defaults": {
+    "prompt_template": "vicuna_v1_1"
+  }
+}

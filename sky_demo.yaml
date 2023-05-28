@@ -30,9 +30,13 @@ setup: |
   conda create -q python=3.8 -n llm-tuner-twlm-demo -y
   conda activate llm-tuner-twlm-demo
 
+  rm -rf llm_tuner_twlm_demo
   git clone -b twlm-demo https://github.com/zetavg/LLaMA-LoRA-Tuner.git llm_tuner_twlm_demo
 
   pip install -r llm_tuner_twlm_demo/requirements.txt
+
+  # For GLM models
+  pip install cpm_kernels
 
   # Cloudflare Tunnel
   [ -n "$CLOUDFLARE_TUNNEL_TOKEN" ] && echo "Installing Cloudflare" && curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && sudo dpkg -i cloudflared.deb && sudo cloudflared service uninstall || : && sudo cloudflared service install "$CLOUDFLARE_TUNNEL_TOKEN"

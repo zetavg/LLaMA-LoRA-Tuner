@@ -1,0 +1,19 @@
+{
+  "name": "ChatGLM-6B",
+  "model": {
+    "name_or_path": "THUDM/chatglm-6b",
+    "class": "AutoModel",
+    "args": {
+      "trust_remote_code": true,
+      "torch_dtype": "float16"
+    }
+  },
+  "tokenizer": {
+    "args": {
+      "trust_remote_code": true
+    }
+  },
+  "defaults": {
+    "prompt_template": "chatglm"
+  }
+}

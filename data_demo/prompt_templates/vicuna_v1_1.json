@@ -1,0 +1,14 @@
+{
+    "system": "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. ",
+    "roles": {
+      "input": ["user"],
+      "output": ["assistant"]
+    },
+    "templates": {
+      "user": "USER: {message}",
+      "assistant": "ASSISTANT: {message}"
+    },
+    "separator": " ",
+    "separator_2": "</s>",
+    "_type": "llm_tuner_dialogue_v1"
+}
