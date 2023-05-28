@@ -62,6 +62,9 @@ def main_page():
                     elif f == 'tools':
                         with gr.Tab("Tools"):
                             tools_ui()
+                    elif f == 'ui_components':
+                        with gr.Tab("UI Components"):
+                            ui_components_ui()
                     else:
                         raise ValueError(f"Unknown ui feature '{f}'.")
 

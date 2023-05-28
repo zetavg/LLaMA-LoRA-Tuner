@@ -5,8 +5,10 @@ from textwrap import dedent
 
 import gradio as gr
 
+from ...config import Config
 from ...data import get_prompt_samples
 
+from ..ui_utils import get_random_hex
 from ..css_styles import register_css_style
 
 
@@ -16,8 +18,11 @@ def prompt_examples_select(
     reload_button_elem_id,
     things_that_might_hang_list=None,
 ):
+    uid = get_random_hex()
+    elem_id = f"model_and_prompt_template_select{uid}"
     with gr.Blocks() as blocks:
         with gr.Row(
+            elem_id=elem_id,
             elem_classes="prompt-examples-select gap-block-padding"
         ):
             prompt_examples = gr.State({})
@@ -170,6 +175,22 @@ def prompt_examples_select(
         }
         """).strip()
     )
+
+    if Config.ui_show_starter_tooltips:
+        blocks.load(
+            _js=f"""
+            function () {{
+                setTimeout(function () {{
+                    add_tooltip('#{elem_id}', {{
+                      placement: 'bottom',
+                      content:
+                        'Examples are loaded from the <code>prompt_samples</code> folder of your data dir.',
+                    }});
+                }}, 100);
+                return [];
+            }}
+            """
+        )
 
 
 register_css_style(

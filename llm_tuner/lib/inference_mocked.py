@@ -19,19 +19,28 @@ def generate(
 ):
     message = dedent(f"""
         Hi, I’m currently in UI development mode and do not have access to resources to process your request. However, this behavior is similar to what will actually happen, so you can try and see how it will work!
-        """)
+        """).strip()
 
     if generation_config.do_sample:
+        message += '\n\n'
         message += dedent(f"""
-
             Generation config:
-            {json.dumps(generation_config.to_dict(), ensure_ascii=False)}
-            """)
 
+            ```json
+            """).strip()
+        message += '\n'
+        message += \
+            json.dumps(generation_config.to_dict(),
+                       ensure_ascii=False, indent=2)
+        message += '\n'
+        message += dedent(f"""
+            ```
+            """).strip()
+
+    message += '\n\n'
     message += dedent(f"""
-
         The following is your prompt:
-        """)
+        """).strip()
 
     message += "\n"
     message += prompt
