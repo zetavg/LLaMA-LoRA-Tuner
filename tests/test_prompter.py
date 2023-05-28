@@ -17,6 +17,10 @@ class TestPrompter(unittest.TestCase):
             'human_and_ai_chat.json'
         ))
         self.assertEqual(
+            prompter.get_stop_sequences(),
+            ['\n\n### Human:\n']
+        )
+        self.assertEqual(
             prompter.generate_dialogue_prompt_v1([
                 {'from': 'human', 'message': 'Hi there!'}
             ]),
@@ -56,6 +60,10 @@ class TestPrompter(unittest.TestCase):
             'vicuna_v1_1.json'
         ))
         self.assertEqual(
+            prompter.get_stop_sequences(),
+            ['</s>USER: ']
+        )
+        self.assertEqual(
             prompter.generate_dialogue_prompt_v1([
                 {'from': 'user', 'message': 'Hello!'}
             ]),
@@ -78,6 +86,81 @@ class TestPrompter(unittest.TestCase):
                 {'from': 'user', 'message': "I'd like to know more about LLMs. Can you give me some advice?"},
             ]),
             r"A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. USER: Hello! ASSISTANT: Hi!</s>USER: How are you? ASSISTANT: Good! How can I help you today?</s>USER: I'd like to know more about LLMs. Can you give me some advice? ASSISTANT:"
+        )
+
+    def test_chatglm(self):
+        prompter = Prompter(os.path.join(
+            test_data_path,
+            'prompt_templates',
+            'chatglm.json'
+        ))
+        self.assertEqual(
+            prompter.get_stop_sequences(),
+            [']\n问：']
+        )
+        self.assertEqual(
+            prompter.generate_dialogue_prompt_v1([
+                {'from': 'user', 'message': 'Hello!'}
+            ]),
+            dedent(r'''
+                [Round 0]
+                问：Hello!
+                答：
+            ''')[1:-1]
+        )
+        self.assertEqual(
+            prompter.generate_dialogue_prompt_v1([
+                {'from': 'user', 'message': 'Hello!'},
+                {'from': 'chatglm', 'message': 'Hi!'},
+            ]),
+            dedent(r'''
+                [Round 0]
+                问：Hello!
+                答：Hi!
+            ''')[1:-1]
+        )
+        self.assertEqual(
+            prompter.generate_dialogue_prompt_v1([
+                {'from': 'user', 'message': 'Hello!'},
+                {'from': 'chatglm', 'message': 'Hi!'},
+                {'from': 'user', 'message': 'How are you?'},
+            ]),
+            dedent(r'''
+                [Round 0]
+                问：Hello!
+                答：Hi!
+                [Round 1]
+                问：How are you?
+                答：
+            ''')[1:-1]
+        )
+        self.assertEqual(
+            prompter.generate_dialogue_prompt_v1([
+                {'from': 'user', 'message': 'Hello!'},
+                {'from': 'chatglm', 'message': 'Hi!'},
+                {'from': 'user', 'message': 'How are you?'},
+                {'from': 'chatglm', 'message': "I'm an AI, so I don't have feelings, but thank you for asking. How can I assist you today?"},
+                {'from': 'user', 'message': 'What is the current weather?'},
+            ]),
+            dedent(r'''
+                [Round 0]
+                问：Hello!
+                答：Hi!
+                [Round 1]
+                问：How are you?
+                答：I'm an AI, so I don't have feelings, but thank you for asking. How can I assist you today?
+                [Round 2]
+                问：What is the current weather?
+                答：
+            ''')[1:-1]
+        )
+        self.assertEqual(
+            prompter.get_response(dedent(r'''
+                [Round 0]
+                问:早安我的朋友
+                答: 早安,愿你今天有一个美好的一天!有什么想聊的吗?
+            ''', )[1:-1]),
+            "早安,愿你今天有一个美好的一天!有什么想聊的吗?"
         )
 
 

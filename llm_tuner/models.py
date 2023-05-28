@@ -10,6 +10,7 @@ import json
 import hashlib
 
 
+import transformers
 from transformers import (
     PreTrainedModel, AutoModelForCausalLM,
     PreTrainedTokenizerBase, AutoTokenizer, LlamaTokenizer,
@@ -22,7 +23,7 @@ from .lazy_import import get_torch, get_peft
 from .utils.data_processing import deep_sort_dict
 
 
-def get_tokenizer(name_or_path: str) -> PreTrainedTokenizerBase:
+def get_tokenizer(name_or_path: str, args: Dict[str, Any]) -> PreTrainedTokenizerBase:
     # if Config.ui_dev_mode:
     #     raise Exception("Cannot use tokenizer in UI dev mode.")
 
@@ -38,6 +39,7 @@ def get_tokenizer(name_or_path: str) -> PreTrainedTokenizerBase:
     try:
         tokenizer = AutoTokenizer.from_pretrained(
             name_or_path,
+            **args,
             # use_auth_token=Config.hf_access_token
         )
     except Exception as e:
@@ -58,12 +60,16 @@ def get_model(
     name_or_path: str,
     args: Dict[str, Any],
     adapter_model_name_or_path: Union[str, None] = None,
+    cls: Union[None, str] = None,
 ) -> PreTrainedModel:
     if Config.ui_dev_mode:
         raise Exception("Cannot load model in UI dev mode.")
 
     if Global.is_train_starting or Global.is_training:
         raise Exception("Cannot load new base model while training.")
+
+    if not cls:
+        cls = 'AutoModelForCausalLM'
 
     sorted_args = deep_sort_dict(args)
     sorted_args_json = \
@@ -79,7 +85,8 @@ def get_model(
             args['torch_dtype'] = getattr(torch, torch_dtype)
         Global.loaded_models.make_space()
         # print(f"Loading model '{name_or_path}' with args {args}...")
-        model = AutoModelForCausalLM.from_pretrained(
+        Model = getattr(transformers, cls)
+        model = Model.from_pretrained(
             name_or_path,
             **args
         )

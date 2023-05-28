@@ -2,6 +2,7 @@ import pdb
 from typing import Any, Union, List, Dict
 
 import os
+import re
 import inspect
 import json
 import json5
@@ -177,7 +178,7 @@ class Prompter:
     def get_response(
         self,
         output: str,
-        original_prompt: Union[str, None],
+        original_prompt: Union[str, None] = '',
         input_variables: Union[Dict[str, str], List[Union[None, str]]] = [],
     ):
         if self.prompt_template_type == 'None':
@@ -189,8 +190,13 @@ class Prompter:
         output = remove_common_from_start(original_prompt, output)
 
         if self.prompt_template_type == 'llm_tuner_dialogue_v1':
-            # Strip separators
             data: Any = self.data
+
+            response_separator_re = data.get('response_separator_re')
+            if response_separator_re:
+                output = re.split(response_separator_re, output)[-1]
+
+            # Strip separators
             separator = data.get('separator')
             separator_2 = data.get('separator_2')
             if separator and output.endswith(separator):
@@ -214,16 +220,21 @@ class Prompter:
 
     def get_stop_sequences(self):
         if self.prompt_template_type == 'llm_tuner_dialogue_v1':
+            data: Any = self.data
+            sw = '<|\x1fSW\x1f|>'
+            separator = data.get('separator_2') or data.get('separator') or ''
+            separator_split = separator.format(sw).split(sw)
+            separator = separator_split[-1]
             input_roles = self.get_input_roles()
             stop_sequences = []
             for role in input_roles:
                 prompt_template = self.prompt_templates[role]
-                seperator = '<|\x1fseperator\x1f|>'
+
                 sample = prompt_template.format(**{
-                    k: seperator
+                    k: sw
                     for k in prompt_template.input_variables
                 })
-                stop_sequences.append(sample.split(seperator)[0])
+                stop_sequences.append(separator + sample.split(sw)[0])
             return stop_sequences
         else:
             return []
@@ -328,9 +339,9 @@ class Prompter:
                         prev_message['from'] in output_roles and
                         (message and message['from'] in input_roles)
                     ):
-                        prompt += separator_2 + p
+                        prompt += separator_2.format(int(i / 2)) + p
                     else:
-                        prompt += separator + p
+                        prompt += separator.format(int(i / 2)) + p
 
             else:
                 prompt += (data.get('separator') or '\n').join(
