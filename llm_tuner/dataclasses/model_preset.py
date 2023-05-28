@@ -1,12 +1,14 @@
-from typing import Any, Union, Dict
+from typing import Any, Optional, Union, Dict
 
 import os
 import json
 import hashlib
-from transformers import PreTrainedTokenizerBase, PreTrainedModel
+from transformers import PreTrainedTokenizerBase, PreTrainedModel, AutoModelForCausalLM
+from transformers.utils import cached_file
 
 from ..config import Config
 from ..models import get_tokenizer, get_model
+from ..utils.download_model import download_model
 # from ..lazy_import import get_torch
 # from ..utils.data_processing import deep_sort_dict
 
@@ -140,6 +142,15 @@ class ModelPreset:
         if not defaults:
             return 'None'
         return defaults.get('prompt_template', 'None')
+
+    def download_and_cache_model(self):
+        if self.load_model_from == 'data_dir':
+            return
+
+        model_name = self.data['model']['name_or_path']
+        args = self.data['model'].get('args', {})
+
+        download_model(model_name, args)
 
     # @property
     # def model_hash(self) -> str:

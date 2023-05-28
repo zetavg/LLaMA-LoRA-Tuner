@@ -1,6 +1,7 @@
 from .config import Config, process_config
 from .globals import initialize_global
 from .data import init_data_dir, get_model_presets
+from .utils.download_models import download_models
 
 
 def initialize(skip_loading_default_model=False):
@@ -14,6 +15,10 @@ def initialize(skip_loading_default_model=False):
         print("In UI dev mode.")
         print()
         return
+
+    if Config.demo_mode and not Config.ui_dev_mode:
+        # In demo mode, make sure all used models are pre-downloaded.
+        download_models()
 
     if not skip_loading_default_model:
         load_default_model()
