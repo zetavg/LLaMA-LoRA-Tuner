@@ -183,6 +183,19 @@ def get_page_title():
 
 def main_page_custom_css():
     css = """
+
+    @media (min-width: 1280px) {
+        .gradio-container {
+            max-width: 1024px !important;
+        }
+    }
+
+    @media (min-width: 1536px) {
+        .gradio-container {
+            max-width: 1024px !important;
+        }
+    }
+
     #foot_info a {
         color: var(--body-text-color);
         text-decoration: none;
