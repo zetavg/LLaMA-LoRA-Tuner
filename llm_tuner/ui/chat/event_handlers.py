@@ -277,13 +277,19 @@ def prepare_generate(
                 'messages': [],
             }
 
-        model_preset = get_model_preset_from_choice(model_preset)
+        model_preset = get_model_preset_from_choice(
+            # Note: the dropdown selection (`model_preset`) may not reflect
+            # the actual model_preset used in the current active conversation.
+            current_conversation['model_preset']
+        )
         if model_preset:
             model_preset.tokenizer
             model_preset.model
 
         if message:
-            prompter = get_prompter(prompt_template)
+            # Note: the dropdown selection (`prompt_template`) may not reflect
+            # the actual prompt_template used in the current active conversation.
+            prompter = get_prompter(current_conversation['prompt_template'])
             current_conversation['messages'].append({
                 'from': prompter.get_input_roles()[0],
                 'message': message,
@@ -348,12 +354,14 @@ def handle_generate(
             current_conversation['model_preset'])
 
         prompt_template_name = current_conversation['prompt_template']
+        # print('prompt_template_name', prompt_template_name)
         prompter = get_prompter(prompt_template_name)
         if not prompter:
             raise ValueError(
                 f"Can't find prompt template '{prompt_template_name}'")
         prompt = prompter.generate_dialogue_prompt_v1(
             current_conversation['messages'])
+        # print('prompt', json.dumps(prompt, ensure_ascii=False))
         stop_sequences = prompter.get_dialogue_stop_sequences()
 
         generation_config = \
