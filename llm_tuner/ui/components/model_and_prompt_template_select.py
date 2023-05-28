@@ -1,3 +1,5 @@
+from typing import Any
+
 import gradio as gr
 
 from ...config import Config
@@ -8,6 +10,7 @@ from ...data import (
 )
 
 from ..ui_utils import get_random_hex
+from ..css_styles import register_css_style
 
 
 def model_and_prompt_template_select(
@@ -17,7 +20,10 @@ def model_and_prompt_template_select(
     uid = get_random_hex()
     elem_id = f"model_and_prompt_template_select{uid}"
     with gr.Blocks() as model_and_prompt_select_blocks:
-        with gr.Row(elem_id=elem_id, elem_classes=""):
+        with gr.Row(
+            elem_id=elem_id,
+            elem_classes="model-and-prompt-template-select"
+        ):
             model_preset_select = gr.Dropdown(
                 label="Model",
                 elem_id=f"{elem_id_prefix}_model_preset_select",
@@ -39,6 +45,12 @@ def model_and_prompt_template_select(
         reload_selections_button = gr.Button(
             "↻", elem_classes="block-reload-btn",
             elem_id=f"{elem_id_prefix}_model_and_prompt_template_select_reload_selections_button")
+
+        handle_model_preset_select_change_inputs: Any = \
+            [model_preset_select, prompt_template_select]
+        handle_model_preset_select_change_outputs: Any = \
+            [model_preset_select, prompt_template_select]
+
         reload_selections_event = reload_selections_button.click(
             handle_reload_selections,
             inputs=[model_preset_select, prompt_template_select],
@@ -46,8 +58,8 @@ def model_and_prompt_template_select(
             # queue=False,
         ).then(
             fn=handle_model_preset_select_change,
-            inputs=[model_preset_select, prompt_template_select],
-            outputs=[prompt_template_select],
+            inputs=handle_model_preset_select_change_inputs,
+            outputs=handle_model_preset_select_change_outputs,
             # queue=False,
         )
         model_preset_select_change_event = model_preset_select.change(
@@ -59,8 +71,8 @@ def model_and_prompt_template_select(
             #         y
             #     )
             # ),
-            inputs=[model_preset_select, prompt_template_select],
-            outputs=[prompt_template_select],
+            inputs=handle_model_preset_select_change_inputs,
+            outputs=handle_model_preset_select_change_outputs,
             # queue=False,
         )
 
@@ -136,14 +148,24 @@ def handle_reload_selections(
 def handle_model_preset_select_change(x, y):
     model_preset = get_model_preset_from_choice(x)
     if not model_preset:
-        return y
+        return (x, y)
 
     default_prompt_template = model_preset.default_prompt_template
     if not default_prompt_template or default_prompt_template == 'None':
-        return y
+        return (x, y)
 
     prompt_template_names = get_prompt_template_names()
     if default_prompt_template not in prompt_template_names:
-        return y
+        return (x, y)
 
-    return default_prompt_template
+    return (x, default_prompt_template)
+
+
+register_css_style(
+    'model_and_prompt_template_select_component',
+    '''
+    .model-and-prompt-template-select .block > .wrap.default:not(.hide) {
+        opacity: 0.8;
+    }
+    '''
+)
