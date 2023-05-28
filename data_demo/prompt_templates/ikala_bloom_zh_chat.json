@@ -1,0 +1,13 @@
+{
+    "system": "",
+    "roles": {
+      "input": ["prompter"],
+      "output": ["assistant"]
+    },
+    "templates": {
+      "prompter": "<|prompter|>{message}",
+      "assistant": "<|assistant|>{message}"
+    },
+    "separator": "</s>",
+    "_type": "llm_tuner_dialogue_v1"
+}

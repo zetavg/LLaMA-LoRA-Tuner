@@ -1,0 +1,12 @@
+{
+  "name": "ikala/redpajama-3b-chat",
+  "model": {
+    "name_or_path": "ikala/redpajama-3b-chat",
+    "args": {
+      "torch_dtype": "float16"
+    }
+  },
+  "defaults": {
+    "prompt_template": "ikala_redpajama_chat"
+  }
+}
