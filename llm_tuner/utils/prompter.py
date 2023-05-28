@@ -1,5 +1,5 @@
 import pdb
-from typing import Union, List, Dict
+from typing import Any, Union, List, Dict
 
 import os
 import inspect
@@ -34,7 +34,9 @@ class Prompter:
         filename = base_filename + ext
         self.prompt_template_filename = filename
 
-        filepath = os.path.join(Config.prompt_templates_path, filename)
+        filepath = filename
+        if not os.path.isfile(filepath):
+            filepath = os.path.join(Config.prompt_templates_path, filename)
 
         if not os.path.exists(filepath):
             raise ValueError(f"Prompt template '{filepath}' does not exists.")
@@ -102,7 +104,7 @@ class Prompter:
         # assert self.prompt_template, 'Prompt template is not set by __init__.'
 
     def get_variable_names(self) -> List[str]:
-        if self.prompt_template_name == 'None':
+        if self.prompt_template_type == 'None':
             return ['prompt']
 
         elif self.prompt_template_type == 'prompt':
@@ -175,13 +177,28 @@ class Prompter:
     def get_response(
         self,
         output: str,
+        original_prompt: Union[str, None],
         input_variables: Union[Dict[str, str], List[Union[None, str]]] = [],
     ):
         if self.prompt_template_type == 'None':
             return output
 
-        origional_prompt = self.generate_prompt(input_variables)
-        return remove_common_from_start(origional_prompt, output)
+        if input_variables:
+            original_prompt = self.generate_prompt(input_variables)
+
+        output = remove_common_from_start(original_prompt, output)
+
+        if self.prompt_template_type == 'llm_tuner_dialogue_v1':
+            # Strip separators
+            data: Any = self.data
+            separator = data.get('separator')
+            separator_2 = data.get('separator_2')
+            if separator and output.endswith(separator):
+                output = output[:-len(separator)]
+            if separator_2 and output.endswith(separator_2):
+                output = output[:-len(separator_2)]
+
+        return output
 
     def get_input_roles(self):
         if self.prompt_template_type == 'llm_tuner_dialogue_v1':
@@ -251,20 +268,21 @@ class Prompter:
                 prompt += last_output_message
             return prompt
         elif self.prompt_template_type == 'llm_tuner_dialogue_v1':
-            prompt = self.data.get('system')
+            data: Any = self.data
+            prompt = data.get('system')
             if not messages:
                 return prompt
-            prev_messages = messages[:-1]
+            history_messages = messages[:-1]
             last_massage = messages[-1]
-            prev_message_prompts = [
+            history_message_prompts = [
                 self.prompt_templates[m['from']].format(**{
                     k: m['message']
                     for k in self.prompt_templates[m['from']].input_variables
                 })
-                for m in prev_messages
+                for m in history_messages
             ]
 
-            output_role = self.data['roles']['output'][0]
+            output_role = data['roles']['output'][0]
             output_prompt_template = self.prompt_templates[output_role]
             output_seperator = '<|\x1fseperator\x1f|>'
             output_sample = output_prompt_template.format(**{
@@ -274,6 +292,7 @@ class Prompter:
             output_pre = output_sample.split(output_seperator)[0]
 
             last_message_prompts = []
+            messages = messages.copy()
             if last_massage['from'] in input_roles:
                 last_message_prompts.append(
                     self.prompt_templates[last_massage['from']].format(**{
@@ -286,12 +305,45 @@ class Prompter:
                 last_message_prompts.append(
                     output_pre + last_massage['message'])
 
-            prompt += (self.data.get('separator') or '\n').join(
-                prev_message_prompts + last_message_prompts
-            )
+            if 'separator_2' in data:  # type: ignore
+                # Use a different seperator between output and input messages.
+                separator = data.get('separator', '')  # type: ignore
+                separator_2 = data.get('separator_2')  # type: ignore
+
+                input_roles = self.get_input_roles()
+                output_roles = self.get_output_roles()
+
+                for i, p in enumerate(history_message_prompts + last_message_prompts):
+                    message = None
+                    prev_message = None
+
+                    if i < len(messages):
+                        message = messages[i]
+                    if i > 0:
+                        prev_message = messages[i - 1]
+
+                    if not prev_message:
+                        prompt += p
+                    elif (
+                        prev_message['from'] in output_roles and
+                        (message and message['from'] in input_roles)
+                    ):
+                        prompt += separator_2 + p
+                    else:
+                        prompt += separator + p
+
+            else:
+                prompt += (data.get('separator') or '\n').join(
+                    history_message_prompts + last_message_prompts
+                )
+
+            # Because most tokenizers includes the leading space of a word in
+            # the token. If we add a space to the end of the prompt, it will
+            # cause the model to not generate the correct first word as trained.
+            prompt = prompt.rstrip(' ')
 
             # print('prompt')
-            # print(prompt)
+            # print(json.dumps(prompt))
 
             return prompt
         else:
