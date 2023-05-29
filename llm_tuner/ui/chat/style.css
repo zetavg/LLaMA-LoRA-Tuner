@@ -155,6 +155,16 @@
 .chat-ui-send-message-group .options-accordion .generation-options-container {
     margin-bottom: calc(var(--spacing-md) * -1);
 }
+.chat-ui-send-message-group .send-message-btn-container,
+.chat-ui-send-message-group .regenerate-btn-container {
+    display: flex;
+    justify-content: stretch;
+    align-items: stretch;
+}
+.chat-ui-send-message-group .send-message-btn-container > *,
+.chat-ui-send-message-group .regenerate-btn-container > * {
+    flex: 1;
+}
 
 .chat-ui-conversations-list-blank-container {
     flex-grow: 1;
@@ -373,11 +383,19 @@ body.dark .chat-ui-current-conversation .bot {
 }
 
 
-#chat_ui_generation_indicator:has(.wrap.generating) ~ * .chat-ui-current-conversation .message-wrap .message.bot:last-child p:last-child::after {
+#chat_ui_generation_indicator:has(.wrap.generating) ~ * .chat-ui-current-conversation .message-wrap .message.bot:last-child > p:last-child::after,
+#chat_ui_generation_indicator:has(.wrap.generating) ~ * .chat-ui-current-conversation .message-wrap .message.bot:last-child > ul:last-child > li:last-child::after,
+#chat_ui_generation_indicator:has(.wrap.generating) ~ * .chat-ui-current-conversation .message-wrap .message.bot:last-child > ol:last-child > li:last-child::after,
+#chat_ui_generation_indicator:has(.wrap.generating) ~ * .chat-ui-current-conversation .message-wrap .message.bot:last-child > pre:last-child code::after,
+#chat_ui_generation_indicator:has(.wrap.generating) ~ * .chat-ui-current-conversation .message-wrap .message.bot:last-child > pre:last-child code span:last-child::after {
     animation: blink 1s steps(5,start) infinite;
     content: "▋";
     margin-left: 0.25rem;
     vertical-align: baseline;
+    color: var(--body-text-color);
+}
+#chat_ui_generation_indicator:has(.wrap.generating) ~ * .chat-ui-current-conversation .message-wrap .message.bot:last-child > pre:last-child code:has(span)::after {
+    content: none;
 }
 @keyframes blink {
     to {
