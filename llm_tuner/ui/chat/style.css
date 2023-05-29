@@ -371,3 +371,16 @@ body.dark .chat-ui-current-conversation .bot {
 .chat-ui-send-message-group .send-message-box .form {
     box-shadow: none;
 }
+
+
+#chat_ui_generation_indicator:has(.wrap.generating) ~ * .chat-ui-current-conversation .message-wrap .message.bot:last-child p:last-child::after {
+    animation: blink 1s steps(5,start) infinite;
+    content: "▋";
+    margin-left: 0.25rem;
+    vertical-align: baseline;
+}
+@keyframes blink {
+    to {
+        visibility: hidden
+    }
+}
