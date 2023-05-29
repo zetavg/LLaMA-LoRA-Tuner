@@ -1,6 +1,8 @@
 {
   "Writing":
   [
+    ["請做個簡單的自我介紹。"],
+    ["Please give a brief self-introduction."],
     ["撰寫一篇引人入勝的旅行部落格文章，內容是關於最近去高雄旅行，強調文化經歷和必看的景點。"],
     ["Compose an engaging travel blog post about a recent trip to Kaohsiung, highlighting cultural experiences and must-see attractions."],
     ["你能幫我寫一封正式的郵件給可能的商業夥伴，提議一個共同的合作計畫嗎？"],
@@ -9,7 +11,17 @@
   "Common-sense":
   [
     ["你如何判斷一個人是真心對一段對話感興趣，還是只是在保持禮貌？"],
-    ["How can you determine if a person is genuinely interested in a conversation or simply being polite?"]
+    ["How can you determine if a person is genuinely interested in a conversation or simply being polite?"],
+    ["有哪些微妙的線索，是暗示著某人可能在假裝理解一個主題或對話，而他們實際上可能感到困惑或缺乏相關知識？"],
+    ["What are some subtle clues that suggest someone is pretending to understand a topic or conversation when they are actually confused or uninformed?"]
+  ],
+  "Knowledge":
+  [
+    ["OSI 七層網路架構是哪七層？"],
+    ["請用 LaTeX 寫出質能等價的公式。"],
+    ["請用 LaTeX 寫出餘弦定理的公式。"],
+    ["請用 LaTeX 寫出一個計算梯度下降的公式。"],
+    ["我們來討論機器學習，請使用 LaTeX 寫出一個接受五個參數的 linear model 的公式。"]
   ],
   "Coding":
   [
@@ -20,7 +32,10 @@
     ["Python 和 JavaScript 這兩個程式語言有哪些主要的不同之處？"],
     ["What are the main differences between Python and JavaScript programming languages?"],
     ["Python 和 C++ 這兩個程式語言有哪些主要的不同之處？"],
-    ["What are the main differences between Python and C++ programming languages?"]
+    ["What are the main differences between Python and C++ programming languages?"],
+    ["請實作以下 JavaScript 程式碼中的 `sleep` 函式：\n\n```js\nasync function () {\n  console.log('Function called.');\n  await sleep(3000);\n  console.log('After sleep 3 seconds.');\n}\n\nfunction sleep(ms) {\n  // TODO\n}\n```"],
+    ["Please implement the `sleep` function in the following JavaScript code:\n\n```js\nasync function () {\n  console.log('Function called.');\n  await sleep(3000);\n  console.log('After sleep 3 seconds.');\n}\n\nfunction sleep(ms) {\n  // TODO\n}\n```"],
+    ["如何用 CSS 讓文字在 div 裡保持水平與垂直置中？"]
   ],
   "Summarization":
   [
