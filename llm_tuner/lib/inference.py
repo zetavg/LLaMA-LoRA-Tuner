@@ -17,6 +17,7 @@ def generate(
     stopping_criteria=[],
     stop_sequences=[],
     include_stop_sequence_in_returned_text=False,
+    skip_special_tokens=True,
     # output options
     stream_output=False
 ):
@@ -55,8 +56,6 @@ def generate(
         generate_params['stopping_criteria'].append(
             stop_sequences_stopping_criteria
         )
-
-    skip_special_tokens = True
 
     if '/dolly' in tokenizer.name_or_path:
         # dolly has additional_special_tokens as ['### End', '### Instruction:', '### Response:'], skipping them will break the prompter's reply extraction.
