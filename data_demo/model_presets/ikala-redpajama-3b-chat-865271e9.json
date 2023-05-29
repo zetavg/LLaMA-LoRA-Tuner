@@ -6,6 +6,9 @@
       "torch_dtype": "float16"
     }
   },
+  "tokenizer": {
+    "skip_special_tokens": false
+  },
   "defaults": {
     "prompt_template": "ikala_redpajama_chat"
   }
