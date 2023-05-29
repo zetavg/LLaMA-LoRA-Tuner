@@ -4,3 +4,10 @@
     padding: var(--spacing-xs) var(--spacing-md);
     background: var(--background-fill-secondary);
 }
+
+pre .tag {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+}
