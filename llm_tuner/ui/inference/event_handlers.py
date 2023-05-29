@@ -175,6 +175,7 @@ def handle_generate(
             # 'max_new_tokens': max_new_tokens,
             'stopping_criteria': [ui_generation_stopping_criteria],
             'stop_sequences': stop_sequences,
+            'skip_special_tokens': model_preset.tokenizer_skip_special_tokens,
             'stream_output': stream_output
         }
 

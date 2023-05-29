@@ -84,6 +84,20 @@ class ModelPreset:
         return tokenizer_data.get('args', {})
 
     @property
+    def tokenizer_skip_special_tokens(self):
+        skip_special_tokens = True
+        if self.is_using_custom_tokenizer:
+            if self.data['custom_tokenizer'].get('skip_special_tokens') is False:
+                skip_special_tokens = False
+
+        if skip_special_tokens:
+            tokenizer_data = self.data.get('tokenizer', {})
+            if tokenizer_data.get('skip_special_tokens') is False:
+                skip_special_tokens = False
+
+        return skip_special_tokens
+
+    @property
     def model_class(self):
         return self.data['model'].get('class')
 

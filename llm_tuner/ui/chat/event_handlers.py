@@ -405,6 +405,7 @@ def handle_generate(
             'generation_config': generation_config,
             'stopping_criteria': [ui_generation_stopping_criteria],
             'stop_sequences': stop_sequences,
+            'skip_special_tokens': model_preset.tokenizer_skip_special_tokens,
             'stream_output': True
         }
 
